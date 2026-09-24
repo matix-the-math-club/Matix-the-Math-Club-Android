@@ -30,13 +30,13 @@
   .fld label{display:block;font-size:.8rem;font-weight:700;color:var(--muted);margin-bottom:5px}
   input,textarea,select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:.95rem;background:#fff;font-family:inherit;color:var(--text)}
   input:focus,textarea:focus,select:focus{outline:none;border-color:var(--brand)}
-  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:none;border-radius:var(--radius);padding:10px 16px;font-size:.92rem;font-weight:700;background:var(--brand);color:#fff;transition:filter .15s,transform .1s}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:none;border-radius:var(--radius);padding:10px 16px;font-size:.92rem;font-weight:700;background:var(--brand);color:#fff;transition:filter .15s,transform .1s,box-shadow .15s}
   .btn:hover{filter:brightness(1.06)}
   .btn:active{transform:translateY(1px)}
   .btn:disabled{opacity:.55;cursor:default}
   .btn.block{width:100%}
   .btn.ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
-  .btn.ghost:hover{background:var(--hover);filter:none}
+  .btn.ghost:hover{background:var(--hover);filter:none;box-shadow:0 2px 8px rgba(0,0,0,.03)}
   .btn.accent{background:linear-gradient(90deg,var(--accent),#ff8a4c);color:#3a1d00}
   .btn.sm{padding:6px 11px;font-size:.82rem}
   .btn.danger{background:transparent;color:var(--red);border:1px solid var(--border)}
@@ -113,8 +113,9 @@
   .hero .badge{display:inline-block;background:rgba(255,255,255,.2);padding:4px 12px;border-radius:20px;font-size:.75rem;font-weight:700;letter-spacing:.04em;margin-bottom:12px}
   .hero h1{font-size:1.9rem;font-weight:800;margin-bottom:8px}
   .hero p{opacity:.94;max-width:560px}
-  .card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:14px;transition:box-shadow .15s}
+  .card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:14px;transition:box-shadow .15s,border-color .15s,transform .15s}
   .card.hover:hover{box-shadow:var(--shadow)}
+  .card.elevated:hover{box-shadow:0 12px 30px rgba(40,63,113,.09);border-color:#d9d7f2;transform:translateY(-1px)}
   .callout{display:flex;gap:12px;align-items:flex-start;background:var(--soft);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:14px}
   .callout .ci{font-size:1.3rem;flex-shrink:0}
   .callout h3{font-size:1rem;margin-bottom:3px}
@@ -137,6 +138,7 @@
   .empty{text-align:center;color:var(--muted);padding:50px 10px}
   .empty .big{font-size:2.4rem;margin-bottom:10px}
   .stage{width:100%;height:min(70vh,640px);border:1px solid var(--border);border-radius:12px;background:#fff}
+  .stage:focus{outline:2px solid rgba(91,70,201,.22);outline-offset:2px}
   label.fl{display:block;font-weight:700;font-size:.85rem;margin:16px 0 5px}
   .hint-item{border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:10px;padding:14px 16px;margin-bottom:12px;background:#fff}
   .hint-item h3{font-size:1rem;margin-bottom:4px}
@@ -164,12 +166,13 @@
   .new{font-size:.58rem;font-weight:800;color:#052e16;background:linear-gradient(90deg,#fbbf24,#fde047);border-radius:9px;padding:1px 6px;margin-left:7px;vertical-align:middle}
   .toggle{display:flex;align-items:center;gap:10px;font-size:.88rem;color:#4b4a47;padding:5px 0;cursor:pointer}
   .toggle input{width:16px;height:16px;accent-color:var(--brand)}
-  .ide{border-radius:11px;overflow:hidden;border:1px solid #26263a;margin-top:6px}
+  .ide{border-radius:11px;overflow:hidden;border:1px solid #26263a;margin-top:6px;box-shadow:0 12px 28px rgba(0,0,0,.06)}
   .ide-bar{display:flex;align-items:center;gap:9px;background:linear-gradient(90deg,#2b2b40,#1c1c2b);padding:9px 13px}
   .ide-bar i{width:11px;height:11px;border-radius:50%;display:inline-block}
   .ide-bar i:nth-child(1){background:#ff5f56}.ide-bar i:nth-child(2){background:#ffbd2e}.ide-bar i:nth-child(3){background:#27c93f}
   .ide-bar .f{color:#aab0c6;font:600 13px ui-monospace,Menlo,Consolas,monospace;margin-left:4px}
   .ide-ta{display:block;width:100%;min-height:300px;background:#16161f;color:#e7e7f2;caret-color:#a78bfa;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.6;white-space:pre;tab-size:2;border:none;outline:none;padding:15px;resize:vertical}
+  .muted-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:rgba(91,70,201,.08);color:var(--brand);font-size:.74rem;font-weight:700;letter-spacing:.02em}
 
   /* ---------- Command palette ---------- */
   .overlay{position:fixed;inset:0;background:rgba(30,30,30,.4);display:none;align-items:flex-start;justify-content:center;padding:90px 16px 16px;z-index:150;backdrop-filter:blur(2px)}
@@ -1525,7 +1528,7 @@ html.mx-booting #titlebar,html.mx-booting #app,html.mx-booting #gate{visibility:
 #mxBoot{position:fixed;inset:0;z-index:99999;display:flex;
   align-items:center;justify-content:center;text-align:center;padding:24px;
   overflow:hidden;
-  background:var(--mxa-canvas,#0b0b0c);
+  background:radial-gradient(circle at 50% 48%,rgba(91,70,201,.16),transparent 28%),var(--mxa-canvas,#0b0b0c);
   background-image:radial-gradient(var(--mxa-dot,rgba(255,255,255,.075)) 1px,transparent 1px);
   background-size:22px 22px;
   color:var(--mxa-ink,#fff);
@@ -3294,8 +3297,8 @@ function gamesEdit(c,id){
   fbGet('/hubprojects/'+id).then(function(p){
     if(!p){$('gEdit').innerHTML='<div class="empty">Game not found.</div>';return;}
     if(!(ME===p.author||isOwner())){$('gEdit').innerHTML='<div class="empty"><div class="big">🔒</div>You can only edit your own games.</div>';return;}
-    var h='<div class="page-title" style="font-size:1.5rem"><span class="emoji">✏</span>Edit game</div><div class="page-sub">Update the code, then save.</div>';
-    h+='<div class="card"><label class="fl">Project name</label><input id="editName" value="'+esc(p.name||'')+'"><div class="ide" style="margin-top:10px"><div class="ide-bar"><i></i><i></i><i></i><span class="f">index.html</span></div><textarea id="editSrc" class="ide-ta" spellcheck="false"></textarea></div><div class="row" style="margin-top:12px"><button class="btn ghost" id="editRun">▶ Run / Preview</button><button class="btn ghost" id="editReset">↺ Reset to default</button></div><div id="editResult" style="margin-top:14px"><iframe class="stage" id="editStage" sandbox="allow-scripts allow-same-origin"></iframe></div><hr style="border:none;border-top:1px solid var(--border);margin:16px 0"><label class="fl">Confirm your password</label><input id="editPw" type="password" placeholder="retype your password"><div class="err" id="editErr"></div><div class="row" style="margin-top:12px"><button class="btn" id="editSave">Save changes</button><button class="btn ghost" id="editCancel">Cancel</button></div></div>';
+    var h='<div class="page-title" style="font-size:1.5rem"><span class="emoji">✏</span>Edit game</div><div class="page-sub">Update the code, preview it live, then save your changes.</div>';
+    h+='<div class="card elevated"><div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px"><label class="fl" style="margin:0">Project name</label><span class="muted-pill">Live preview</span></div><input id="editName" value="'+esc(p.name||'')+'"><div class="ide" style="margin-top:10px"><div class="ide-bar"><i></i><i></i><i></i><span class="f">index.html</span></div><textarea id="editSrc" class="ide-ta" spellcheck="false"></textarea></div><div class="row" style="margin-top:12px"><button class="btn ghost" id="editRun">▶ Preview</button><button class="btn ghost" id="editReset">↺ Reset to default</button></div><div id="editResult" style="margin-top:14px"><iframe class="stage" id="editStage" sandbox="allow-scripts allow-same-origin"></iframe></div><hr style="border:none;border-top:1px solid var(--border);margin:16px 0"><label class="fl">Confirm your password</label><input id="editPw" type="password" placeholder="retype your password"><div class="err" id="editErr"></div><div class="row" style="margin-top:12px"><button class="btn" id="editSave">Save changes</button><button class="btn ghost" id="editCancel">Cancel</button></div></div>';
     $('gEdit').innerHTML=h;
     var es=$('editSrc');es.value=p.html||'';
     es.addEventListener('keydown',function(ev){if(ev.key==='Tab'){ev.preventDefault();var a=es.selectionStart,b=es.selectionEnd;es.value=es.value.slice(0,a)+'  '+es.value.slice(b);es.selectionStart=es.selectionEnd=a+2;}});
@@ -3337,14 +3340,14 @@ async function aiGenerate(p){
 function gamesCreate(c){
   var rem=isOwner()?'∞':'';
   c.innerHTML='<div class="wrap wide"><a class="btn sm ghost" id="gBack">← Back</a>'+
-    '<div class="page-title" style="margin-top:14px"><span class="emoji">✨</span>New game</div><div class="page-sub">Make it with AI, write your own code, or upload an HTML file — then publish it for everyone.</div>'+
+    '<div class="page-title" style="margin-top:14px"><span class="emoji">✨</span>New game</div><div class="page-sub">Make it with AI, write your own code, or upload an HTML file — then publish it for the club.</div>'+
     '<div class="seg" style="margin-bottom:18px"><button data-p="ai" class="active">✨ Make with AI</button><button data-p="code">&lt;/&gt; Code</button><button data-p="up">⬆ Upload HTML</button></div>'+
     '<div id="paneAI"></div><div id="paneCode" style="display:none"></div><div id="paneUp" style="display:none"></div></div>';
   $('gBack').onclick=function(){gamesView={name:'list'};renderGames(c);};
   /* AI pane */
-  $('paneAI').innerHTML='<div class="card"><label class="fl">Describe what you want to make</label><textarea id="aiPrompt" rows="3" placeholder="e.g. a balloon-pop addition game · a drawing app · a memory quiz"></textarea><button class="btn" id="aiGen" style="margin-top:12px">✨ Generate with AI</button><div class="err" id="aiErr"></div><div id="aiResult" style="display:none;margin-top:14px"><iframe class="stage" id="aiStage" sandbox="allow-scripts allow-same-origin"></iframe><hr style="border:none;border-top:1px solid var(--border);margin:16px 0"><label class="fl">Project name</label><input id="aiName" placeholder="My Awesome Game"><label class="fl">Confirm your password</label><input id="aiPw" type="password" placeholder="retype your password"><button class="btn" id="aiPub" style="margin-top:12px">Publish</button><div class="err" id="aiPubErr"></div></div></div>';
+  $('paneAI').innerHTML='<div class="card elevated"><div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px"><label class="fl" style="margin:0">Describe what you want to make</label><span class="muted-pill">AI draft</span></div><textarea id="aiPrompt" rows="3" placeholder="e.g. a balloon-pop addition game · a drawing app · a memory quiz"></textarea><button class="btn" id="aiGen" style="margin-top:12px">✨ Generate with AI</button><div class="err" id="aiErr"></div><div id="aiResult" style="display:none;margin-top:14px"><iframe class="stage" id="aiStage" sandbox="allow-scripts allow-same-origin"></iframe><hr style="border:none;border-top:1px solid var(--border);margin:16px 0"><label class="fl">Project name</label><input id="aiName" placeholder="My Awesome Game"><label class="fl">Confirm your password</label><input id="aiPw" type="password" placeholder="retype your password"><button class="btn" id="aiPub" style="margin-top:12px">Publish</button><div class="err" id="aiPubErr"></div></div></div>';
   /* Code pane */
-  $('paneCode').innerHTML='<div class="card"><div class="ide"><div class="ide-bar"><i></i><i></i><i></i><span class="f">index.html</span></div><textarea id="codeSrc" class="ide-ta" spellcheck="false"></textarea></div><div class="row" style="margin-top:12px"><button class="btn" id="codeRun">▶ Run / Preview</button><button class="btn ghost" id="codeReset">↺ Reset</button></div><div id="codeResult" style="display:none;margin-top:14px"><iframe class="stage" id="codeStage" sandbox="allow-scripts allow-same-origin"></iframe><hr style="border:none;border-top:1px solid var(--border);margin:16px 0"><label class="fl">Project name</label><input id="codeName" placeholder="My Awesome Game"><label class="fl">Confirm your password</label><input id="codePw" type="password" placeholder="retype your password"><button class="btn" id="codePub" style="margin-top:12px">Publish</button><div class="err" id="codeErr"></div></div></div>';
+  $('paneCode').innerHTML='<div class="card elevated"><div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px"><label class="fl" style="margin:0">Code editor</label><span class="muted-pill">HTML only</span></div><div class="ide"><div class="ide-bar"><i></i><i></i><i></i><span class="f">index.html</span></div><textarea id="codeSrc" class="ide-ta" spellcheck="false"></textarea></div><div class="row" style="margin-top:12px"><button class="btn" id="codeRun">▶ Preview</button><button class="btn ghost" id="codeReset">↺ Reset to starter code</button></div><div id="codeResult" style="display:none;margin-top:14px"><iframe class="stage" id="codeStage" sandbox="allow-scripts allow-same-origin"></iframe><hr style="border:none;border-top:1px solid var(--border);margin:16px 0"><label class="fl">Project name</label><input id="codeName" placeholder="My Awesome Game"><label class="fl">Confirm your password</label><input id="codePw" type="password" placeholder="retype your password"><button class="btn" id="codePub" style="margin-top:12px">Publish</button><div class="err" id="codeErr"></div></div></div>';
   /* Upload pane */
   $('paneUp').innerHTML='<div class="card"><label class="fl">Project name</label><input id="upName" placeholder="My Awesome Game"><label class="fl">Game file (index.html)</label><input id="upFile" type="file" accept=".html,text/html"><label class="fl">Thumbnail (optional)</label><input id="upThumb" type="file" accept="image/*"><label class="fl">Confirm your password</label><input id="upPw" type="password" placeholder="retype your password"><div class="err" id="upErr"></div><button class="btn" id="upPub" style="margin-top:14px">Publish</button></div>';
   document.querySelectorAll('[data-p]').forEach(function(b){b.onclick=function(){document.querySelectorAll('[data-p]').forEach(function(x){x.classList.remove('active');});b.classList.add('active');$('paneAI').style.display=b.dataset.p==='ai'?'':'none';$('paneCode').style.display=b.dataset.p==='code'?'':'none';$('paneUp').style.display=b.dataset.p==='up'?'':'none';};});
