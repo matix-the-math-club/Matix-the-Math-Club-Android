@@ -3333,9 +3333,19 @@ function titleOf(html){try{var m=(html||'').match(/<title[^>]*>([^<]*)<\/title>/
 async function aiGenerate(p){
   var base='https://'+'text.pollinations'+'.ai';
   var msgs=[{role:'system',content:AI_SYS},{role:'user',content:'Make this: '+p}];
-  try{var r=await aiTimeout(fetch(base+'/openai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'openai',messages:msgs,referrer:'matixmathclub'})}),26000);if(r.ok){var j=await r.json();var t=(j&&j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content)||'';var h=cleanHtml(t);if(looksLikeHtml(h)&&h.length>120)return stampMatix(h);}}catch(e){}
-  try{var r2=await aiTimeout(fetch(base+'/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:msgs,model:'openai',referrer:'matixmathclub'})}),26000);if(r2.ok){var h2=cleanHtml(await r2.text());if(looksLikeHtml(h2)&&h2.length>120)return stampMatix(h2);}}catch(e){}
-  return null; /* signal failure -> UI shows message */
+  async function tryOnce(){
+    try{var r=await aiTimeout(fetch(base+'/openai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'openai',messages:msgs,referrer:'matixmathclub'})}),30000);if(r.ok){var j=await r.json();var t=(j&&j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content)||'';var h=cleanHtml(t);if(looksLikeHtml(h)&&h.length>120)return stampMatix(h);}}catch(e){}
+    try{var r2=await aiTimeout(fetch(base+'/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:msgs,model:'openai',referrer:'matixmathclub'})}),30000);if(r2.ok){var h2=cleanHtml(await r2.text());if(looksLikeHtml(h2)&&h2.length>120)return stampMatix(h2);}}catch(e){}
+    return null;
+  }
+  var out=await tryOnce();
+  if(out)return out;
+  /* the free Pollinations endpoint is sometimes briefly overloaded \u2014
+     one short-pause retry clears most of those before we tell the user
+     to switch tabs */
+  await new Promise(function(res){setTimeout(res,900);});
+  return tryOnce();
+  /* signal failure -> UI shows message */
 }
 function gamesCreate(c){
   var rem=isOwner()?'∞':'';
@@ -3507,24 +3517,27 @@ function renderGamePlay(c,id){
 var TR_LANGS=['Arabic','English','French','Spanish','German','Turkish','Italian','Portuguese','Russian','Japanese','Korean','Chinese (Simplified)','Hindi','Dutch','Polish','Ukrainian'];
 var TR_LAST=null;
 function trCall(sys,user){
-  var payload,headers;
-  if(aiProvider()==='gemini'){
-    payload={systemInstruction:{parts:[{text:sys}]},contents:[{role:'user',parts:[{text:user}]}],generationConfig:{temperature:0,maxOutputTokens:4096}};
-    headers={'Content-Type':'application/json','x-goog-api-key':(GEMINI_KEY||'').trim()};
-  }else{
-    payload={model:aiModel(),messages:[{role:'system',content:sys},{role:'user',content:user}],temperature:0,max_tokens:4096};
-    headers={'Content-Type':'application/json','Authorization':'Bearer '+(GEMINI_KEY||'')};
-    if(aiProvider()==='openrouter'){headers['HTTP-Referer']='https://matixthemathclub.com';headers['X-Title']='Matix';}
-  }
-  return aiTimeout(fetch(aiEndpoint(),{method:'POST',headers:headers,body:JSON.stringify(payload)}),45000).then(function(r){
-    return r.json().then(function(j){
-      if(r.status!==200)throw new Error('HTTP '+r.status+aiWhy(j));
-      var tx='';
-      if(aiProvider()==='gemini'){var parts=(((j.candidates||[])[0]||{}).content||{}).parts||[];parts.forEach(function(p){if(p.text)tx+=p.text;});}
-      else{tx=String((((j.choices||[])[0]||{}).message||{}).content||'');}
-      if(!tx)throw new Error('The AI sent back an empty reply.');
-      return tx.trim();
-    });
+  var prov=aiProvider();
+  var mkBody=function(){
+    if(prov==='gemini'){
+      return {systemInstruction:{parts:[{text:sys}]},contents:[{role:'user',parts:[{text:user}]}],generationConfig:{temperature:0,maxOutputTokens:4096}};
+    }
+    return {model:aiModel(),messages:[{role:'system',content:sys},{role:'user',content:user}],temperature:0,max_tokens:4096};
+  };
+  var mkHeaders=function(){
+    if(prov==='gemini')return {'Content-Type':'application/json','x-goog-api-key':(GEMINI_KEY||'').trim()};
+    var h={'Content-Type':'application/json','Authorization':'Bearer '+(GEMINI_KEY||'')};
+    if(prov==='openrouter'){h['HTTP-Referer']='https://matixthemathclub.com';h['X-Title']='Matix';}
+    return h;
+  };
+  return aiRequestRetry(mkBody,mkHeaders,45000).then(function(res){
+    var status=res.status,j=res.json;
+    if(status!==200)throw new Error('HTTP '+status+aiWhy(j));
+    var tx='';
+    if(prov==='gemini'){var parts=(((j.candidates||[])[0]||{}).content||{}).parts||[];parts.forEach(function(p){if(p.text)tx+=p.text;});}
+    else{tx=String((((j.choices||[])[0]||{}).message||{}).content||'');}
+    if(!tx)throw new Error('The AI sent back an empty reply.');
+    return tx.trim();
   });
 }
 function renderTranslate(c){
@@ -5864,24 +5877,25 @@ function lrnExPull(){
    ===================================================================== */
 function lrnAiJson(prompt,maxTok){
   if(!GEMINI_KEY)return Promise.reject(new Error('nokey'));
-  var prov=aiProvider(),h={'Content-Type':'application/json'},payload;
-  if(prov==='gemini'){
-    /* Gemini speaks its own dialect: key in a header, contents instead of messages */
-    h['x-goog-api-key']=GEMINI_KEY;
-    payload={contents:[{role:'user',parts:[{text:prompt}]}],
-             generationConfig:{temperature:0.3,maxOutputTokens:maxTok||2200}};
-  }else{
-    h['Authorization']='Bearer '+GEMINI_KEY;
+  var prov=aiProvider();
+  var mkBody=function(){
+    if(prov==='gemini'){
+      return {contents:[{role:'user',parts:[{text:prompt}]}],
+              generationConfig:{temperature:0.3,maxOutputTokens:maxTok||2200}};
+    }
+    return {model:aiModel(),messages:[{role:'user',content:prompt}],
+            temperature:0.3,max_tokens:maxTok||2200};
+  };
+  var mkHeaders=function(){
+    if(prov==='gemini')return {'Content-Type':'application/json','x-goog-api-key':(GEMINI_KEY||'').trim()};
+    var h={'Content-Type':'application/json','Authorization':'Bearer '+GEMINI_KEY};
     if(prov==='openrouter'){h['HTTP-Referer']='https://matixthemathclub.com';h['X-Title']='Matix';}
-    payload={model:aiModel(),messages:[{role:'user',content:prompt}],
-             temperature:0.3,max_tokens:maxTok||2200};
-  }
-  return aiTimeout(fetch(aiEndpoint(),{method:'POST',headers:h,body:JSON.stringify(payload)}),45000)
-    .then(function(r){
-      return r.json()['catch'](function(){return {};}).then(function(j){
-        if(r.status!==200)throw new Error('HTTP '+r.status+' \u2014 '+String((j&&j.error&&j.error.message)||'no details given').slice(0,200));
-        return j;
-      });
+    return h;
+  };
+  return aiRequestRetry(mkBody,mkHeaders,45000)
+    .then(function(res){
+      if(res.status!==200)throw new Error('HTTP '+res.status+' \u2014 '+String((res.json&&res.json.error&&res.json.error.message)||'no details given').slice(0,200));
+      return res.json;
     },function(e){throw new Error('Network error: '+String((e&&e.message)||e));})
     .then(function(j){
     var txt='';
@@ -7178,6 +7192,43 @@ function aiGemToOpenai(j){
   if(calls.length)msg.tool_calls=calls;
   return {choices:[{message:msg}]};
 }
+/* =====================================================================
+   ONE retry-safe request path, shared by every AI feature in the app
+   (chat, lesson writer, placement test, translator, "test it"). Two
+   problems used to be fixed only in the chat code path and nowhere
+   else: Google renaming/retiring a Gemini model (we retry the same
+   request against the next name in GEM_MODELS) and plain transient
+   failures \u2014 a dropped connection, a 429 rate limit, or a 5xx from
+   the provider. Routing every call through here means both fixes now
+   apply everywhere at once, and a school wifi hiccup no longer needs
+   the user to manually retry.
+   ===================================================================== */
+function aiTransientStatus(status){
+  return status===429||status===500||status===502||status===503||status===504;
+}
+function aiBackoff(n){return new Promise(function(res){setTimeout(res,500*Math.pow(2,n));});}
+function aiRequestRetry(mkBody,mkHeaders,timeoutMs,attempt){
+  attempt=attempt||0;
+  var isGemini=aiProvider()==='gemini';
+  return aiTimeout(fetch(aiEndpoint(),{method:'POST',headers:mkHeaders(),body:JSON.stringify(mkBody())}),timeoutMs||45000)
+    .then(function(r){
+      return r.json()['catch'](function(){return {};}).then(function(j){
+        if(isGemini&&r.status!==200&&aiGemModelMissing(r.status,j)&&aiGemNextModel()){
+          console.warn('Matix AI: that Gemini model is gone, retrying with '+aiModel());
+          return aiRequestRetry(mkBody,mkHeaders,timeoutMs,attempt);
+        }
+        if(r.status!==200&&aiTransientStatus(r.status)&&attempt<2){
+          return aiBackoff(attempt).then(function(){return aiRequestRetry(mkBody,mkHeaders,timeoutMs,attempt+1);});
+        }
+        return {status:r.status,json:j};
+      });
+    },function(e){
+      /* network error / our own timeout \u2014 worth a couple of quiet retries
+         before we bother the user with an error */
+      if(attempt<2)return aiBackoff(attempt).then(function(){return aiRequestRetry(mkBody,mkHeaders,timeoutMs,attempt+1);});
+      throw e;
+    });
+}
 function aiCall(strict){
   if(aiProvider()==='gemini'){
     var gd=aiGemDecls();
@@ -7188,27 +7239,18 @@ function aiCall(strict){
       if(gd.length)b.tools=[{functionDeclarations:gd}];
       return b;
     };
-    var shot=function(){
-      return aiTimeout(fetch(aiEndpoint(),{method:'POST',
-        headers:{'Content-Type':'application/json','x-goog-api-key':(GEMINI_KEY||'').trim()},
-        body:JSON.stringify(mkBody())}),45000).then(function(r){
-        return r.json()['catch'](function(){return {};}).then(function(j){
-          if(r.status!==200&&aiGemModelMissing(r.status,j)&&aiGemNextModel()){
-            console.warn('Matix AI: that Gemini model is gone, retrying with '+aiModel());
-            return shot();
-          }
-          return {status:r.status,json:(r.status===200?aiGemToOpenai(j):j)};
-        });
-      });
-    };
-    return shot();
+    var mkHeaders=function(){return {'Content-Type':'application/json','x-goog-api-key':(GEMINI_KEY||'').trim()};};
+    return aiRequestRetry(mkBody,mkHeaders,45000).then(function(res){
+      return {status:res.status,json:(res.status===200?aiGemToOpenai(res.json):res.json)};
+    });
   }
-  var body={model:aiModel(),messages:[{role:'system',content:aiSystem()}].concat(AI_TURNS),tools:aiDeclarations(),tool_choice:'auto',temperature:(strict?0:0.3),max_tokens:8192};
-  var h={'Content-Type':'application/json','Authorization':'Bearer '+(GEMINI_KEY||'')};
-  if(aiProvider()==='openrouter'){h['HTTP-Referer']='https://matixthemathclub.com';h['X-Title']='Matix';}
-  return aiTimeout(fetch(aiEndpoint(),{method:'POST',headers:h,body:JSON.stringify(body)}),45000).then(function(r){
-    return r.json().then(function(j){return {status:r.status,json:j};})['catch'](function(){return {status:r.status,json:{}};});
-  });
+  var mkBody=function(){return {model:aiModel(),messages:[{role:'system',content:aiSystem()}].concat(AI_TURNS),tools:aiDeclarations(),tool_choice:'auto',temperature:(strict?0:0.3),max_tokens:8192};};
+  var mkHeaders=function(){
+    var h={'Content-Type':'application/json','Authorization':'Bearer '+(GEMINI_KEY||'')};
+    if(aiProvider()==='openrouter'){h['HTTP-Referer']='https://matixthemathclub.com';h['X-Title']='Matix';}
+    return h;
+  };
+  return aiRequestRetry(mkBody,mkHeaders,45000);
 }
 function aiToolFail(j){
   var e=(j&&j.error)||{};
