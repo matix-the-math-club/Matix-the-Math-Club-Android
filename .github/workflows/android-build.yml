@@ -1,9 +1,10 @@
 name: Android build (APK + AAB)
 
-# Official build pipeline for the Matix the Math Club app. Produces a
-# release APK (sideload/manual install) and a release AAB (Play Store
-# upload) on every push to main, every tag, manual runs, and pull
-# requests (build-only, no artifacts kept beyond the PR check).
+# Official build pipeline for the Matix the Math Club app. 
+# Produces a release APK (sideload/manual install) and a release AAB 
+# (Play Store upload) on every push to main, every tag, manual runs, 
+# and pull requests (build-only, no artifacts kept beyond the PR check).
+
 on:
   push:
     branches: [main]
@@ -62,6 +63,7 @@ jobs:
         run: ./gradlew :app:bundleRelease --stacktrace
 
       - name: Upload APK artifact
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: matix-release-apk
@@ -70,6 +72,7 @@ jobs:
           retention-days: 30
 
       - name: Upload AAB artifact
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: matix-release-aab
