@@ -189,11 +189,16 @@ class MainActivity : ComponentActivity() {
         applyWebViewDarkMode()
     }
 
-    /** Lets the WebView follow the system light/dark setting. */
+    /**
+     * The web app ships its own light and dark themes (toggled inside the app),
+     * so the WebView must NOT auto-darken it. Force-darkening a page that is
+     * already in light mode inverts text/background colours and is what made
+     * some light-mode text unreadable on phones set to dark mode.
+     */
     private fun applyWebViewDarkMode() {
         if (!WebViewFeature.isFeatureSupported(WebViewFeature.ALGORITHMIC_DARKENING)) return
         runCatching {
-            WebSettingsCompat.setAlgorithmicDarkeningAllowed(webView.settings, true)
+            WebSettingsCompat.setAlgorithmicDarkeningAllowed(webView.settings, false)
         }
     }
 
