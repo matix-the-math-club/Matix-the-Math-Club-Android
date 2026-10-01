@@ -6780,7 +6780,7 @@ var GEMINI_KEY='';   /* never hardcode a key here — GitHub blocks the push. Se
 var GEMINI_MODEL='gemini-2.0-flash';   /* supports function calling */
 /* Google retires model names without warning, so keep a fallback ladder.
    If one name 404s we quietly move to the next and retry the same request. */
-var GEM_MODELS=['gemini-2.0-flash','gemini-2.5-flash','gemini-flash-latest','gemini-1.5-flash-latest','gemini-pro-latest'];
+var GEM_MODELS=['gemini-2.5-flash','gemini-2.0-flash','gemini-flash-latest','gemini-1.5-flash-latest','gemini-pro-latest'];
 var GEM_MI=0;
 function aiGemNextModel(){if(GEM_MI<GEM_MODELS.length-1){GEM_MI++;return true;}return false;}
 function aiGemModelMissing(status,j){
@@ -7133,7 +7133,7 @@ function aiSystem(){
    +'You also have add_todo/list_todos/add_note/list_notes tools for the user\u2019s own Private page \u2014 use them whenever they ask you to remember something, keep a list, or take notes for them. '
    +'When asked for a game, write the whole game yourself and call add_game with a complete single-file HTML document: inline CSS and JavaScript, no external files, no libraries, works on a phone and a computer, and it must be a maths game because this is a maths club. '
    +'Never invent a tool that is not in your list. If a tool result starts with ERROR, tell the user plainly what went wrong. '
-   +'Keep replies short and friendly, one or two sentences, no markdown headings.';
+   +'For maths questions, think step by step, show the working clearly, double-check the final answer, and explain the idea in plain friendly language. For simple chat or app tasks keep replies short and friendly. Remember earlier messages in the conversation and use them. No markdown headings.';
 }
 /* =====================================================================
    GEMINI ADAPTER
@@ -14854,5 +14854,1884 @@ if(document.readyState==='loading'){
   window.mxaLogos=logos;
 })();
 </script>
+<!-- MXV5:BEGIN -->
+<style id="mxV5Css">
+/* =====================================================================
+   MATIX v5 — ONE clearly separated block (CSS here, JS in #mxV5Js).
+   Sections: 1 BETA badge · 2 light-mode text fixes · 3 movable dock ·
+   4 Matix AI chat · 5 Math Learn adventure · 6 responsive polish
+   ===================================================================== */
+
+/* ---------- 1. BETA badge ---------- */
+.mx-beta{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;margin-left:.45em;padding:.2em .6em;border-radius:999px;
+  font:800 .56rem/1.1 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:.07em;text-transform:uppercase;vertical-align:middle;white-space:nowrap;
+  background:#5b3fe0;color:#fff;-webkit-text-fill-color:#fff;box-shadow:0 0 0 1.5px rgba(255,255,255,.55) inset,0 2px 6px rgba(91,63,224,.35);
+  position:relative;top:-.08em;flex-shrink:0;pointer-events:none}
+.mx-beta.lg{font-size:.64rem;padding:.26em .72em}
+body.dark .mx-beta{background:#d8cfff;color:#22145f;-webkit-text-fill-color:#22145f;box-shadow:0 0 0 1.5px rgba(34,20,95,.25) inset,0 2px 6px rgba(0,0,0,.35)}
+.lb-dock button[data-dock="ai"]{position:relative}
+.lb-dock button[data-dock="ai"] .mx-beta{position:absolute;top:-2px;right:-2px;margin:0;font-size:.44rem;padding:.2em .5em;letter-spacing:.05em}
+
+/* ---------- 2. light-mode text fixes ----------
+   Root cause: the light theme repaints the title bar ivory, but the tab strip,
+   icon buttons and a few helper texts kept their old "white on brand colour"
+   styling, so they became invisible. Muted greys were also too pale. */
+body:not(.dark){--mxa-dim:rgba(20,21,26,.74);--mxa-dim2:rgba(20,21,26,.6)}
+body:not(.dark) .tb-ico-btn{color:var(--mxa-ink);background:rgba(20,21,26,.07)}
+body:not(.dark) .tb-ico-btn:hover{background:rgba(20,21,26,.14)}
+body:not(.dark) .tb-btn{color:var(--mxa-ink)}
+body:not(.dark) .tb-btn:hover{background:rgba(20,21,26,.08)}
+body:not(.dark) .tb-btn.close:hover{background:#e81123;color:#fff}
+body:not(.dark) .tb-tabs .tab{color:var(--mxa-dim)}
+body:not(.dark) .tb-tabs .tab:hover{background:rgba(20,21,26,.07);color:var(--mxa-ink)}
+body:not(.dark) .tb-tabs .tab.active{background:#fff;color:var(--mxa-ink);box-shadow:inset 0 -2px 0 var(--mxa-accent),0 1px 3px rgba(20,21,26,.12)}
+body:not(.dark) .tb-tabs .tab .x{color:var(--mxa-dim)}
+body:not(.dark) .tb-tabs .tab-add{color:var(--mxa-ink)}
+body:not(.dark) .tb-tabs .tab-add:hover{background:rgba(20,21,26,.08);color:var(--mxa-ink)}
+body:not(.dark) .tb-title{color:var(--mxa-ink)}
+body:not(.dark) .rolechip{color:#23469b}
+body:not(.dark) .rolechip.own{color:#fff}
+body:not(.dark) .lb-foot,body:not(.dark) .empty,body:not(.dark) .page-sub{color:var(--mxa-dim)}
+body:not(.dark) input::placeholder,body:not(.dark) textarea::placeholder{color:rgba(20,21,26,.55)}
+
+/* ---------- 3. movable + lockable bottom menu ---------- */
+.lb-dock{touch-action:manipulation;max-width:calc(100vw - 16px)}
+.lb-dock.mx-dock-free{left:auto;bottom:auto;transform:none;animation:none}
+.lb-dock.mx-dock-v{flex-direction:column;border-radius:26px;max-height:calc(100vh - 16px);overflow-y:auto}
+.lb-dock.mx-dock-v button[data-dock]{min-width:54px}
+.mx-dock-tools{display:grid;grid-auto-flow:column;grid-template-rows:repeat(2,26px);gap:3px;align-content:center;flex-shrink:0}
+.lb-dock .mx-dock-tools button{min-width:0;width:26px;height:26px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;line-height:1;
+  color:var(--mxa-dim,#555) !important;background:rgba(20,21,26,.06) !important;border:none;flex-shrink:0}
+body.dark .lb-dock .mx-dock-tools button{background:rgba(255,255,255,.1) !important;color:#e8e8ee !important}
+.lb-dock .mx-dock-tools button:hover{transform:none}
+.lb-dock .mx-dock-reset{display:none !important}
+.lb-dock.mx-dock-move .mx-dock-reset{display:flex !important}
+.lb-dock.mx-dock-move{outline:2px dashed var(--mxa-accent,#5b8def);outline-offset:3px;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+.lb-dock.mx-dock-move.mx-dragging{cursor:grabbing;box-shadow:0 18px 50px rgba(20,21,26,.35) !important}
+.lb-dock.mx-dock-move button[data-dock]{pointer-events:none;opacity:.75}
+.lb-dock.mx-dock-collapsed button[data-dock]{display:none}
+.lb-dock.mx-dock-collapsed{padding:5px}
+.lb-dock.mx-dock-collapsed .mx-dock-tools{grid-template-rows:auto}
+.lb-dock.mx-dock-collapsed:not(.mx-dock-move) .mx-dock-lock{display:none}
+.lb-dock.mx-dock-collapsed .mx-dock-min{width:40px;height:40px;font-size:1.05rem}
+body.mx-kb .lb-dock{display:none}
+@media (max-width:360px){.lb-dock button[data-dock]{min-width:42px !important;padding:6px 6px !important}.lb-dock button small{font-size:.54rem}}
+@media (min-width:900px){.lb-dock button[data-dock]{min-width:72px;padding:9px 14px}.lb-dock button small{font-size:.68rem}.lb-dock button[data-dock]>span{font-size:1.2rem}}
+
+/* ===== 4. AI answer rendering (mx5-*) ===== */
+.mx5-work{margin:8px 0 2px;padding:10px 12px;border-radius:12px;background:var(--mxa-accent-soft,rgba(91,141,239,.12));border:1px solid var(--mxa-line,rgba(0,0,0,.1));color:var(--mxa-ink,#1c1d22)}
+.mx5-work>span{display:block;font-size:.7rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--mxa-dim,#555);margin-bottom:4px}
+.mx5-steps{margin:0;padding-left:1.25em;display:grid;gap:4px;line-height:1.45;color:inherit}
+.mx5-md{line-height:1.55;overflow-wrap:anywhere}.mx5-md p{margin:.4em 0}.mx5-md ul,.mx5-md ol{margin:.3em 0;padding-left:1.3em}
+.mx5-code{margin:8px 0;padding:10px 12px;border-radius:10px;overflow-x:auto;font:600 .82rem/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;background:rgba(20,21,26,.07);color:var(--mxa-ink,#1c1d22);white-space:pre}
+body.dark .mx5-code{background:rgba(255,255,255,.08);color:#ecedf2}
+.mx5-note{opacity:.75}
+.mx5-eng{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;font-size:.72rem;font-weight:700;background:rgba(20,21,26,.07);color:var(--mxa-ink,#1c1d22)}
+.mx5-eng.on{background:rgba(32,160,96,.15);color:#0d7a45}
+body.dark .mx5-eng{background:rgba(255,255,255,.1);color:#e8e8ee}body.dark .mx5-eng.on{background:rgba(60,200,130,.18);color:#6fe3a8}
+@media(max-width:480px){.mx5-hide-sm{display:none}}
+
+/* ===== 5. MATH LEARN ADVENTURE (mlv-*) ===== */
+.mlv{--tc:#6a5cff;max-width:1040px;margin:0 auto;padding:clamp(12px,3vw,28px) clamp(12px,3vw,24px) 130px;color:var(--mxa-ink,#1c1d22);font-size:clamp(.95rem,.9rem + .25vw,1.08rem);box-sizing:border-box}
+.mlv *{box-sizing:border-box}
+.mlv h1{font-size:clamp(1.35rem,1rem + 1.8vw,2.1rem);margin:0 0 4px;line-height:1.15}
+.mlv h2{font-size:clamp(1.15rem,1rem + .8vw,1.5rem);margin:0 0 8px;line-height:1.2}
+.mlv h3{font-size:1.02rem;margin:0 0 10px;display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.mlv h3 small{font-weight:600;color:var(--mxa-dim,#555)}
+.mlv p{margin:0 0 8px;line-height:1.5}
+.mlv small{color:var(--mxa-dim,#555)}
+.mlv-hero{display:flex;gap:clamp(10px,2.5vw,20px);align-items:center;padding:clamp(14px,3vw,24px);border-radius:22px;margin-bottom:14px;color:#fff;background:linear-gradient(135deg,#6a5cff,#e2528c 70%,#ff9a3c)}
+.mlv-hero p,.mlv-hero h1{color:#fff}.mlv-hero p{opacity:.95;margin:0}
+.mlv-hero.tight{padding:clamp(10px,2.4vw,18px)}
+.mlv-owl{font-size:clamp(2.2rem,8vw,3.4rem);line-height:1;flex-shrink:0;filter:drop-shadow(0 4px 8px rgba(0,0,0,.25))}
+.mlv-owl.big{font-size:4.2rem;text-align:center;margin-bottom:6px;animation:mlvBob 1.4s ease-in-out infinite}
+@keyframes mlvBob{50%{transform:translateY(-8px)}}
+.mlv-card{background:var(--mxa-panel,#fff);border:1px solid var(--mxa-line,rgba(0,0,0,.1));border-radius:20px;padding:clamp(14px,3vw,22px);margin-bottom:14px;box-shadow:var(--mxa-shadow,0 6px 22px rgba(20,21,26,.07))}
+.mlv-sub{color:var(--mxa-dim,#555);margin:12px 0 8px !important;font-weight:600}
+.mlv-lv{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:760px){.mlv-lv{grid-template-columns:repeat(4,1fr)}}
+.mlv-lvb{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;padding:12px;border-radius:16px;border:2px solid var(--mxa-line,rgba(0,0,0,.12));background:var(--mxa-panel2,#f6f6f9);color:var(--mxa-ink,#1c1d22);cursor:pointer;font:inherit;min-height:92px;transition:transform .12s,border-color .12s}
+.mlv-lvb .e{font-size:1.6rem}.mlv-lvb small{line-height:1.25}
+.mlv-lvb:hover{transform:translateY(-2px)}
+.mlv-lvb.on{border-color:var(--mxa-accent,#5b8def);background:var(--mxa-accent-soft,rgba(91,141,239,.14))}
+.mlv-chips{display:flex;flex-wrap:wrap;gap:8px}
+.mlv-chip{padding:8px 12px;border-radius:999px;border:1.5px solid var(--mxa-line,rgba(0,0,0,.14));background:var(--mxa-panel2,#f6f6f9);color:var(--mxa-ink,#1c1d22);font:inherit;font-size:.9rem;cursor:pointer;min-height:40px}
+.mlv-chip.on{background:var(--mxa-accent,#5b8def);border-color:var(--mxa-accent,#5b8def);color:var(--mxa-accent-ink,#fff)}
+.mlv-text{width:100%;margin-top:12px;padding:12px;border-radius:14px;border:1.5px solid var(--mxa-line,rgba(0,0,0,.14));background:var(--mxa-panel2,#f6f6f9);color:var(--mxa-ink,#1c1d22);font:inherit;resize:vertical;min-height:64px}
+.mlv-text::placeholder,.mlv-input::placeholder{color:var(--mxa-dim2,#777)}
+.mlv-actions{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin-top:14px}
+.mlv .btn{min-height:46px;padding:10px 20px;border-radius:14px;font-size:1rem;color:#fff}
+.mlv-go{flex:0 0 auto}
+.mlv-link{background:none;border:none;padding:8px 4px;font:inherit;font-weight:700;color:var(--mxa-accent,#3d6fe0);cursor:pointer;text-align:left;min-height:40px}
+.mlv-link.dim{color:var(--mxa-dim,#666);font-weight:600}
+.mlv-link:hover{text-decoration:underline}
+.mlv-note{margin-top:12px;padding:10px 12px;border-radius:12px;background:var(--mxa-accent-soft,rgba(91,141,239,.12));color:var(--mxa-ink,#1c1d22);font-size:.9rem;line-height:1.45}
+.mlv-quick{color:var(--mxa-dim,#555);text-align:center;margin-top:6px}
+.mlv-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.mlv-x{width:42px;height:42px;border-radius:50%;border:1px solid var(--mxa-line,rgba(0,0,0,.14));background:var(--mxa-panel,#fff);color:var(--mxa-ink,#1c1d22);font-size:1rem;cursor:pointer;flex-shrink:0}
+.mlv-bar{flex:1;height:12px;border-radius:99px;background:rgba(120,120,140,.22);overflow:hidden}
+.mlv-bar.wide{max-width:360px;margin:10px auto 0;flex:none}
+.mlv-bar>i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#6a5cff,#e2528c);transition:width .35s ease}
+.mlv-bar.time>i{background:linear-gradient(90deg,#20c07a,#ffb020 60%,#ef4b4b);transition:width 1s linear}
+.mlv-pill{padding:6px 12px;border-radius:999px;background:var(--mxa-panel,#fff);border:1px solid var(--mxa-line,rgba(0,0,0,.14));font-weight:800;white-space:nowrap;color:var(--mxa-ink,#1c1d22);font-size:.92rem}
+.mlv-pill.hot.on{background:#fff0e0;border-color:#ff9a3c;color:#b34700}
+body.dark .mlv-pill.hot.on{background:rgba(255,154,60,.18);color:#ffbf80}
+.mlv-qcard{background:var(--mxa-panel,#fff);border:1px solid var(--mxa-line,rgba(0,0,0,.1));border-radius:22px;padding:clamp(14px,3vw,24px);box-shadow:var(--mxa-shadow,0 6px 22px rgba(20,21,26,.07))}
+.mlv-qmeta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.mlv-tag{padding:4px 10px;border-radius:999px;font-size:.78rem;font-weight:800;background:var(--mxa-accent-soft,rgba(91,141,239,.14));color:var(--mxa-ink,#1c1d22)}
+.mlv-tag.soft{background:rgba(120,120,140,.14);color:var(--mxa-dim,#555)}
+.mlv-timer{height:6px;border-radius:99px;background:rgba(120,120,140,.2);overflow:hidden;margin-bottom:10px}
+.mlv-timer>i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#ef4b4b,#ffb020,#20c07a);transform-origin:left}
+.mlv-q{font-size:clamp(1.15rem,1rem + 1.2vw,1.65rem);font-weight:700;line-height:1.35;margin:6px 0 16px;overflow-wrap:anywhere}
+.mlv-q .p{display:block;font-size:.85em;font-weight:600;color:var(--mxa-dim,#555);margin-bottom:4px}
+.mlv-q .b{display:block}
+.mlv-ans.mc{display:grid;grid-template-columns:1fr;gap:10px}
+@media(min-width:520px){.mlv-ans.mc{grid-template-columns:1fr 1fr}}
+.mlv-opt{display:flex;align-items:center;gap:10px;padding:13px 14px;border-radius:14px;border:2px solid var(--mxa-line,rgba(0,0,0,.14));background:var(--mxa-panel2,#f6f6f9);color:var(--mxa-ink,#1c1d22);font:inherit;font-weight:700;font-size:1.05rem;cursor:pointer;min-height:54px;text-align:left;transition:transform .1s,border-color .12s}
+.mlv-opt kbd{font:700 .75rem ui-monospace,monospace;padding:2px 7px;border-radius:6px;background:rgba(120,120,140,.2);color:var(--mxa-dim,#555);flex-shrink:0}
+.mlv-opt:hover:not(:disabled){border-color:var(--mxa-accent,#5b8def);transform:translateY(-1px)}
+.mlv-opt.right{border-color:#1fa463;background:rgba(32,170,100,.16)}
+.mlv-opt.wrong{border-color:#e0483f;background:rgba(224,72,63,.14);animation:mlvShake .35s}
+.mlv-opt:disabled{cursor:default;color:var(--mxa-ink,#1c1d22);opacity:1}
+@keyframes mlvShake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.mlv-ans.num{display:flex;gap:10px;flex-wrap:wrap}
+.mlv-input{flex:1 1 180px;min-width:0;padding:13px 14px;border-radius:14px;border:2px solid var(--mxa-line,rgba(0,0,0,.18));background:var(--mxa-panel2,#f6f6f9);color:var(--mxa-ink,#1c1d22);font:inherit;font-size:1.1rem;font-weight:700}
+.mlv-input.right{border-color:#1fa463}.mlv-input.wrong{border-color:#e0483f}
+.mlv-fb{margin-top:14px;padding:12px 14px;border-radius:14px;line-height:1.45;color:var(--mxa-ink,#1c1d22);animation:mlvPop .25s}
+@keyframes mlvPop{from{transform:scale(.97);opacity:0}}
+.mlv-fb.ok{background:rgba(32,170,100,.14);border:1px solid rgba(32,170,100,.45)}
+.mlv-fb.no{background:rgba(255,154,60,.15);border:1px solid rgba(255,154,60,.55)}
+.mlv-fb.hint{background:rgba(255,205,60,.2);border:1px solid rgba(220,170,20,.5)}
+.mlv-fb .why{margin-top:4px;font-size:.93rem}.mlv-fb .plus{font-weight:900;color:#0d7a45;margin-left:6px}
+body.dark .mlv-fb .plus{color:#6fe3a8}
+.mlv-map{display:grid;gap:8px}
+.mlv-mrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center;padding:8px 10px;border-radius:12px;background:var(--mxa-panel2,#f6f6f9)}
+.mlv-mrow small{grid-column:1/-1}
+.mlv-mrow .n{font-weight:700}
+.mlv-pips{display:inline-flex;gap:4px}.mlv-pips i{width:18px;height:8px;border-radius:99px;background:rgba(120,120,140,.28)}.mlv-pips i.on{background:linear-gradient(90deg,#20c07a,#6a5cff)}
+.mlv-building{text-align:center;padding:clamp(40px,12vh,110px) 10px}
+.mlv-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.mlv-stat{background:var(--mxa-panel,#fff);border:1px solid var(--mxa-line,rgba(0,0,0,.1));border-radius:16px;padding:10px;text-align:center;display:flex;flex-direction:column;gap:2px}
+.mlv-stat span{font-size:1.3rem}.mlv-stat b{font-size:1.3rem}
+.mlv-stat.wide{grid-column:1/-1;text-align:left}
+.mlv-grid{display:grid;grid-template-columns:1fr;gap:0 18px}
+@media(min-width:860px){.mlv-grid{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);align-items:start}}
+.mlv-next{background:linear-gradient(135deg,rgba(106,92,255,.16),rgba(226,82,140,.14));border-color:rgba(106,92,255,.4)}
+.mlv-next small{font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+.mlv-path{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.mlv-path button{width:100%;display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;border:1.5px solid var(--mxa-line,rgba(0,0,0,.12));background:var(--mxa-panel2,#f6f6f9);color:var(--mxa-ink,#1c1d22);font:inherit;text-align:left;cursor:pointer;min-height:56px}
+.mlv-path .dot{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;background:rgba(120,120,140,.22);flex-shrink:0;font-size:.9rem}
+.mlv-path .tx{display:flex;flex-direction:column;min-width:0}.mlv-path .tx b{overflow-wrap:anywhere}
+.mlv-path li.done .dot{background:#20c07a;color:#fff}
+.mlv-path li.cur button{border-color:var(--mxa-accent,#5b8def);background:var(--mxa-accent-soft,rgba(91,141,239,.14))}
+.mlv-path li.cur .dot{background:var(--mxa-accent,#5b8def);color:var(--mxa-accent-ink,#fff)}
+.mlv-path li.lock button{opacity:.7}
+.mlv-quickbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mlv-qb{display:flex;flex-direction:column;gap:2px;padding:14px 10px;border-radius:16px;border:1.5px solid var(--mxa-line,rgba(0,0,0,.14));background:var(--mxa-panel2,#f6f6f9);color:var(--mxa-ink,#1c1d22);font:inherit;font-weight:800;cursor:pointer;min-height:64px}
+.mlv-qb:hover{border-color:var(--mxa-accent,#5b8def)}
+.mlv-badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px}
+.mlv-bdg{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border-radius:14px;background:var(--mxa-panel2,#f6f6f9);text-align:center;filter:grayscale(1);opacity:.55}
+.mlv-bdg.on{filter:none;opacity:1}.mlv-bdg i{font-style:normal;font-size:1.5rem}.mlv-bdg small{font-size:.7rem;line-height:1.15}
+.mlv-more{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+.mlv-learn{border-top:5px solid var(--tc)}
+.mlv-learn>small{font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+.mlv-learn p{font-size:1.05rem}
+.mlv-ex{margin-top:10px;padding:12px 14px;border-radius:14px;background:rgba(120,120,140,.13);border-left:4px solid var(--tc);line-height:1.55;font-weight:600;overflow-wrap:anywhere}
+.mlv-result{text-align:center}
+.mlv-result .mlv-actions{justify-content:center;flex-direction:column;align-items:stretch}
+.mlv-result .mlv-link{text-align:center}
+.mlv-stars{display:flex;justify-content:center;gap:6px;font-size:2.6rem;line-height:1;margin-bottom:6px}
+.mlv-stars span{color:rgba(120,120,140,.35)}.mlv-stars span.on{color:#ffb020;text-shadow:0 2px 10px rgba(255,176,32,.55);animation:mlvStar .5s both}
+.mlv-stars span:nth-child(2){animation-delay:.15s}.mlv-stars span:nth-child(3){animation-delay:.3s}
+@keyframes mlvStar{from{transform:scale(0) rotate(-40deg)}60%{transform:scale(1.35)}}
+.mlv-gain{display:inline-block;margin:6px auto 10px;padding:6px 16px;border-radius:99px;background:rgba(32,170,100,.16);color:#0d7a45;font-weight:900}
+body.dark .mlv-gain{color:#6fe3a8}
+.mlv-recap{text-align:left;margin-top:8px}.mlv-recap h3{justify-content:flex-start}
+.mlv-rc{padding:10px 12px;border-radius:12px;background:var(--mxa-panel2,#f6f6f9);margin-bottom:8px;line-height:1.45;overflow-wrap:anywhere}
+.mlv-rc .a{font-weight:700}.mlv-rc .w{color:var(--mxa-dim,#555);font-size:.92rem}
+.mlv-scoreline{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-weight:800;margin-bottom:6px}
+.mlv-combo{color:#b34700}body.dark .mlv-combo{color:#ffbf80}
+.mlv-hint{margin-left:auto;font-weight:600;font-size:.82rem;color:var(--mxa-dim,#555)}
+.mlv-arena{position:relative;height:clamp(320px,52vh,520px);border-radius:18px;overflow:hidden;touch-action:manipulation;
+  background:radial-gradient(circle at 20% 15%,rgba(106,92,255,.22),transparent 55%),radial-gradient(circle at 85% 85%,rgba(226,82,140,.2),transparent 55%),var(--mxa-panel2,#eef0f6);border:1px solid var(--mxa-line,rgba(0,0,0,.12))}
+.mlv-bub{position:absolute;top:0;left:0;width:clamp(64px,17vw,92px);height:clamp(64px,17vw,92px);border-radius:50%;border:2px solid rgba(255,255,255,.8);color:#fff;font:800 clamp(.95rem,3.6vw,1.3rem)/1.1 inherit;display:flex;align-items:center;justify-content:center;padding:4px;cursor:pointer;
+  box-shadow:inset -6px -8px 14px rgba(0,0,0,.18),inset 6px 6px 12px rgba(255,255,255,.35),0 6px 14px rgba(0,0,0,.2);text-shadow:0 1px 3px rgba(0,0,0,.45);will-change:transform;overflow-wrap:anywhere}
+.mlv-bub.c0{background:#5b6cff}.mlv-bub.c1{background:#e2528c}.mlv-bub.c2{background:#18a76c}.mlv-bub.c3{background:#c46500}.mlv-bub.c4{background:#8a5cf0}
+.mlv-bub.pop{animation:mlvBurst .3s forwards;pointer-events:none}.mlv-bub.fade{opacity:0;transition:opacity .25s;pointer-events:none}
+.mlv-bub.wrong{background:#8a8a95;opacity:.7;animation:mlvShake .35s}
+.mlv-bub.hint{outline:4px solid #20c07a;outline-offset:3px}
+@keyframes mlvBurst{to{scale:1.6;opacity:0}}
+.mlv-back{max-width:1040px;margin:0 auto;padding:8px clamp(12px,3vw,24px) 0}
+.mlv-back .mlv-link{padding:10px 0}
+@media(max-width:380px){.mlv-stat b,.mlv-stat span{font-size:1.1rem}.mlv-quickbtns{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.mlv *{animation:none !important;transition:none !important}}
+
+/* ===== 6. Responsive shell fixes ===== */
+.lb-dock button small{white-space:nowrap}
+@media(max-width:700px){#mxScFab{bottom:96px !important;right:12px !important}.u5-top{bottom:150px}}
+@media(min-width:820px) and (max-width:1180px){.mxai-wrap{max-width:860px;margin-left:auto;margin-right:auto}}
+html,body{max-width:100%}
+img,video,canvas,svg{max-width:100%}
+#app .lb-tile{color:var(--mxa-ink,#1c1d22)}
+#app .lb-tile span:not(.ti){color:var(--mxa-dim,#555)}
+body.dark .pt-seg.on{color:#04261a !important}
+
+</style>
+<script id="mxV5Js">
+/* ---------- JS 1: BETA badge decorator + movable dock ---------- */
+(function(){
+  /* 1a. BETA badge — put it after every short "Matix AI" label (nav, tabs, home tiles, chat header, dock) */
+  var BADGE_TITLE='Matix AI is in beta — it keeps getting smarter';
+  function mkBadge(big){
+    var b=document.createElement('span');
+    b.className='mx-beta'+(big?' lg':'');
+    b.textContent='BETA';
+    b.title=BADGE_TITLE;
+    b.setAttribute('aria-label','Beta');
+    return b;
+  }
+  function decorate(){
+    try{
+      var dockBtn=document.querySelector('#lbDock button[data-dock="ai"]');
+      if(dockBtn&&!dockBtn.querySelector('.mx-beta'))dockBtn.appendChild(mkBadge(false));
+      var logos=document.querySelectorAll('.mxlogo');
+      for(var i=0;i<logos.length;i++){
+        var l=logos[i],n=l.nextSibling,p=l.parentElement;
+        if(!p||p.closest('#lbDock')||p.closest('.mx-nobeta'))continue;
+        if(!n||n.nodeType!==3||!/^\s*AI\b/i.test(n.nodeValue))continue;
+        var after=n.nextSibling;
+        if(after&&after.nodeType===1&&after.classList.contains('mx-beta'))continue;
+        var txt=(p.textContent||'').replace(/\s+/g,' ').trim();
+        if(txt.length>28)continue;                       /* labels only, never sentences */
+        var big=/^(H1|H2|H3|B|STRONG)$/.test(p.tagName)&&!!p.closest('.mxai-head,.lb-ph,.lb-hero');
+        p.insertBefore(mkBadge(big),n.nextSibling);
+      }
+      var plain=document.querySelectorAll('.mxai-head b:not(:has(.mxlogo)),#sbqAi');
+      for(var j=0;j<plain.length;j++){
+        var q=plain[j];
+        if(q.querySelector('.mx-beta'))continue;
+        if(q.id==='sbqAi'||/matix\s*ai/i.test(q.textContent||''))q.appendChild(mkBadge(false));
+      }
+    }catch(e){}
+  }
+  var tm=null;
+  function schedule(){if(tm)return;tm=setTimeout(function(){tm=null;decorate();},90);}
+  try{
+    new MutationObserver(schedule).observe(document.body,{childList:true,subtree:true,characterData:true});
+  }catch(e){}
+  decorate();setTimeout(decorate,800);setTimeout(decorate,2500);
+  window.mxBetaDecorate=decorate;
+
+  /* 1b. bottom menu: drag it anywhere, lock it, collapse it */
+  var dock=document.getElementById('lbDock');
+  if(!dock)return;
+  var K_POS='mx_dock_pos',K_MIN='mx_dock_min';
+  var st={move:false,min:lsGet(K_MIN)==='1',pos:null};
+  try{st.pos=JSON.parse(lsGet(K_POS)||'null');}catch(e){st.pos=null;}
+  if(st.pos&&(typeof st.pos.fx!=='number'||typeof st.pos.fy!=='number'))st.pos=null;
+
+  var tools=document.createElement('div');tools.className='mx-dock-tools';
+  function tbtn(cls,label,title){
+    var b=document.createElement('button');b.type='button';b.className=cls;b.textContent=label;b.title=title;b.setAttribute('aria-label',title);return b;
+  }
+  var bLock=tbtn('mx-dock-lock','\uD83D\uDD12','Menu is locked in place. Tap to unlock and move it');
+  var bReset=tbtn('mx-dock-reset','\u21BA','Put the menu back at the bottom');
+  var bMin=tbtn('mx-dock-min','\u25BE','Hide / show the menu');
+  tools.appendChild(bLock);tools.appendChild(bMin);tools.appendChild(bReset);
+  dock.insertBefore(tools,dock.firstChild);
+
+  function save(){try{if(st.pos)lsSet(K_POS,JSON.stringify(st.pos));else localStorage.removeItem(K_POS);}catch(e){}}
+  function apply(){
+    dock.classList.toggle('mx-dock-collapsed',st.min);
+    bMin.textContent=st.min?'\u2630':'\u25BE';
+    bMin.title=st.min?'Show the menu':'Hide the menu';
+    var p=st.pos;
+    if(!p){
+      dock.classList.remove('mx-dock-free','mx-dock-v');
+      dock.style.left='';dock.style.top='';
+      return;
+    }
+    dock.classList.add('mx-dock-free');
+    dock.classList.toggle('mx-dock-v',(p.edge==='l'||p.edge==='r')&&!st.min);
+    var vw=window.innerWidth,vh=window.innerHeight,w=dock.offsetWidth,h=dock.offsetHeight;
+    var x=Math.max(0,Math.min(vw-w,p.fx*(vw-w)));
+    var y=Math.max(0,Math.min(vh-h,p.fy*(vh-h)));
+    dock.style.left=x+'px';dock.style.top=y+'px';
+  }
+  function setMove(on){
+    st.move=on;
+    dock.classList.toggle('mx-dock-move',on);
+    bLock.textContent=on?'\uD83D\uDD13':'\uD83D\uDD12';
+    bLock.title=on?'Drag the menu anywhere. Tap here to lock it again':'Menu is locked in place. Tap to unlock and move it';
+    bLock.setAttribute('aria-pressed',on?'true':'false');
+    if(on&&typeof toast==='function')toast('Drag the menu where you want it, then tap \uD83D\uDD13 to lock it','ok');
+  }
+  bLock.addEventListener('click',function(e){e.stopPropagation();setMove(!st.move);});
+  bMin.addEventListener('click',function(e){e.stopPropagation();st.min=!st.min;lsSet(K_MIN,st.min?'1':'0');apply();});
+  bReset.addEventListener('click',function(e){e.stopPropagation();st.pos=null;save();apply();});
+  /* while moving, taps on the menu must not navigate */
+  dock.addEventListener('click',function(e){
+    if(st.move&&!e.target.closest('.mx-dock-tools')&&!e.target.closest('.mx-dock-min')){e.stopPropagation();e.preventDefault();}
+  },true);
+
+  var drag=null;
+  dock.addEventListener('pointerdown',function(e){
+    if(!st.move||e.target.closest('.mx-dock-tools')||e.target.closest('.mx-dock-min'))return;
+    var r=dock.getBoundingClientRect();
+    drag={id:e.pointerId,dx:e.clientX-r.left,dy:e.clientY-r.top,moved:false};
+    try{dock.setPointerCapture(e.pointerId);}catch(x){}
+    dock.classList.add('mx-dragging');
+    dock.classList.add('mx-dock-free');
+    dock.style.left=r.left+'px';dock.style.top=r.top+'px';
+    e.preventDefault();
+  });
+  dock.addEventListener('pointermove',function(e){
+    if(!drag||e.pointerId!==drag.id)return;
+    var vw=window.innerWidth,vh=window.innerHeight,w=dock.offsetWidth,h=dock.offsetHeight;
+    var x=Math.max(0,Math.min(vw-w,e.clientX-drag.dx));
+    var y=Math.max(0,Math.min(vh-h,e.clientY-drag.dy));
+    dock.style.left=x+'px';dock.style.top=y+'px';drag.moved=true;
+  });
+  function endDrag(e){
+    if(!drag||(e&&e.pointerId!==drag.id))return;
+    var d=drag;drag=null;
+    dock.classList.remove('mx-dragging');
+    try{dock.releasePointerCapture(e.pointerId);}catch(x){}
+    if(!d.moved)return;
+    var vw=window.innerWidth,vh=window.innerHeight;
+    var r=dock.getBoundingClientRect(),SN=36,M=8,edge='';
+    if(r.left<SN)edge='l';else if(vw-r.right<SN)edge='r';else if(r.top<SN)edge='t';else if(vh-r.bottom<SN)edge='b';
+    var x=r.left,y=r.top;
+    if(edge==='l'||edge==='r'){
+      dock.classList.toggle('mx-dock-v',!st.min);
+      var w2=dock.offsetWidth,h2=dock.offsetHeight;
+      x=(edge==='l')?M:vw-w2-M;y=Math.max(M,Math.min(vh-h2-M,y));
+    }else{
+      dock.classList.remove('mx-dock-v');
+      var w3=dock.offsetWidth,h3=dock.offsetHeight;
+      if(edge==='t')y=M;else if(edge==='b')y=vh-h3-M;
+      x=Math.max(M,Math.min(vw-w3-M,x));
+    }
+    var W=dock.offsetWidth,H=dock.offsetHeight;
+    st.pos={edge:edge,fx:(vw-W)>0?Math.max(0,Math.min(1,x/(vw-W))):0,fy:(vh-H)>0?Math.max(0,Math.min(1,y/(vh-H))):0};
+    save();apply();
+  }
+  dock.addEventListener('pointerup',endDrag);
+  dock.addEventListener('pointercancel',endDrag);
+  window.addEventListener('resize',function(){apply();});
+  window.addEventListener('orientationchange',function(){setTimeout(apply,250);});
+
+  /* hide the menu while the on-screen keyboard is open so it never covers what you type */
+  var maxH=window.innerHeight;
+  function kbCheck(){
+    var h=(window.visualViewport&&window.visualViewport.height)||window.innerHeight;
+    if(window.innerHeight>maxH)maxH=window.innerHeight;
+    var ae=document.activeElement,typing=ae&&/^(INPUT|TEXTAREA)$/.test(ae.tagName);
+    document.body.classList.toggle('mx-kb',!!typing&&h<maxH*0.75);
+  }
+  if(window.visualViewport)window.visualViewport.addEventListener('resize',kbCheck);
+  window.addEventListener('resize',kbCheck);
+  document.addEventListener('focusout',function(){setTimeout(kbCheck,200);});
+  setMove(false);apply();
+  window.mxDockApply=apply;
+})();
+
+/* =====================================================================
+   JS 2: MATIX AI v2 (BETA)
+   What was wrong before: the chat was a pile of regex layers that answered
+   a question in isolation (no memory of the conversation), fabricated a
+   delay, could only do one-line "How:" hints, never showed real working,
+   and fell back to canned replies for everything else. The optional LLM
+   path was capped at "one or two sentences" and a stale model list.
+   What v2 does:
+     1. a verified solver that SHOWS ITS WORKING (linear/quadratic/systems,
+        order of operations, geometry, percentages, calculus on polynomials,
+        sequences, roots, combinatorics, unit conversion, ...)
+     2. conversation memory ("times 3", "why?", "show the steps")
+     3. when a club AI key exists, a well-built prompt (persona, learner
+        level, date, chat history, verified calculations) with retries,
+        and the offline engine as a graceful fallback
+   ===================================================================== */
+var MX5={ctx:{value:null,q:'',stepsHtml:'',kind:''}};
+
+/* ---------- formatting helpers ---------- */
+function mx5n(n){
+  if(typeof n!=='number'||!isFinite(n))return String(n);
+  if(n!==0&&(Math.abs(n)>=1e15||Math.abs(n)<1e-9))return n.toExponential(4).replace(/\.?0+e/,'e');
+  var r=Math.round(n*1e6)/1e6;
+  return String(r===0?0:r);
+}
+function mx5frac(n,d){
+  if(!isFinite(n)||!isFinite(d)||d===0)return mx5n(n/d);
+  var g=mxGcd(Math.round(n),Math.round(d));
+  var a=Math.round(n)/g,b=Math.round(d)/g;
+  if(b<0){a=-a;b=-b;}
+  return b===1?String(a):a+'/'+b;
+}
+function mx5B(s){return '<b>'+s+'</b>';}
+function mx5p(n){return n<0?'('+mx5n(n)+')':mx5n(n);}
+function mx5Steps(list){return '<ol class="mx5-steps">'+list.map(function(x){return '<li>'+x+'</li>';}).join('')+'</ol>';}
+function mx5Ans(headline,steps,value,kind,extra){
+  var h=mx5B(headline);
+  if(steps&&steps.length)h+='<div class="mx5-work"><span>Step by step</span>'+mx5Steps(steps)+'</div>';
+  if(extra)h+=extra;
+  return {html:h,value:value,steps:steps||[],kind:kind||'math'};
+}
+function mx5Sup(s){return String(s).replace(/\^2/g,'\u00B2').replace(/\^3/g,'\u00B3');}
+
+/* ---------- polynomial parser: "3x^2 - 5x + 6" -> {2:3,1:-5,0:6} ---------- */
+function mx5Poly(src){
+  var s=String(src||'').toLowerCase().replace(/\s+/g,'').replace(/\u2212/g,'-').replace(/\u00D7/g,'*').replace(/\u00B2/g,'^2').replace(/\u00B3/g,'^3').replace(/\*/g,'');
+  if(!s||!/^[0-9x.^+\-]+$/.test(s))return null;
+  var terms=s.match(/[+-]?[^+-]+/g);
+  if(!terms||terms.join('')!==s)return null;
+  var out={};
+  for(var i=0;i<terms.length;i++){
+    var m=/^([+-]?)(\d*\.?\d*)(x(?:\^(\d+))?)?$/.exec(terms[i]);
+    if(!m||(m[2]===''&&!m[3])||m[2]==='.')return null;
+    var c=m[2]===''?1:parseFloat(m[2]);if(m[1]==='-')c=-c;
+    var d=m[3]?(m[4]?parseInt(m[4],10):1):0;
+    if(d>12)return null;
+    out[d]=(out[d]||0)+c;
+  }
+  return out;
+}
+function mx5PolyStr(p){
+  var ds=Object.keys(p).map(Number).sort(function(a,b){return b-a;}),out='';
+  ds.forEach(function(d){
+    var c=p[d];if(Math.abs(c)<1e-12)return;
+    var sign=c<0?'-':'+',ac=Math.abs(c);
+    var coef=(ac===1&&d>0)?'':mx5n(ac);
+    var v=d===0?'':(d===1?'x':'x^'+d);
+    var term=coef+v;
+    out+=(out===''?(c<0?'\u2212':''):(' '+(sign==='-'?'\u2212':'+')+' '))+term;
+  });
+  return mx5Sup(out||'0');
+}
+function mx5Lin2(side){
+  var s=String(side||'').toLowerCase().replace(/\s+/g,'').replace(/\u2212/g,'-').replace(/\*/g,'');
+  if(!s||!/^[0-9xy.+\-]+$/.test(s))return null;
+  var terms=s.match(/[+-]?[^+-]+/g);if(!terms||terms.join('')!==s)return null;
+  var o={x:0,y:0,c:0};
+  for(var i=0;i<terms.length;i++){
+    var m=/^([+-]?)(\d*\.?\d*)([xy])?$/.exec(terms[i]);
+    if(!m||(m[2]===''&&!m[3])||m[2]==='.')return null;
+    var c=m[2]===''?1:parseFloat(m[2]);if(m[1]==='-')c=-c;
+    if(m[3])o[m[3]]+=c;else o.c+=c;
+  }
+  return o;
+}
+function mx5Eval(p,x){var t=0;Object.keys(p).forEach(function(d){t+=p[d]*Math.pow(x,+d);});return t;}
+
+/* ---------- solvers ---------- */
+function mx5SolveSystem(q){
+  var eqs=q.split(/\s*(?:,|;|\band\b|\n)\s*/i).map(function(e){return e.replace(/^.*?(solve|find|system)[:\s]*/i,'').trim();}).filter(function(e){return e.indexOf('=')>-1;});
+  if(eqs.length!==2||!/y/i.test(q)||!/x/i.test(q))return null;
+  var rows=[];
+  for(var i=0;i<2;i++){
+    var sd=eqs[i].split('=');if(sd.length!==2)return null;
+    var L=mx5Lin2(sd[0]),R=mx5Lin2(sd[1]);if(!L||!R)return null;
+    rows.push({a:L.x-R.x,b:L.y-R.y,c:R.c-L.c});
+  }
+  var r1=rows[0],r2=rows[1],D=r1.a*r2.b-r2.a*r1.b;
+  var f=function(r){return mx5n(r.a)+'x '+(r.b<0?'\u2212 ':'+ ')+mx5n(Math.abs(r.b))+'y = '+mx5n(r.c);};
+  var steps=['Write both equations as <i>ax + by = c</i>:<br>(1) '+f(r1)+'<br>(2) '+f(r2)];
+  if(Math.abs(D)<1e-12){
+    var same=Math.abs(r1.a*r2.c-r2.a*r1.c)<1e-12&&Math.abs(r1.b*r2.c-r2.b*r1.c)<1e-12;
+    return mx5Ans(same?'Infinitely many solutions':'No solution',steps.concat([same?'The two equations describe the same line, so every point on it works.':'The lines are parallel (same slope, different position), so they never meet.']),null,'system');
+  }
+  var x=(r1.c*r2.b-r2.c*r1.b)/D,y=(r1.a*r2.c-r2.a*r1.c)/D;
+  steps.push('To cancel <i>y</i>, multiply (1) by '+mx5p(r2.b)+' and (2) by '+mx5p(r1.b)+', then subtract. That leaves <i>('+mx5n(D)+')x = '+mx5n(r1.c*r2.b-r2.c*r1.b)+'</i>.');
+  steps.push('So <b>x = '+mx5n(x)+'</b>.');
+  steps.push('Put x back into (1): '+mx5n(r1.a)+'\u00D7'+mx5n(x)+' + '+mx5n(r1.b)+'y = '+mx5n(r1.c)+' \u2192 <b>y = '+mx5n(y)+'</b>.');
+  steps.push('Check in (2): '+mx5n(r2.a)+'\u00D7'+mx5n(x)+' + '+mx5n(r2.b)+'\u00D7'+mx5n(y)+' = '+mx5n(r2.a*x+r2.b*y)+' \u2714');
+  return mx5Ans('x = '+mx5n(x)+', y = '+mx5n(y),steps,x,'system');
+}
+function mx5SolveEq(q){
+  var eq=q.replace(/^.*?(solve|equation|find x|find the value of x)[:\s]*(for x)?[:\s]*/i,'').replace(/\?+$/,'').trim();
+  if(eq.split('=').length!==2||!/x/i.test(eq))return null;
+  var sd=eq.split('='),L=mx5Poly(sd[0]),R=mx5Poly(sd[1]);
+  if(!L||!R){
+    try{var xv=mxSolveLinear(eq);return mx5Ans('x = '+mx5n(xv),['Expand any brackets, collect the x terms on one side and the numbers on the other, then divide by the number in front of x.'],xv,'linear');}
+    catch(e){return {html:'Hmm \u2014 '+esc(e.message)+'.',value:null,steps:[],kind:'err'};}
+  }
+  var P={};
+  [0,1,2,3,4,5,6,7,8,9,10,11,12].forEach(function(d){var v=(L[d]||0)-(R[d]||0);if(Math.abs(v)>1e-12)P[d]=v;});
+  var deg=Math.max.apply(null,Object.keys(P).map(Number).concat([0]));
+  var start='Start with <b>'+esc(mx5Sup(eq.replace(/\s+/g,' ')))+'</b>.';
+  if(deg<=1){
+    var a=P[1]||0,c=-(P[0]||0);
+    if(a===0)return mx5Ans(c===0?'Every x works':'No solution',[start,'The x terms cancel out, leaving '+(c===0?'0 = 0, which is always true.':'<i>0 = '+mx5n(c)+'</i>, which can never be true.')],null,'linear');
+    var x=c/a,steps=[start];
+    steps.push('Move all the x terms to the left and the plain numbers to the right: <i>'+mx5n(a)+'x = '+mx5n(c)+'</i>.');
+    if(a!==1)steps.push('Divide both sides by '+mx5n(a)+': <b>x = '+mx5n(c)+' \u00F7 '+mx5n(a)+' = '+mx5n(x)+'</b>.');
+    steps.push('Check: put x = '+mx5n(x)+' back in \u2192 left side '+mx5n(mx5Eval(L,x))+', right side '+mx5n(mx5Eval(R,x))+' \u2714');
+    return mx5Ans('x = '+mx5n(x),steps,x,'linear');
+  }
+  if(deg===2){
+    var A=P[2],B=P[1]||0,C=P[0]||0,D=B*B-4*A*C;
+    var steps2=[start,'Move everything to one side: <i>'+esc(mx5PolyStr(P))+' = 0</i>, so <b>a = '+mx5n(A)+', b = '+mx5n(B)+', c = '+mx5n(C)+'</b>.',
+      'Discriminant: <i>D = b\u00B2 \u2212 4ac = '+mx5p(B)+'\u00B2 \u2212 4\u00D7'+mx5p(A)+'\u00D7'+mx5p(C)+' = '+mx5n(D)+'</i>.'];
+    if(D<0){
+      steps2.push('D is negative, so there is no real number whose square is D \u2192 <b>no real solutions</b> (the parabola never touches the x-axis).');
+      steps2.push('In complex numbers: x = '+mx5n(-B/(2*A))+' \u00B1 '+mx5n(Math.sqrt(-D)/(2*A))+'i.');
+      return mx5Ans('No real solutions',steps2,null,'quadratic');
+    }
+    var sq=Math.sqrt(D),x1=(-B+sq)/(2*A),x2=(-B-sq)/(2*A);
+    steps2.push('Use the formula <i>x = (\u2212b \u00B1 \u221AD) / 2a</i> = ('+mx5n(-B)+' \u00B1 '+mx5n(sq)+') / '+mx5n(2*A)+'.');
+    if(D===0){steps2.push('D = 0 gives one repeated solution: <b>x = '+mx5n(x1)+'</b>.');return mx5Ans('x = '+mx5n(x1),steps2,x1,'quadratic');}
+    steps2.push('<b>x\u2081 = '+mx5n(x1)+'</b> and <b>x\u2082 = '+mx5n(x2)+'</b>.');
+    if(A===1&&Number.isInteger(x1)&&Number.isInteger(x2))steps2.push('It factors neatly: (x '+(x1>0?'\u2212 ':'+ ')+Math.abs(x1)+')(x '+(x2>0?'\u2212 ':'+ ')+Math.abs(x2)+') = 0.');
+    steps2.push('Check x\u2081: '+mx5n(mx5Eval(L,x1))+' = '+mx5n(mx5Eval(R,x1))+' \u2714');
+    return mx5Ans('x = '+mx5n(x1)+' or x = '+mx5n(x2),steps2,x1,'quadratic');
+  }
+  return null;
+}
+function mx5Calculus(q,ql){
+  var m=/(derivative|differentiate|d\/dx)\s*(?:of)?\s*(.+)$/i.exec(q);
+  var isInt=false;
+  if(!m){m=/(integral|integrate|antiderivative)\s*(?:of)?\s*(.+?)(?:\s*dx)?$/i.exec(q);isInt=!!m;}
+  if(!m)return null;
+  var body=m[2].replace(/\bwith respect to x\b/i,'').replace(/^f\(x\)\s*=\s*/i,'').replace(/[?]+$/,'').trim();
+  var p=mx5Poly(body);if(!p)return null;
+  var out={},steps=[];
+  Object.keys(p).sort(function(a,b){return b-a;}).forEach(function(k){
+    var d=+k,c=p[k];
+    if(!isInt){
+      if(d===0){steps.push('The constant '+mx5n(c)+' has slope 0, so it disappears.');return;}
+      out[d-1]=(out[d-1]||0)+c*d;
+      steps.push('Power rule on <i>'+mx5Sup(mx5PolyStr(o1(c,d)))+'</i>: bring the power down and subtract 1 \u2192 <i>'+mx5Sup(mx5PolyStr(o1(c*d,d-1)))+'</i>.');
+    }else{
+      out[d+1]=(out[d+1]||0)+c/(d+1);
+      steps.push('Reverse power rule on <i>'+mx5Sup(mx5PolyStr(o1(c,d)))+'</i>: add 1 to the power, divide by the new power \u2192 <i>'+mx5Sup(mx5PolyStr(o1(c/(d+1),d+1)))+'</i>.');
+    }
+  });
+  function o1(c,d){var o={};o[d]=c;return o;}
+  var res=mx5PolyStr(out)+(isInt?' + C':'');
+  return mx5Ans((isInt?'\u222B ('+mx5PolyStr(p)+') dx = ':'d/dx ('+mx5PolyStr(p)+') = ')+res,steps,null,'calculus');
+}
+function mx5OpSteps(expr){
+  var s=expr.replace(/\u00D7/g,'*').replace(/\u00F7/g,'/').replace(/\u2212/g,'-').replace(/\s+/g,'');
+  var seq=[s],guard=0,N='(-?\\d+(?:\\.\\d+)?)';
+  function ev(t){return mx5n(mxCalc(t));}
+  while(guard++<14&&!/^-?\d+(\.\d+)?$/.test(s)){
+    var prev=s;
+    if(/\(/.test(s)){s=s.replace(/\(([^()]*)\)/g,function(_,inner){try{return ev(inner);}catch(e){return '('+inner+')';}});}
+    else if(/\^/.test(s)){s=s.replace(new RegExp(N+'\\^'+N),function(_,a,b){return mx5n(Math.pow(+a,+b));});}
+    else if(/[*\/]/.test(s.replace(/^-/,''))){s=s.replace(new RegExp(N+'([*\\/])'+N),function(_,a,o,b){return mx5n(o==='*'?+a*+b:+a/+b);});}
+    else if(/\d[+-]\d/.test(s)){s=s.replace(new RegExp(N+'([+-])'+N),function(_,a,o,b){return mx5n(o==='+'?+a+ +b:+a- +b);});}
+    else break;
+    s=s.replace(/\+-/g,'-').replace(/--/g,'+');
+    if(s===prev)break;
+    seq.push(s);
+  }
+  return seq;
+}
+function mx5Geometry(q,ql){
+  var nums=(q.match(/\d+(?:\.\d+)?/g)||[]).map(Number);
+  if(!nums.length||/root|squared|cubed/.test(ql))return null;
+  var PI=Math.PI,m;
+  if(/circle|circumference/.test(ql)&&/area|circumference|perimeter|around/.test(ql)){
+    var r=/diameter/.test(ql)?nums[0]/2:nums[0];
+    var steps=['Radius r = '+mx5n(r)+(/diameter/.test(ql)?' (half of the diameter)':'')+'.'];
+    var A=PI*r*r,C=2*PI*r;
+    if(!/circumference|perimeter|around/.test(ql)||/area/.test(ql))steps.push('Area = \u03C0r\u00B2 = \u03C0 \u00D7 '+mx5n(r)+'\u00B2 \u2248 <b>'+mx5n(A)+'</b>.');
+    if(!/area/.test(ql)||/circumference|perimeter|around/.test(ql))steps.push('Circumference = 2\u03C0r = 2 \u00D7 \u03C0 \u00D7 '+mx5n(r)+' \u2248 <b>'+mx5n(C)+'</b>.');
+    return mx5Ans('Circle with r = '+mx5n(r),steps,/area/.test(ql)?A:C,'geometry');
+  }
+  if(/rectangle/.test(ql)&&nums.length>=2){
+    var w=nums[0],h=nums[1];
+    return mx5Ans('Rectangle '+mx5n(w)+' \u00D7 '+mx5n(h),['Area = width \u00D7 height = '+mx5n(w)+' \u00D7 '+mx5n(h)+' = <b>'+mx5n(w*h)+'</b>.','Perimeter = 2 \u00D7 (width + height) = 2 \u00D7 '+mx5n(w+h)+' = <b>'+mx5n(2*(w+h))+'</b>.'],/perimeter/.test(ql)?2*(w+h):w*h,'geometry');
+  }
+  if(/triangle/.test(ql)&&/area/.test(ql)&&nums.length>=2){
+    return mx5Ans('Triangle area',['Area = \u00BD \u00D7 base \u00D7 height = \u00BD \u00D7 '+mx5n(nums[0])+' \u00D7 '+mx5n(nums[1])+' = <b>'+mx5n(nums[0]*nums[1]/2)+'</b>.'],nums[0]*nums[1]/2,'geometry');
+  }
+  if(/triangle/.test(ql)&&/perimeter/.test(ql)&&nums.length>=3){
+    var ps=nums[0]+nums[1]+nums[2];return mx5Ans('Triangle perimeter = '+mx5n(ps),['Add the three sides: '+nums.slice(0,3).join(' + ')+' = <b>'+mx5n(ps)+'</b>.'],ps,'geometry');
+  }
+  if(/\bsquare\b/.test(ql)&&/area|perimeter/.test(ql)){
+    var sd=nums[0];return mx5Ans('Square with side '+mx5n(sd),['Area = side\u00B2 = <b>'+mx5n(sd*sd)+'</b>.','Perimeter = 4 \u00D7 side = <b>'+mx5n(4*sd)+'</b>.'],/perimeter/.test(ql)?4*sd:sd*sd,'geometry');
+  }
+  if(/\bcube\b/.test(ql)&&/volume|surface/.test(ql)){
+    var e=nums[0];return mx5Ans('Cube with edge '+mx5n(e),['Volume = e\u00B3 = <b>'+mx5n(e*e*e)+'</b>.','Surface area = 6e\u00B2 = <b>'+mx5n(6*e*e)+'</b>.'],/surface/.test(ql)?6*e*e:e*e*e,'geometry');
+  }
+  if(/sphere/.test(ql)&&/volume|surface|area/.test(ql)){
+    var rs=nums[0],V=4/3*PI*Math.pow(rs,3),S=4*PI*rs*rs;
+    return mx5Ans('Sphere with r = '+mx5n(rs),['Volume = \u2074\u2044\u2083\u03C0r\u00B3 \u2248 <b>'+mx5n(V)+'</b>.','Surface area = 4\u03C0r\u00B2 \u2248 <b>'+mx5n(S)+'</b>.'],/volume/.test(ql)?V:S,'geometry');
+  }
+  if(/cylinder/.test(ql)&&nums.length>=2){
+    var rc=nums[0],hc=nums[1];
+    return mx5Ans('Cylinder r = '+mx5n(rc)+', h = '+mx5n(hc),['Volume = \u03C0r\u00B2h \u2248 <b>'+mx5n(PI*rc*rc*hc)+'</b>.','Surface area = 2\u03C0r(r + h) \u2248 <b>'+mx5n(2*PI*rc*(rc+hc))+'</b>.'],PI*rc*rc*hc,'geometry');
+  }
+  if(/hypotenuse|pythag|right[- ]?(angled )?triangle/.test(ql)&&nums.length>=2){
+    var hm=/hypotenuse\D{0,12}(\d+(?:\.\d+)?)/.exec(ql);
+    if(hm&&nums.length>=2&&/leg|side|other/.test(ql)&&/(find|missing|other|leg)/.test(ql)){
+      var hyp=+hm[1],leg=nums.filter(function(n){return n!==hyp;})[0]||nums[1];
+      if(hyp>leg){var o=Math.sqrt(hyp*hyp-leg*leg);return mx5Ans('Missing leg \u2248 '+mx5n(o),['a\u00B2 + b\u00B2 = c\u00B2, so b\u00B2 = c\u00B2 \u2212 a\u00B2 = '+mx5n(hyp)+'\u00B2 \u2212 '+mx5n(leg)+'\u00B2 = '+mx5n(hyp*hyp-leg*leg)+'.','b = \u221A'+mx5n(hyp*hyp-leg*leg)+' \u2248 <b>'+mx5n(o)+'</b>.'],o,'geometry');}
+    }
+    var c2=Math.sqrt(nums[0]*nums[0]+nums[1]*nums[1]);
+    return mx5Ans('Hypotenuse \u2248 '+mx5n(c2),['Pythagoras: c\u00B2 = a\u00B2 + b\u00B2 = '+mx5n(nums[0])+'\u00B2 + '+mx5n(nums[1])+'\u00B2 = '+mx5n(nums[0]*nums[0]+nums[1]*nums[1])+'.','c = \u221A'+mx5n(nums[0]*nums[0]+nums[1]*nums[1])+' \u2248 <b>'+mx5n(c2)+'</b>.'],c2,'geometry');
+  }
+  return null;
+}
+function mx5Percent(q,ql){
+  var m=/(increase|raise|add)\s+(?:of\s+)?\$?(\d+(?:\.\d+)?)\s+by\s+(\d+(?:\.\d+)?)\s*%/.exec(ql)||/(decrease|reduce|lower|cut)\s+(?:of\s+)?\$?(\d+(?:\.\d+)?)\s+by\s+(\d+(?:\.\d+)?)\s*%/.exec(ql);
+  if(m){
+    var up=/^(increase|raise|add)$/.test(m[1]),base=+m[2],pc=+m[3],delta=base*pc/100,res=up?base+delta:base-delta;
+    return mx5Ans(mx5n(base)+(up?' + ':' \u2212 ')+mx5n(pc)+'% = '+mx5n(res),[mx5n(pc)+'% of '+mx5n(base)+' = '+mx5n(base)+' \u00D7 '+mx5n(pc)+'/100 = '+mx5n(delta)+'.',(up?'Add':'Subtract')+' it: '+mx5n(base)+(up?' + ':' \u2212 ')+mx5n(delta)+' = <b>'+mx5n(res)+'</b>.','Shortcut: multiply by '+mx5n(up?1+pc/100:1-pc/100)+'.'],res,'percent');
+  }
+  m=/(\d+(?:\.\d+)?)\s*%\s*(?:off|discount)\s*(?:on|of|from)?\s*\$?(\d+(?:\.\d+)?)/.exec(ql);
+  if(m){
+    var d=+m[1],b2=+m[2],sv=b2*d/100;
+    return mx5Ans('Sale price = '+mx5n(b2-sv),['Discount = '+mx5n(d)+'% of '+mx5n(b2)+' = '+mx5n(sv)+'.','Price after discount = '+mx5n(b2)+' \u2212 '+mx5n(sv)+' = <b>'+mx5n(b2-sv)+'</b>.'],b2-sv,'percent');
+  }
+  m=/percent(?:age)?\s*(?:change|increase|decrease|difference)?\s*(?:from|between)\s*(-?\d+(?:\.\d+)?)\s*(?:to|and)\s*(-?\d+(?:\.\d+)?)/.exec(ql);
+  if(m){
+    var o=+m[1],nw=+m[2];if(o===0)return {html:'The starting value can\u2019t be 0 for a percent change.',kind:'err',steps:[]};
+    var ch=(nw-o)/Math.abs(o)*100;
+    return mx5Ans(mx5n(Math.abs(ch))+'% '+(ch>=0?'increase':'decrease'),['Change = new \u2212 old = '+mx5n(nw)+' \u2212 '+mx5n(o)+' = '+mx5n(nw-o)+'.','Divide by the old value and \u00D7100: '+mx5n(nw-o)+' \u00F7 '+mx5n(Math.abs(o))+' \u00D7 100 = <b>'+mx5n(ch)+'%</b>.'],ch,'percent');
+  }
+  return null;
+}
+function mx5Seq(q,ql){
+  var m=/((?:-?\d+(?:\.\d+)?\s*,\s*){2,}-?\d+(?:\.\d+)?)/.exec(q);
+  if(!m||!/(next|sequence|pattern|series|continue|missing|rule|term)/.test(ql))return null;
+  var a=m[1].split(/\s*,\s*/).map(Number),n=a.length,i,d=a[1]-a[0],arith=true,geo=a[0]!==0,r=a[0]!==0?a[1]/a[0]:0;
+  for(i=1;i<n;i++){if(Math.abs((a[i]-a[i-1])-d)>1e-9)arith=false;if(a[i-1]===0||Math.abs(a[i]/a[i-1]-r)>1e-9)geo=false;}
+  if(arith){
+    var nx=[1,2,3].map(function(k){return a[n-1]+d*k;});
+    return mx5Ans('Next: '+nx.map(mx5n).join(', '),['The gap between each pair is always '+mx5n(d)+', so it is an <b>arithmetic sequence</b>.','Next terms: '+a[n-1]+' + '+mx5n(d)+' = '+mx5n(nx[0])+', then '+mx5n(nx[1])+', '+mx5n(nx[2])+'.','Rule for the nth term: a\u2099 = '+mx5n(a[0])+' + (n \u2212 1) \u00D7 '+mx5n(d)+'.'],nx[0],'seq');
+  }
+  if(geo){
+    var gx=[1,2,3].map(function(k){return a[n-1]*Math.pow(r,k);});
+    return mx5Ans('Next: '+gx.map(mx5n).join(', '),['Each term is the one before \u00D7 '+mx5n(r)+', so it is a <b>geometric sequence</b>.','Next terms: '+gx.map(mx5n).join(', ')+'.','Rule: a\u2099 = '+mx5n(a[0])+' \u00D7 '+mx5n(r)+'^(n \u2212 1).'],gx[0],'seq');
+  }
+  var d1=[],d2=[];for(i=1;i<n;i++)d1.push(a[i]-a[i-1]);for(i=1;i<d1.length;i++)d2.push(d1[i]-d1[i-1]);
+  if(d2.length>=1&&d2.every(function(x){return Math.abs(x-d2[0])<1e-9;})){
+    var dd=d2[0],ld=d1[d1.length-1],t=a[n-1],out=[];
+    for(i=0;i<3;i++){ld+=dd;t+=ld;out.push(t);}
+    return mx5Ans('Next: '+out.map(mx5n).join(', '),['Gaps: '+d1.map(mx5n).join(', ')+' \u2014 not constant.','Gaps of the gaps: '+d2.map(mx5n).join(', ')+' \u2014 constant, so it is a <b>quadratic pattern</b>.','Keep adding '+mx5n(dd)+' to the gap each time \u2192 '+out.map(mx5n).join(', ')+'.'],out[0],'seq');
+  }
+  return null;
+}
+function mx5Misc(q,ql){
+  var m;
+  m=/sum of (?:the )?(?:numbers |integers )?(?:from )?(\d+)\s*(?:to|through|-)\s*(\d+)/.exec(ql);
+  if(m){var a=+m[1],b=+m[2];if(b>=a&&b<=1e9){var cnt=b-a+1,tot=(a+b)*cnt/2;return mx5Ans('Sum = '+mx5n(tot),['Pair the first and last: ('+a+' + '+b+') = '+(a+b)+'.','There are '+cnt+' numbers, so '+cnt+'/2 pairs: '+(a+b)+' \u00D7 '+cnt+' \u00F7 2 = <b>'+mx5n(tot)+'</b>. (Gauss\u2019s trick!)'],tot,'misc');}}
+  m=/(\d+)\s*(?:choose|c)\s*(\d+)\b/.exec(ql);
+  if(m&&/choose|combination|ways/.test(ql)){
+    var n=+m[1],k=+m[2];if(k<=n&&n<=60){var r=1;for(var i=1;i<=k;i++)r=r*(n-k+i)/i;r=Math.round(r);
+      return mx5Ans(n+' choose '+k+' = '+r,['C(n,k) = n! \u00F7 (k! \u00D7 (n\u2212k)!) = '+n+'! \u00F7 ('+k+'! \u00D7 '+(n-k)+'!).','Multiply the top k numbers and divide: <b>'+r+'</b> different groups.'],r,'misc');}
+  }
+  m=/(?:factorial of (\d+)|\b(\d+)\s*!)/.exec(ql);
+  if(m){var f=+(m[1]||m[2]);if(f<=25){var p=1;for(var j=2;j<=f;j++)p*=j;return mx5Ans(f+'! = '+(f<=18?p:p.toExponential(6)),['n! means multiply every whole number from 1 up to n: '+(f<=10&&f>1?Array.apply(null,{length:f}).map(function(_,ix){return ix+1;}).join(' \u00D7 ')+' = ':'')+'<b>'+(f<=18?p:p.toExponential(6))+'</b>.'],p,'misc');}}
+  m=/(square root|sqrt|\u221A)\s*(?:of)?\s*(\d+(?:\.\d+)?)/.exec(ql);
+  if(m&&!/[+*\/\-^]/.test(ql.replace(m[0],''))){
+    var nn=+m[2],v=Math.sqrt(nn),steps=[];
+    if(Number.isInteger(nn)&&nn>1){
+      var k2=1;for(var t=2;t*t<=nn;t++)while(nn%(t*t)===0){nn/=t*t;k2*=t;}
+      if(Number.isInteger(v))steps.push(mx5n(v)+' \u00D7 '+mx5n(v)+' = '+mx5n(v*v)+', so \u221A'+mx5n(v*v)+' = <b>'+mx5n(v)+'</b> (a perfect square).');
+      else if(k2>1)steps.push('Pull out the biggest square factor: '+(k2*k2*nn)+' = '+(k2*k2)+' \u00D7 '+nn+', so \u221A'+(k2*k2*nn)+' = <b>'+k2+'\u221A'+nn+'</b>.');
+      else steps.push('No square factor is hiding inside, so \u221A'+nn+' can\u2019t be simplified.');
+    }
+    steps.push('As a decimal: \u2248 <b>'+mx5n(v)+'</b>.');
+    return mx5Ans('\u221A'+m[2]+' \u2248 '+mx5n(v),steps,v,'misc');
+  }
+  m=/cube root (?:of )?(-?\d+(?:\.\d+)?)/.exec(ql);
+  if(m){var cv=Math.cbrt(+m[1]);return mx5Ans('\u00B3\u221A'+m[1]+' = '+mx5n(cv),['What number multiplied by itself 3 times gives '+m[1]+'? <b>'+mx5n(cv)+'</b>.'],cv,'misc');}
+  var U={km:['len',1000],kilometers:['len',1000],kilometer:['len',1000],mi:['len',1609.344],mile:['len',1609.344],miles:['len',1609.344],m:['len',1],meter:['len',1],meters:['len',1],metre:['len',1],metres:['len',1],ft:['len',.3048],feet:['len',.3048],foot:['len',.3048],cm:['len',.01],in:['len',.0254],inch:['len',.0254],inches:['len',.0254],
+    kg:['mass',1],kilograms:['mass',1],lb:['mass',.45359237],lbs:['mass',.45359237],pound:['mass',.45359237],pounds:['mass',.45359237],g:['mass',.001],grams:['mass',.001],
+    l:['vol',1],liters:['vol',1],litres:['vol',1],gal:['vol',3.785411784],gallons:['vol',3.785411784]};
+  m=/(-?\d+(?:\.\d+)?)\s*(\u00B0?\s*[a-z]+)\s*(?:to|in|into)\s*(\u00B0?\s*[a-z]+)\b/.exec(ql);
+  if(m){
+    var val=+m[1],u1=m[2].replace(/[\u00B0\s]/g,''),u2=m[3].replace(/[\u00B0\s]/g,'');
+    if((u1==='c'||u1==='celsius')&&(u2==='f'||u2==='fahrenheit'))return mx5Ans(mx5n(val)+'\u00B0C = '+mx5n(val*9/5+32)+'\u00B0F',['\u00B0F = \u00B0C \u00D7 9/5 + 32 = '+mx5n(val)+' \u00D7 1.8 + 32 = <b>'+mx5n(val*9/5+32)+'</b>.'],val*9/5+32,'unit');
+    if((u1==='f'||u1==='fahrenheit')&&(u2==='c'||u2==='celsius'))return mx5Ans(mx5n(val)+'\u00B0F = '+mx5n((val-32)*5/9)+'\u00B0C',['\u00B0C = (\u00B0F \u2212 32) \u00D7 5/9 = ('+mx5n(val)+' \u2212 32) \u00D7 5/9 = <b>'+mx5n((val-32)*5/9)+'</b>.'],(val-32)*5/9,'unit');
+    if(U[u1]&&U[u2]&&U[u1][0]===U[u2][0]){var out=val*U[u1][1]/U[u2][1];return mx5Ans(mx5n(val)+' '+u1+' = '+mx5n(out)+' '+u2,['Convert to a base unit, then to '+u2+': '+mx5n(val)+' \u00D7 '+mx5n(U[u1][1])+' \u00F7 '+mx5n(U[u2][1])+' = <b>'+mx5n(out)+'</b>.'],out,'unit');}
+  }
+  return null;
+}
+/* ---------- the local brain: returns {html,value,steps,kind} or null ---------- */
+function mx5Local(qRaw){
+  var q=String(qRaw||'').trim();if(!q||q.length>400)return null;
+  var ql=q.toLowerCase().replace(/[\u2019']/g,"'"),m,r;
+  var C=MX5.ctx;
+  /* follow-ups that lean on the previous answer */
+  if(/^(why|how come|how|explain( that| it| more)?|show( me)?( the)?( steps| working| work)|more detail|go on|can you explain( that)?)\??$/.test(ql)&&C.stepsHtml){
+    return {html:'Here\u2019s the working again for <b>'+esc(C.q)+'</b>:'+C.stepsHtml,value:C.value,steps:C.steps,kind:C.kind};
+  }
+  m=/^(?:and\s+|then\s+|now\s+|what about\s+|what if (?:i|we)\s+)?(?:(?:what(?:'s| is)\s+)?(?:that|it)\s+)?(times|multiplied by|x|\*|plus|\+|minus|\-|divided by|\/|over|squared by|to the power of|\^)\s*(-?\d+(?:\.\d+)?)\??$/.exec(ql);
+  if(m&&C.value!=null){
+    var op=m[1],b=parseFloat(m[2]),v=C.value,res;
+    if(/times|multiplied|^x$|\*/.test(op))res=v*b;else if(/plus|\+/.test(op))res=v+b;else if(/minus|-/.test(op))res=v-b;else if(/divided|\/|over/.test(op)){if(b===0)return {html:'Dividing by zero isn\u2019t allowed \uD83D\uDE04',kind:'err',steps:[]};res=v/b;}else res=Math.pow(v,b);
+    return mx5Ans(mx5n(v)+' '+({times:'\u00D7','multiplied by':'\u00D7',x:'\u00D7','*':'\u00D7',plus:'+','+':'+',minus:'\u2212','-':'\u2212','divided by':'\u00F7','/':'\u00F7',over:'\u00F7'}[op]||'^')+' '+mx5n(b)+' = '+mx5n(res),null,res,'calc');
+  }
+  m=/^(?:now\s+)?(square|cube|double|halve|half|triple|negate)\s+(?:it|that|the answer|the result)\??$|^half of (?:it|that)\??$/.exec(ql);
+  if(m&&C.value!=null){
+    var w=m[1]||'half',v2=C.value,res2={square:v2*v2,cube:v2*v2*v2,double:v2*2,halve:v2/2,half:v2/2,triple:v2*3,negate:-v2}[w];
+    return mx5Ans(w+' of '+mx5n(v2)+' = '+mx5n(res2),null,res2,'calc');
+  }
+  if(/^(\/|teach|forget|remember)/.test(ql))return null;
+  r=mx5SolveSystem(q);if(r)return r;
+  if(q.indexOf('=')>-1&&/x/i.test(q)&&!/y/i.test(q.replace(/\b(yes|you|your|you're)\b/gi,'')))r=mx5SolveEq(q);
+  if(r)return r;
+  r=mx5Calculus(q,ql);if(r)return r;
+  r=mx5Percent(q,ql);if(r)return r;
+  r=mx5Seq(q,ql);if(r)return r;
+  r=mx5Geometry(q,ql);if(r)return r;
+  r=mx5Misc(q,ql);if(r)return r;
+  /* plain arithmetic with working */
+  var arith=ql.replace(/^(?:calculate|compute|what(?:'s| is)|whats|evaluate|simplify|solve|=)\s*/,'').replace(/\s*=?\s*\?*$/,'');
+  if(/^[\d\s+\-*\/\u00D7\u00F7\u2212^().,%!\u221A\u00B2\u00B3\u03C0e]+$/.test(arith)&&/\d/.test(arith)&&/[+\-*\/\u00D7\u00F7\u2212^%!\u221A\u00B2\u00B3]/.test(arith.replace(/^-/,''))){
+    try{
+      var val=mxCalc(arith),ops=(arith.replace(/^-/,'').match(/[+\-*\/\u00D7\u00F7\u2212^]/g)||[]).length;
+      var steps=null;
+      if(ops>=2&&!/[!\u221A\u00B2\u00B3\u03C0%e]/.test(arith)){
+        var seq=mx5OpSteps(arith);
+        if(seq.length>2){
+          steps=seq.slice(0,-1).map(function(x,i){return (i===0?'Start: ':'Then: ')+esc(x);}).concat(['Result: <b>'+mx5n(val)+'</b>']);
+          steps.unshift('Order of operations: <b>B</b>rackets \u2192 <b>E</b>xponents \u2192 <b>M</b>ultiply/<b>D</b>ivide \u2192 <b>A</b>dd/<b>S</b>ubtract.');
+        }
+      }
+      return mx5Ans(esc(arith.trim())+' = '+mx5n(val),steps,val,'calc');
+    }catch(e){return null;}
+  }
+  return null;
+}
+function mx5Remember(q,r){
+  if(!r)return;
+  MX5.ctx={value:(typeof r.value==='number'&&isFinite(r.value))?r.value:MX5.ctx.value,q:q,stepsHtml:(r.steps&&r.steps.length)?'<div class="mx5-work">'+mx5Steps(r.steps)+'</div>':MX5.ctx.stepsHtml,steps:r.steps||[],kind:r.kind||''};
+}
+
+/* ---------- LLM bridge (only used when the club has set an AI key) ---------- */
+function mx5HasLlm(){try{return !!(typeof GEMINI_KEY!=='undefined'&&GEMINI_KEY&&typeof aiRequestRetry==='function'&&navigator.onLine!==false);}catch(e){return false;}}
+function mx5Level(){
+  try{
+    var raw=JSON.parse(lsGet('mx_ml5_'+(ME||'guest'))||'null');
+    if(raw&&raw.placed&&raw.levels){
+      return Object.keys(raw.levels).map(function(k){return k+': level '+raw.levels[k]+'/3';}).join(', ');
+    }
+  }catch(e){}
+  return '';
+}
+function mx5Verified(text){
+  var found=[],seen={};
+  var re=/(?:\d[\d.,]*\s*[+\-*\/\u00D7\u00F7^]\s*)+\(?\d[\d.,]*\)?(?:\s*[+\-*\/\u00D7\u00F7^]\s*\(?\d[\d.,]*\)?)*/g,m;
+  while((m=re.exec(text))&&found.length<6){
+    var e=m[0].trim();if(seen[e])continue;seen[e]=1;
+    try{found.push(e+' = '+mx5n(mxCalc(e)));}catch(x){}
+  }
+  return found;
+}
+function mx5System(userText){
+  var who=(typeof ME==='string'&&ME)?ME:'a club member';
+  var lvl=mx5Level(),verified=mx5Verified(userText),kb='';
+  try{var kk=mxaiKBTopicFromText(String(userText).toLowerCase());if(kk&&LX_KB[kk])kb='Club lesson notes on '+LX_KB[kk].title+': '+LX_KB[kk].intro;}catch(e){}
+  return 'You are Matix AI (beta), the maths tutor and assistant built into the Matix the Math Club app. You are talking to '+who+(typeof isOwner==='function'&&isOwner()?' (the club owner)':'')+'. '
+   +'Today is '+new Date().toDateString()+'. '+(lvl?'Their Math Learn placement levels are: '+lvl+'. Pitch explanations to that level. ':'')
+   +'\nHow to answer:\n'
+   +'- Accuracy first. For any maths, work step by step, then state the final answer clearly. Re-check every calculation before you reply; trust the "Verified calculations" below over mental arithmetic.\n'
+   +'- Match depth to the question: a quick fact gets a quick answer; "explain", "why", proofs and word problems get a full, well-structured explanation with an example. Do not pad and do not cut yourself short.\n'
+   +'- Use the conversation so far: resolve words like "it", "that" and "the previous one" from earlier messages.\n'
+   +'- If a question is ambiguous say which interpretation you chose, or ask ONE short clarifying question.\n'
+   +'- If you are not sure or cannot verify something, say so plainly. Never invent facts, formulas, numbers or sources.\n'
+   +'- Reply in the language the user wrote in (English, Arabic or French).\n'
+   +'- Formatting: short paragraphs, "- " bullet lists, **bold** for key results, plain-text maths such as x^2, sqrt(x), 3/4 (no LaTeX, no HTML, no markdown headings).\n'
+   +'- Tone: warm, encouraging, never condescending. For learning requests finish with a tiny practice question or a next step.\n'
+   +'- The app has: Math Learn (an adaptive course with a placement warm-up and a minigame), Games, Points, Math Chat and a Translator. Mention them only when useful.\n'
+   +(kb?'\n'+kb+'\n':'')
+   +(verified.length?'\nVerified calculations (exact): '+verified.join('; ')+'\n':'');
+}
+function mx5History(){
+  var out=[],log=(typeof MXAI_LOG!=='undefined'?MXAI_LOG:[]).slice(-16);
+  log.forEach(function(m){
+    var t=m.text;
+    if(!t){var d=document.createElement('div');d.innerHTML=m.html||'';t=d.textContent||'';}
+    t=String(t||'').replace(/\s+/g,' ').trim().slice(0,1500);
+    if(t)out.push({role:m.who==='me'?'user':'assistant',content:t});
+  });
+  /* the provider needs alternating turns that start with the user */
+  var fixed=[];
+  out.forEach(function(m){
+    if(fixed.length&&fixed[fixed.length-1].role===m.role)fixed[fixed.length-1].content+='\n'+m.content;else fixed.push(m);
+  });
+  while(fixed.length&&fixed[0].role!=='user')fixed.shift();
+  return fixed;
+}
+function mx5Llm(userText){
+  var prov=aiProvider(),system=mx5System(userText),msgs=mx5History();
+  if(!msgs.length||msgs[msgs.length-1].role!=='user'||msgs[msgs.length-1].content.indexOf(userText.slice(0,40))<0)msgs.push({role:'user',content:userText});
+  var mkBody=function(){
+    if(prov==='gemini'){
+      return {systemInstruction:{parts:[{text:system}]},
+        contents:msgs.map(function(m){return {role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]};}),
+        generationConfig:{temperature:0.4,topP:0.95,maxOutputTokens:4096}};
+    }
+    return {model:aiModel(),messages:[{role:'system',content:system}].concat(msgs),temperature:0.4,max_tokens:2048};
+  };
+  var mkHeaders=function(){
+    if(prov==='gemini')return {'Content-Type':'application/json','x-goog-api-key':(GEMINI_KEY||'').trim()};
+    var h={'Content-Type':'application/json','Authorization':'Bearer '+GEMINI_KEY};
+    if(prov==='openrouter'){h['HTTP-Referer']='https://matixthemathclub.com';h['X-Title']='Matix';}
+    return h;
+  };
+  return aiRequestRetry(mkBody,mkHeaders,50000).then(function(res){
+    if(res.status!==200)throw new Error('HTTP '+res.status+' '+String((res.json&&res.json.error&&res.json.error.message)||'').slice(0,160));
+    var j=res.json,txt='';
+    if(prov==='gemini'){try{(j.candidates[0].content.parts||[]).forEach(function(p){if(p&&p.text)txt+=p.text;});}catch(e){}}
+    else{try{txt=j.choices[0].message.content||'';}catch(e){}}
+    txt=String(txt||'').trim();
+    if(!txt)throw new Error('empty answer');
+    return txt;
+  });
+}
+function mx5RenderText(t){
+  t=String(t||'').replace(/\r/g,'')
+    .replace(/\\\(|\\\)|\\\[|\\\]/g,'').replace(/\$\$?/g,'')
+    .replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g,'($1)/($2)').replace(/\\sqrt\{([^{}]+)\}/g,'\u221A($1)')
+    .replace(/\\times/g,'\u00D7').replace(/\\cdot/g,'\u00B7').replace(/\\div/g,'\u00F7').replace(/\\pm/g,'\u00B1').replace(/\\pi/g,'\u03C0').replace(/\\le(q)?\b/g,'\u2264').replace(/\\ge(q)?\b/g,'\u2265').replace(/\\neq/g,'\u2260')
+    .replace(/\^\{([^{}]+)\}/g,'^$1');
+  var lines=t.split('\n'),html='',list=null,code=false,buf=[];
+  function fmt(s){return esc(s).replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>').replace(/(^|[\s(])\*([^*\s][^*]*)\*(?=[\s).,!?]|$)/g,'$1<i>$2</i>');}
+  function closeList(){if(list){html+='</'+list+'>';list=null;}}
+  lines.forEach(function(ln){
+    if(/^```/.test(ln.trim())){
+      if(code){html+='<pre class="mx5-code">'+esc(buf.join('\n'))+'</pre>';buf=[];code=false;}else{closeList();code=true;}
+      return;
+    }
+    if(code){buf.push(ln);return;}
+    var b=/^\s*(?:[-*\u2022])\s+(.*)$/.exec(ln),n=/^\s*\d+[.)]\s+(.*)$/.exec(ln),h=/^\s*#{1,6}\s+(.*)$/.exec(ln);
+    if(b){if(list!=='ul'){closeList();html+='<ul>';list='ul';}html+='<li>'+fmt(b[1])+'</li>';}
+    else if(n){if(list!=='ol'){closeList();html+='<ol>';list='ol';}html+='<li>'+fmt(n[1])+'</li>';}
+    else if(!ln.trim()){closeList();}
+    else{closeList();html+='<p>'+(h?'<b>'+fmt(h[1])+'</b>':fmt(ln))+'</p>';}
+  });
+  if(code&&buf.length)html+='<pre class="mx5-code">'+esc(buf.join('\n'))+'</pre>';
+  closeList();
+  return '<div class="mx5-md">'+html+'</div>';
+}
+function mx5IsFallback(res){
+  var h=typeof res==='string'?res:String((res&&res.html)||'');
+  return /math brain|I do not know|everything is math|Ask me anything \u2014|tried to calculate|broke my pizza cutter/i.test(h)&&!(res&&res.action);
+}
+function mx5Legacy(text){
+  var res;
+  try{res=mxaiAnswer(text);}catch(e){res='Oops \u2014 my gears slipped ('+esc(String(e&&e.message||e))+'). Try again!';}
+  return typeof res==='string'?{html:res}:{html:res.html,action:res.action};
+}
+/* one entry point for the chat: instant verified maths -> commands/memory -> LLM -> offline engine */
+function mx5Ask(text){
+  var isCmd=/^\//.test(text)||/^(teach|forget|remember)\b/i.test(text);
+  if(!isCmd){
+    var local=null;try{local=mx5Local(text);}catch(e){local=null;}
+    if(local){mx5Remember(text,local);return Promise.resolve({html:local.html,src:'math'});}
+  }
+  var memHit=false;try{memHit=!!(typeof mxmemFind==='function'&&mxmemFind(text));}catch(e){}
+  var wantsLesson=/^(teach me|learn|lesson (about|on)|make me a lesson)\b/i.test(text);
+  if(isCmd||memHit||wantsLesson||!mx5HasLlm())return Promise.resolve(Object.assign(mx5Legacy(text),{src:'offline'}));
+  return mx5Llm(text).then(function(txt){
+    var u=/(-?\d+(?:\.\d+)?)\s*$/.exec(txt.replace(/[*_`.]/g,''));
+    if(u)MX5.ctx={value:parseFloat(u[1]),q:text,stepsHtml:'',steps:[],kind:'llm'};
+    return {html:mx5RenderText(txt),text:txt,src:'llm'};
+  },function(err){
+    var lg=mx5Legacy(text);
+    var why=/HTTP 429/.test(err.message)?'the AI is busy right now (rate limit)':/HTTP 40[13]/.test(err.message)?'the AI key was refused':'I couldn\u2019t reach the online brain';
+    if(mx5IsFallback(lg))lg.html='\uD83E\uDDE0 '+esc(why.charAt(0).toUpperCase()+why.slice(1))+', and my offline brain doesn\u2019t know this one yet. Try again in a moment, or rephrase it as a maths question I can solve step by step.';
+    else lg.html+='<br><small class="mx5-note">\u26A1 Answered by the offline brain \u2014 '+esc(why)+'.</small>';
+    return Object.assign(lg,{src:'offline'});
+  });
+}
+
+/* ---------- key modal (owner only) ---------- */
+function mx5KeyModal(){
+  var m=$('modal'),card=$('modalCard');if(!m||!card)return;
+  card.innerHTML='<button class="modal-x" id="mX">\u00D7</button><h2>\uD83D\uDD11 Matix AI online brain <span class="mx-beta lg">BETA</span></h2>'
+   +'<div class="mh-sub">Optional. With a free key (Google Gemini <code>AIza\u2026</code>, Groq <code>gsk_\u2026</code>, GitHub Models <code>github_pat_\u2026</code>) Matix AI can answer ANY question with full explanations. Without a key it still solves maths offline with step-by-step working.</div>'
+   +'<label class="fl">API key</label><input id="mx5Key" type="password" autocomplete="off" placeholder="Paste key here">'
+   +'<div id="mx5KeyOut" style="margin:10px 0;font-size:.85rem"></div>'
+   +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="mx5KeySave">Save</button><button class="btn ghost" id="mx5KeyTest">Test it</button><button class="btn ghost" id="mx5KeyDel">Remove</button></div>';
+  m.classList.add('open');
+  $('mX').onclick=closeModal;
+  $('mx5KeySave').onclick=function(){var v=$('mx5Key').value.trim();if(!v){toast('Paste a key first','err');return;}aiSaveKey(v,function(){closeModal();if(typeof renderContent==='function')renderContent();});};
+  $('mx5KeyTest').onclick=function(){var v=$('mx5Key').value.trim();if(v){GEMINI_KEY=v;GEM_MI=0;}$('mx5KeyOut').textContent='Testing\u2026';aiKeyTest().then(function(h){$('mx5KeyOut').innerHTML=h;});};
+  $('mx5KeyDel').onclick=function(){aiClearKey();closeModal();setTimeout(function(){if(typeof renderContent==='function')renderContent();},300);};
+}
+
+/* ---------- the chat page ---------- */
+var MXAI_CHIPS=['solve x^2 - 5x + 6 = 0','x + y = 10 and x - y = 2','area of a circle with radius 7','derivative of 3x^2 + 2x','what comes next: 2, 6, 18, 54','20% off 85','teach me fractions','explain how to find a percentage'];
+renderAI=function(c){
+  var online=mx5HasLlm();
+  c.innerHTML='<div class="mxai-wrap">'
+   +'<div class="mxai-head"><div class="mxai-orb">\u2728</div>'
+   +'<div style="flex:1;min-width:0"><b>Matix AI</b><small>'+esc(tr('Step-by-step maths, equations, geometry and more \u2014 it remembers the conversation'))+'</small></div>'
+   +'<span class="mx5-eng '+(online?'on':'')+'" id="mx5Eng" title="'+esc(online?'Online brain: can answer any question':'Offline brain: solves maths with working, no internet needed')+'">'+(online?'\uD83E\uDDE0 Online':'\u26A1 Offline')+'</span>'
+   +(typeof isOwner==='function'&&isOwner()?'<button class="mini-btn" id="mx5KeyBtn" title="AI key">\uD83D\uDD11</button>':'')
+   +'<button class="mini-btn" id="mxaiClear" title="'+esc(tr('Clear the chat'))+'">\uD83E\uDDF9 <span class="mx5-hide-sm">'+esc(tr('Clear'))+'</span></button></div>'
+   +'<div class="mxai-scroll" id="mxaiScroll" role="log" aria-live="polite"></div>'
+   +'<div class="mxai-chips" id="mxaiChips"></div>'
+   +'<div class="mxai-bar"><input id="mxaiIn" placeholder="'+esc(tr('Ask me math \u2014 solve, explain, calculate\u2026'))+'" autocomplete="off" enterkeyhint="send">'
+   +'<button class="btn" id="mxaiGo">'+esc(tr('Send'))+' \u2191</button></div></div>';
+  var scroll=$('mxaiScroll'),inp=$('mxaiIn');
+  function bubble(who,html){
+    var b=el('div','mxai-msg '+(who==='me'?'me':'ai'));
+    b.innerHTML=html;scroll.appendChild(b);scroll.scrollTop=scroll.scrollHeight;return b;
+  }
+  function paintAll(){
+    scroll.innerHTML='';
+    if(!MXAI_LOG.length){
+      MXAI_LOG.push({who:'ai',html:'\uD83D\uDC4B '+esc(tr('Hey! I\u2019m Matix AI \u2014 still in beta, but I\u2019m learning fast. I solve equations, geometry, percentages, sequences and more '))+'<b>'+esc(tr('with the full working'))+'</b>'+esc(tr(', I remember what we just talked about (try \u201Cwhy?\u201D or \u201Ctimes 3\u201D after an answer), and I can explain any topic. What shall we work on?'))});
+      mxaiSave();
+    }
+    MXAI_LOG.forEach(function(m){bubble(m.who,m.html);});
+  }
+  function chipsPaint(){
+    var host=$('mxaiChips');host.innerHTML='';
+    MXAI_CHIPS.forEach(function(t){var b=el('button','mxai-chip',esc(t));b.onclick=function(){send(t);};host.appendChild(b);});
+  }
+  var busy=false;
+  function send(text){
+    text=String(text||'').trim();
+    if(!text||busy)return;
+    busy=true;inp.value='';
+    MXAI_LOG.push({who:'me',html:esc(text),text:text});mxaiSave();
+    bubble('me',esc(text));
+    var typing=bubble('ai','<span class="mxai-dots"><i></i><i></i><i></i></span>');
+    mx5Ask(text).then(function(res){
+      typing.innerHTML=res.html;
+      if(res.action){
+        var act=el('button','mxai-act',res.action.label);act.onclick=res.action.run;
+        typing.appendChild(document.createElement('br'));typing.appendChild(act);
+      }
+      MXAI_LOG.push({who:'ai',html:res.html,text:res.text||''});mxaiSave();
+      scroll.scrollTop=scroll.scrollHeight;
+    }).catch(function(e){
+      typing.innerHTML='Oops \u2014 my gears slipped ('+esc(String(e&&e.message||e))+'). Try again!';
+    }).then(function(){busy=false;if(window.mxBetaDecorate)window.mxBetaDecorate();});
+  }
+  $('mxaiGo').onclick=function(){send(inp.value);};
+  inp.onkeydown=function(e){if(e.key==='Enter'&&!e.isComposing)send(inp.value);};
+  $('mxaiClear').onclick=function(){
+    customConfirm(tr('Clear this chat?'),function(){MXAI_LOG=[];MX5.ctx={value:null,q:'',stepsHtml:'',kind:''};mxaiSave();paintAll();},{icon:'\uD83E\uDDF9',okText:tr('Clear')});
+  };
+  if($('mx5KeyBtn'))$('mx5KeyBtn').onclick=mx5KeyModal;
+  paintAll();chipsPaint();
+  if(window.matchMedia&&window.matchMedia('(min-width:700px)').matches)inp.focus();
+};
+
+/* =====================================================================
+   MXV5 / PART 3a — MATH LEARN ADVENTURE: topics + question generators
+   (pure front-end, no network; every question is generated on the fly)
+   ===================================================================== */
+var MXML5=(function(){
+  function ri(a,b){return a+Math.floor(Math.random()*(b-a+1));}
+  function pick(a){return a[ri(0,a.length-1)];}
+  function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=ri(0,i),t=a[i];a[i]=a[j];a[j]=t;}return a;}
+  function gcd(a,b){a=Math.abs(a);b=Math.abs(b);while(b){var t=b;b=a%b;a=t;}return a||1;}
+  function fr(n,d){var g=gcd(n,d);n/=g;d/=g;if(d<0){n=-n;d=-d;}return d===1?String(n):n+'/'+d;}
+  function nstr(n){return String(Math.round(n*1e6)/1e6).replace('-','\u2212');}
+  function calc(s){try{var v=mxCalc(s);return (typeof v==='number'&&isFinite(v))?v:null;}catch(e){return null;}}
+
+  /* build four distinct numeric choices around the right answer */
+  function numChoices(ans,cands){
+    var out=[String(ans)],seen={};seen[String(ans)]=1;
+    (cands||[]).forEach(function(c){
+      if(typeof c!=='number'||!isFinite(c))return;
+      c=Math.round(c*1e6)/1e6;var k=String(c);
+      if(seen[k]||out.length>=4)return;
+      seen[k]=1;out.push(k);
+    });
+    var step=1,sign=1,guard=0;
+    while(out.length<4&&guard++<40){
+      var c2=Math.round((ans+sign*step)*1e6)/1e6,k2=String(c2);
+      if(!seen[k2]&&(ans<0||c2>=0)){seen[k2]=1;out.push(k2);}
+      if(sign===1)sign=-1;else{sign=1;step++;}
+    }
+    return shuffle(out);
+  }
+  function strChoices(ans,cands){
+    var out=[ans];
+    (cands||[]).forEach(function(c){c=String(c);if(out.indexOf(c)<0&&out.length<4)out.push(c);});
+    return shuffle(out);
+  }
+  function Q(t,p,q,a,o){
+    o=o||{};
+    return {t:t,p:p,q:q,a:String(a),type:o.type||'mc',ch:o.ch||null,hint:o.hint||'',why:o.why||'',lvl:o.lvl||1};
+  }
+  function numQ(t,p,q,ans,L,o){
+    o=o||{};
+    var useChoices=(o.type!=='num');
+    return Q(t,p,q,ans,{type:useChoices?'mc':'num',ch:useChoices?numChoices(ans,o.cands):null,hint:o.hint,why:o.why,lvl:L});
+  }
+  function wantNum(L){return L>=3&&Math.random()<0.45;}
+
+  /* ---------------- generators ---------------- */
+  var G={};
+  G.arith=function(L){
+    var k,a,b,ans;
+    if(L===1){
+      k=ri(0,2);
+      if(k===0){a=ri(3,19);b=ri(3,19);ans=a+b;return numQ('arith','What is','<b>'+a+' + '+b+'</b> ?',ans,1,{cands:[ans+1,ans-1,ans+10,ans-10],hint:'Add the tens first, then the ones.',why:a+' + '+b+' = '+ans+'. Split it up: '+a+' + '+b+'.'});}
+      if(k===1){a=ri(12,40);b=ri(2,a-1);ans=a-b;return numQ('arith','What is','<b>'+a+' \u2212 '+b+'</b> ?',ans,1,{cands:[ans+1,ans-1,ans+10,b-a>0?b-a:ans+2],hint:'Count back from '+a+'.',why:a+' \u2212 '+b+' = '+ans+'. Check by adding back: '+ans+' + '+b+' = '+a+'.'});}
+      a=ri(2,10);b=ri(2,10);ans=a*b;
+      return numQ('arith','What is','<b>'+a+' \u00D7 '+b+'</b> ?',ans,1,{cands:[ans+a,ans-a,ans+b,ans-b],hint:'Think of '+a+' groups of '+b+'.',why:a+' groups of '+b+' make '+ans+'.'});
+    }
+    if(L===2){
+      k=ri(0,3);
+      if(k===0){a=ri(26,89);b=ri(18,69);ans=a+b;return numQ('arith','What is','<b>'+a+' + '+b+'</b> ?',ans,2,{cands:[ans+10,ans-10,ans+1,ans-1],hint:'Add the ones first. Carry if it goes past 9!',why:a+' + '+b+' = '+ans+'. Ones add up, carry the extra ten.'});}
+      if(k===1){a=ri(60,99);b=ri(21,a-12);ans=a-b;return numQ('arith','What is','<b>'+a+' \u2212 '+b+'</b> ?',ans,2,{cands:[ans+10,ans-10,ans+2,ans-2],hint:'Take away the tens, then the ones.',why:a+' \u2212 '+b+' = '+ans+'. Check: '+ans+' + '+b+' = '+a+'.'});}
+      if(k===2){a=ri(6,12);b=ri(6,12);ans=a*b;return numQ('arith','What is','<b>'+a+' \u00D7 '+b+'</b> ?',ans,2,{cands:[ans+a,ans-a,ans+b,ans-b],hint:'Break it up: '+a+' \u00D7 '+b+' = 10\u00D7'+b+' + '+(a-10>0?(a-10)+'\u00D7'+b:'\u2026'),why:a+' \u00D7 '+b+' = '+ans+'.'});}
+      b=ri(3,12);ans=ri(4,12);a=b*ans;
+      return numQ('arith','What is','<b>'+a+' \u00F7 '+b+'</b> ?',ans,2,{cands:[ans+1,ans-1,ans+2,b],hint:'How many '+b+'s fit into '+a+'?',why:b+' \u00D7 '+ans+' = '+a+', so '+a+' \u00F7 '+b+' = '+ans+'.'});
+    }
+    k=ri(0,3);
+    if(k===0){a=ri(120,899);b=ri(3,9);ans=a*b;return numQ('arith','What is','<b>'+a+' \u00D7 '+b+'</b> ?',ans,3,{type:wantNum(3)?'num':'mc',cands:[ans+b*10,ans-b*10,ans+100,ans-100],hint:'Split '+a+' into hundreds, tens and ones.',why:a+' \u00D7 '+b+' = '+ans+'. Multiply each part of '+a+' by '+b+' and add.'});}
+    if(k===1){a=ri(12,29);b=ri(11,19);ans=a*b;return numQ('arith','What is','<b>'+a+' \u00D7 '+b+'</b> ?',ans,3,{type:wantNum(3)?'num':'mc',cands:[ans+10,ans-10,ans+a,ans-b],hint:a+' \u00D7 '+b+' = '+a+' \u00D7 10 + '+a+' \u00D7 '+(b-10),why:a+' \u00D7 10 = '+(a*10)+' and '+a+' \u00D7 '+(b-10)+' = '+(a*(b-10))+'. Total '+ans+'.'});}
+    if(k===2){b=ri(6,12);ans=ri(12,45);a=b*ans;return numQ('arith','What is','<b>'+a+' \u00F7 '+b+'</b> ?',ans,3,{type:wantNum(3)?'num':'mc',cands:[ans+1,ans-1,ans+10,ans-10],hint:'Try '+b+' \u00D7 10 first, then see what is left.',why:b+' \u00D7 '+ans+' = '+a+'.'});}
+    a=ri(250,899);b=ri(120,799);var plus=Math.random()<0.5;
+    if(!plus&&b>a){var tmp=a;a=b;b=tmp;}
+    ans=plus?a+b:a-b;
+    return numQ('arith','What is','<b>'+a+(plus?' + ':' \u2212 ')+b+'</b> ?',ans,3,{type:wantNum(3)?'num':'mc',cands:[ans+100,ans-100,ans+10,ans-10],hint:'Work from the right: ones, tens, then hundreds.',why:'Line the digits up in columns: '+a+(plus?' + ':' \u2212 ')+b+' = '+ans+'.'});
+  };
+
+  G.frac=function(L){
+    var d,a,b,ans,k,x,y;
+    if(L===1){
+      k=ri(0,2);
+      if(k===0){d=ri(2,5);x=d*ri(2,6);ans=x/d;return numQ('frac','What is','<b>1/'+d+'</b> of <b>'+x+'</b> ?',ans,1,{cands:[x-d,x*d,d,ans+1],hint:'Share '+x+' equally into '+d+' groups.',why:'1/'+d+' of '+x+' means '+x+' \u00F7 '+d+' = '+ans+'.'});}
+      if(k===1){d=ri(7,12);a=ri(1,3);b=ri(1,3);ans=fr(a+b,d);
+        return Q('frac','What is','<b>'+a+'/'+d+' + '+b+'/'+d+'</b> ?',ans,{ch:strChoices(ans,[fr(a+b,d*2),fr(a*b,d),fr(a+b,d+d),(a+b+1)+'/'+d,(a+b)+'/'+(d+1)]),hint:'Same bottom number? Just add the tops.',why:'The denominators match, so add the numerators: '+a+' + '+b+' = '+(a+b)+'. Answer '+ans+'.',lvl:1});}
+      d=ri(4,9);a=ri(1,d-1);b=ri(1,d-1);while(b===a)b=ri(1,d-1);
+      var big=Math.max(a,b)+'/'+d,small=Math.min(a,b)+'/'+d;
+      return Q('frac','Which fraction is','<b>bigger</b>: <b>'+a+'/'+d+'</b> or <b>'+b+'/'+d+'</b> ?',big,{ch:strChoices(big,[small,'They are equal']),hint:'Same bottom number: the bigger top wins.',why:'The pieces are the same size ('+d+'ths), so '+big+' has more pieces.',lvl:1});
+    }
+    if(L===2){
+      k=ri(0,2);
+      if(k===0){var p=pick([1,2,3,3,5,5,7]),q2=pick([2,3,4,5,8,9]);if(p>=q2)p=1;while(gcd(p,q2)!==1)q2++;var g=pick([2,3,4,5]);
+        ans=fr(p,q2);return Q('frac','Simplify','<b>'+(p*g)+'/'+(q2*g)+'</b> to its simplest form.',ans,{ch:strChoices(ans,[(p*g/(g>3?g-3:1))+'/'+(q2*g/(g>3?g-3:1)),fr(p+1,q2),fr(p,q2+1),(p*g)+'/'+(q2*g+g)]),hint:'Divide the top and bottom by the same number.',why:'Divide top and bottom by '+g+': '+(p*g)+'/'+(q2*g)+' = '+ans+'.',lvl:2});}
+      if(k===1){b=pick([2,3,4,5]);var kk=pick([2,3,4]);d=b*kk;a=1;var c=ri(1,d-1);var r=mxFrac(a,b,'+',c,d);ans=fr(r.n,r.d);
+        return Q('frac','What is','<b>'+a+'/'+b+' + '+c+'/'+d+'</b> ?',ans,{ch:strChoices(ans,[fr(a+c,b+d),fr(a+c,d),fr(a+c,b),fr(r.n+1,r.d)]),hint:'Make the bottoms match first (use '+d+').',why:a+'/'+b+' = '+kk+'/'+d+', so '+kk+'/'+d+' + '+c+'/'+d+' = '+(kk+c)+'/'+d+' = '+ans+'.',lvl:2});}
+      d=ri(3,6);x=d*ri(2,5);a=ri(2,d-1);ans=x/d*a;
+      return numQ('frac','What is','<b>'+a+'/'+d+'</b> of <b>'+x+'</b> ?',ans,2,{cands:[x/d,ans+d,ans-a,x*a],hint:'Find 1/'+d+' first, then multiply by '+a+'.',why:'1/'+d+' of '+x+' = '+(x/d)+'; times '+a+' = '+ans+'.'});
+    }
+    var b2=pick([3,4,5,6]),d2=pick([3,4,5,6,8]);while(d2===b2)d2=pick([3,4,5,6,8]);
+    var a2=ri(1,b2-1),c2=ri(1,d2-1);k=ri(0,2);
+    if(k===0){var s=mxFrac(a2,b2,'+',c2,d2);ans=fr(s.n,s.d);
+      return Q('frac','What is','<b>'+a2+'/'+b2+' + '+c2+'/'+d2+'</b> ?',ans,{ch:strChoices(ans,[fr(a2+c2,b2+d2),fr(a2+c2,b2*d2),fr(a2*c2,b2*d2),fr(s.n+1,s.d)]),hint:'Common denominator: '+(b2*d2)+' always works.',why:'Use '+(b2*d2)+' as the bottom: '+(a2*d2)+'/'+(b2*d2)+' + '+(c2*b2)+'/'+(b2*d2)+' = '+ans+'.',lvl:3});}
+    if(k===1){var m=mxFrac(a2,b2,'*',c2,d2);ans=fr(m.n,m.d);
+      return Q('frac','What is','<b>'+a2+'/'+b2+' \u00D7 '+c2+'/'+d2+'</b> ?',ans,{ch:strChoices(ans,[fr(a2+c2,b2+d2),fr(a2*d2,b2*c2),fr(a2*c2,b2+d2),fr(m.n+1,m.d)]),hint:'Multiply the tops, multiply the bottoms.',why:'('+a2+'\u00D7'+c2+') / ('+b2+'\u00D7'+d2+') = '+(a2*c2)+'/'+(b2*d2)+' = '+ans+'.',lvl:3});}
+    var dv=mxFrac(a2,b2,'/',c2,d2);ans=fr(dv.n,dv.d);
+    return Q('frac','What is','<b>'+a2+'/'+b2+' \u00F7 '+c2+'/'+d2+'</b> ?',ans,{ch:strChoices(ans,[fr(a2*c2,b2*d2),fr(b2*c2,a2*d2),fr(a2+d2,b2+c2),fr(dv.n+1,dv.d)]),hint:'Keep, flip, multiply: flip the second fraction.',why:'Dividing is multiplying by the flip: '+a2+'/'+b2+' \u00D7 '+d2+'/'+c2+' = '+ans+'.',lvl:3});
+  };
+
+  G.dec=function(L){
+    var k,p,n,ans,a,b;
+    if(L===1){
+      k=ri(0,2);
+      if(k===0){p=pick([10,50,25,20]);n=pick([20,40,60,80,100,200]);ans=p*n/100;return numQ('dec','What is','<b>'+p+'%</b> of <b>'+n+'</b> ?',ans,1,{cands:[ans*2,ans/2,p,n-ans],hint:p===50?'50% means half.':(p===10?'10% means divide by 10.':(p===25?'25% means a quarter.':'20% means a fifth.')),why:p+'% of '+n+' = '+ans+'.'});}
+      if(k===1){a=ri(1,9)/10;b=ri(1,9)/10;ans=Math.round((a+b)*10)/10;return numQ('dec','What is','<b>'+a+' + '+b+'</b> ?',ans,1,{cands:[ans+0.1,ans-0.1,ans*10,ans+1],hint:'Line the decimal points up and add like normal.',why:a+' + '+b+' = '+ans+'.'});}
+      a=pick([0.5,0.25,0.75,0.1]);var fm={'0.5':'1/2','0.25':'1/4','0.75':'3/4','0.1':'1/10'};
+      return Q('dec','Which fraction equals','<b>'+a+'</b> ?',fm[a],{ch:strChoices(fm[a],['1/5','2/3','1/3','3/10','1/8'].filter(function(z){return z!==fm[a];}).slice(0,3)),hint:'Say it out loud: "'+a+'" as a part of 1.',why:a+' = '+fm[a]+'.',lvl:1});
+    }
+    if(L===2){
+      k=ri(0,2);
+      if(k===0){p=pick([5,15,20,30,40,60,75]);n=pick([20,40,60,80,120,200]);ans=p*n/100;return numQ('dec','What is','<b>'+p+'%</b> of <b>'+n+'</b> ?',ans,2,{cands:[ans*2,ans/2,p+n,ans+10],hint:'Find 10% first, then build up.',why:p+'% of '+n+' = '+n+' \u00D7 '+p+'/100 = '+ans+'.'});}
+      if(k===1){a=ri(105,899)/100;b=ri(105,899)/100;var pl=Math.random()<0.5;if(!pl&&b>a){var t=a;a=b;b=t;}ans=Math.round((pl?a+b:a-b)*100)/100;return numQ('dec','What is','<b>'+a.toFixed(2)+(pl?' + ':' \u2212 ')+b.toFixed(2)+'</b> ?',ans,2,{cands:[ans+0.1,ans-0.1,ans+1,ans-1],hint:'Line up the decimal points first.',why:'Column method with decimal points lined up gives '+ans+'.'});}
+      var fd=pick([[1,2,0.5],[3,4,0.75],[1,4,0.25],[1,5,0.2],[2,5,0.4],[3,5,0.6],[1,8,0.125]]);
+      return numQ('dec','Write as a decimal:','<b>'+fd[0]+'/'+fd[1]+'</b>',fd[2],2,{cands:[fd[1]/10,fd[0]/10,fd[2]*10,1-fd[2]],hint:'Divide the top by the bottom.',why:fd[0]+' \u00F7 '+fd[1]+' = '+fd[2]+'.'});
+    }
+    k=ri(0,3);
+    if(k===0){p=pick([15,35,45,65,80,12]);n=pick([40,60,80,120,200,300]);ans=Math.round(p*n)/100;return numQ('dec','What is','<b>'+p+'%</b> of <b>'+n+'</b> ?',ans,3,{type:wantNum(3)?'num':'mc',cands:[ans*2,ans/2,ans+10,ans-5],hint:'10% + 5% pieces: build the percent from easy parts.',why:n+' \u00D7 '+p+' \u00F7 100 = '+ans+'.'});}
+    if(k===1){n=pick([40,60,80,120,200]);p=pick([10,20,25,30,40]);ans=n-n*p/100;return numQ('dec','A <b>$'+n+'</b> game is <b>'+p+'% off</b>. What is','the new price?',ans,3,{type:wantNum(3)?'num':'mc',cands:[n*p/100,n+n*p/100,ans+10,ans-10],hint:'Take the discount off the original price.',why:p+'% of '+n+' = '+(n*p/100)+'. '+n+' \u2212 '+(n*p/100)+' = '+ans+'.'});}
+    if(k===2){var w=pick([20,40,50,80,200]),pc=pick([10,25,50,75,20,40]);var part=w*pc/100;return numQ('dec','<b>'+part+'</b> is what percent of <b>'+w+'</b> ?','',pc,3,{type:wantNum(3)?'num':'mc',cands:[pc+5,pc-5,part,100-pc],hint:'Divide the part by the whole, then \u00D7 100.',why:part+' \u00F7 '+w+' = '+(part/w)+' = '+pc+'%.'});}
+    a=pick([1.5,2.5,0.5,1.2,0.4,0.6]);b=pick([0.2,0.4,0.5,3,4,6]);ans=Math.round(a*b*100)/100;
+    return numQ('dec','What is','<b>'+a+' \u00D7 '+b+'</b> ?',ans,3,{type:wantNum(3)?'num':'mc',cands:[ans*10,ans/10,ans+0.1,ans-0.1],hint:'Multiply ignoring the dots, then count decimal places.',why:a+' \u00D7 '+b+' = '+ans+'.'});
+  };
+
+  G.neg=function(L){
+    var a,b,c,ans,k,q;
+    function np(n){return n<0?'(\u2212'+(-n)+')':String(n);}
+    if(L===1){
+      k=ri(0,2);
+      if(k===0){a=-ri(1,8);b=ri(2,12);ans=a+b;q=a<0?'\u2212'+(-a)+' + '+b:a+' + '+b;return numQ('neg','What is','<b>'+q+'</b> ?',ans,1,{cands:[ans+2*Math.abs(a),-ans,ans-1,ans+1],hint:'Picture a thermometer: start at '+a+' and go up '+b+'.',why:'Starting at '+a+', moving up '+b+' lands on '+ans+'.'});}
+      if(k===1){a=ri(2,8);b=ri(a+1,a+9);ans=a-b;return numQ('neg','What is','<b>'+a+' \u2212 '+b+'</b> ?',ans,1,{cands:[b-a,ans-2,ans+2,-(a+b)],hint:'Going below zero is allowed!',why:a+' \u2212 '+b+' = '+nstr(ans)+'. You pass zero and keep going.'});}
+      a=-ri(2,9);b=-ri(2,9);ans=a+b;
+      return numQ('neg','What is','<b>'+np(a)+' + '+np(b)+'</b> ?',ans,1,{cands:[-ans,ans+2,ans-2,Math.abs(a)-Math.abs(b)],hint:'Two debts make a bigger debt.',why:'Both are negative, so they add up to '+nstr(ans)+'.'});
+    }
+    if(L===2){
+      k=ri(0,2);
+      if(k===0){a=-ri(2,9);b=-ri(2,9);ans=a-b;return numQ('neg','What is','<b>'+np(a)+' \u2212 '+np(b)+'</b> ?',ans,2,{cands:[a+b,-ans,ans+2,ans-2],hint:'Subtracting a negative is adding a positive.',why:'\u2212 \u2212 turns into +, so '+a+' + '+(-b)+' = '+nstr(ans)+'.'});}
+      if(k===1){a=-ri(2,9);b=ri(2,9);ans=a*b;return numQ('neg','What is','<b>'+np(a)+' \u00D7 '+b+'</b> ?',ans,2,{cands:[-ans,ans+b,ans-b,a+b],hint:'Negative \u00D7 positive = negative.',why:Math.abs(a)+' \u00D7 '+b+' = '+Math.abs(ans)+', and the sign is negative.'});}
+      b=ri(2,8);ans=-ri(2,9);a=b*ans;
+      return numQ('neg','What is','<b>'+np(a)+' \u00F7 '+b+'</b> ?',ans,2,{cands:[-ans,ans-1,ans+1,a+b],hint:'Same sign rules as multiplying.',why:Math.abs(a)+' \u00F7 '+b+' = '+Math.abs(ans)+'; negative \u00F7 positive = negative.'});
+    }
+    k=ri(0,2);
+    if(k===0){a=-ri(2,9);b=-ri(2,9);ans=a*b;return numQ('neg','What is','<b>'+np(a)+' \u00D7 '+np(b)+'</b> ?',ans,3,{type:wantNum(3)?'num':'mc',cands:[-ans,ans+a,a+b,ans-b],hint:'Negative \u00D7 negative = positive.',why:'The two minus signs cancel: '+Math.abs(a)+' \u00D7 '+Math.abs(b)+' = '+ans+'.'});}
+    if(k===1){a=ri(2,6);b=-ri(2,6);c=ri(2,9);ans=a+b*c;q=a+' + '+np(b)+' \u00D7 '+c;return numQ('neg','What is','<b>'+q+'</b> ?',ans,3,{type:wantNum(3)?'num':'mc',cands:[(a+b)*c,-ans,ans+c,ans-c],hint:'Multiply first, then add.',why:np(b)+' \u00D7 '+c+' = '+(b*c)+', then '+a+' + '+np(b*c)+' = '+nstr(ans)+'.'});}
+    a=-ri(3,9);b=-ri(2,5);c=ri(2,6);ans=a-b*c;
+    return numQ('neg','What is','<b>'+np(a)+' \u2212 '+np(b)+' \u00D7 '+c+'</b> ?',ans,3,{type:wantNum(3)?'num':'mc',cands:[(a-b)*c,-ans,ans+c,ans-c],hint:'Do the multiplication before the subtraction.',why:np(b)+' \u00D7 '+c+' = '+(b*c)+'. Then '+a+' \u2212 '+np(b*c)+' = '+nstr(ans)+'.'});
+  };
+
+  G.ops=function(L){
+    var a,b,c,d,disp,calcS,naive,ans,k,tries=0;
+    for(;;){
+      tries++;
+      if(L===1){
+        k=ri(0,1);a=ri(2,9);b=ri(2,6);c=ri(2,6);
+        if(k===0){disp=a+' + '+b+' \u00D7 '+c;calcS=a+'+'+b+'*'+c;naive=(a+b)*c;}
+        else{a=ri(20,40);disp=a+' \u2212 '+b+' \u00D7 '+c;calcS=a+'-'+b+'*'+c;naive=(a-b)*c;}
+      }else if(L===2){
+        k=ri(0,2);a=ri(2,9);b=ri(2,9);c=ri(2,6);d=ri(1,9);
+        if(k===0){disp='('+a+' + '+b+') \u00D7 '+c+' \u2212 '+d;calcS='('+a+'+'+b+')*'+c+'-'+d;naive=a+b*c-d;}
+        else if(k===1){a=ri(20,50);disp=a+' \u2212 '+b+' \u00D7 '+c+' + '+d;calcS=a+'-'+b+'*'+c+'+'+d;naive=(a-b)*c+d;}
+        else{b=c*ri(2,6);disp=a+' + '+b+' \u00F7 '+c+' \u00D7 '+d;calcS=a+'+'+b+'/'+c+'*'+d;naive=(a+b)/c*d;}
+      }else{
+        k=ri(0,2);a=ri(2,9);b=ri(2,4);c=ri(2,5);d=ri(2,6);
+        if(k===0){disp=a+' + '+b+'\u00B2 \u00D7 '+c+' \u2212 '+d;calcS=a+'+'+b+'^2*'+c+'-'+d;naive=((a+b)*(a+b)*c)-d;}
+        else if(k===1){var e=ri(2,5);disp='('+a+' + '+b+')\u00B2 \u00F7 '+'('+e+' \u2212 1)';calcS='('+a+'+'+b+')^2/('+e+'-1)';naive=(a+b*b)/e-1;}
+        else{b=ri(2,5);disp=d+' \u00D7 ('+a+' \u2212 '+b+') + '+c+'\u00B3 \u00F7 '+c;calcS=d+'*('+a+'-'+b+')+'+c+'^3/'+c;naive=d*a-b+c*c*c/c;}
+      }
+      ans=calc(calcS);
+      if(ans!==null&&ans===Math.round(ans)&&ans>=0&&ans<400&&naive!==ans&&Math.round(naive)===naive)break;
+      if(tries>60){a=3;b=4;c=2;disp='3 + 4 \u00D7 2';ans=11;naive=14;break;}
+    }
+    return numQ('ops','What is','<b>'+disp+'</b> ?',ans,L,{type:L===3&&wantNum(3)?'num':'mc',cands:[naive,ans+1,ans-1,ans+2],hint:'B\u2192E\u2192M/D\u2192A/S: brackets, powers, then \u00D7 \u00F7, then + \u2212.',why:'Follow the order: brackets, powers, \u00D7 \u00F7, then + \u2212. The result is '+ans+' (going left-to-right would wrongly give '+nstr(naive)+').'});
+  };
+
+  G.alg=function(L){
+    var x,a,b,c,k,rhs;
+    if(L===1){
+      k=ri(0,2);x=ri(2,15);
+      if(k===0){b=ri(2,12);return numQ('alg','Find','<b>x</b> if <b>x + '+b+' = '+(x+b)+'</b>',x,1,{cands:[x+b,x-1,x+1,x+2*b],hint:'Undo the + '+b+' by taking away '+b+'.',why:'x = '+(x+b)+' \u2212 '+b+' = '+x+'.'});}
+      if(k===1){b=ri(2,12);return numQ('alg','Find','<b>x</b> if <b>x \u2212 '+b+' = '+x+'</b>',x+b,1,{cands:[x,x-b,x+b+1,x+b-1],hint:'Undo the \u2212 '+b+' by adding '+b+'.',why:'x = '+x+' + '+b+' = '+(x+b)+'.'});}
+      a=ri(2,9);return numQ('alg','Find','<b>x</b> if <b>'+a+'x = '+(a*x)+'</b>',x,1,{cands:[a*x,x+1,x-1,a*x-a],hint:'x is multiplied by '+a+'. Divide both sides by '+a+'.',why:'x = '+(a*x)+' \u00F7 '+a+' = '+x+'.'});
+    }
+    if(L===2){
+      k=ri(0,2);x=ri(2,12);
+      if(k===0){a=ri(2,6);b=ri(1,12);rhs=a*x+b;return numQ('alg','Find','<b>x</b> if <b>'+a+'x + '+b+' = '+rhs+'</b>',x,2,{cands:[rhs-b,(rhs+b)/a,x+1,x-1],hint:'Undo the + '+b+' first, then divide by '+a+'.',why:rhs+' \u2212 '+b+' = '+(a*x)+', and '+(a*x)+' \u00F7 '+a+' = '+x+'.'});}
+      if(k===1){a=ri(2,6);b=ri(1,10);rhs=a*x-b;if(rhs<1){x+=b;rhs=a*x-b;}return numQ('alg','Find','<b>x</b> if <b>'+a+'x \u2212 '+b+' = '+rhs+'</b>',x,2,{cands:[(rhs-b)/a,rhs+b,x+1,x-1],hint:'Add '+b+' to both sides, then divide by '+a+'.',why:rhs+' + '+b+' = '+(a*x)+', and '+(a*x)+' \u00F7 '+a+' = '+x+'.'});}
+      a=ri(2,5);x=a*ri(2,5);b=ri(1,6);rhs=x/a+b;
+      return numQ('alg','Find','<b>x</b> if <b>x/'+a+' + '+b+' = '+rhs+'</b>',x,2,{cands:[rhs-b,x/a,x+a,x-a],hint:'Undo +'+b+', then undo \u00F7'+a+' by multiplying.',why:rhs+' \u2212 '+b+' = '+(x/a)+', and \u00D7 '+a+' gives '+x+'.'});
+    }
+    k=ri(0,2);x=ri(2,12);
+    if(k===0){a=ri(3,6);c=ri(1,a-1);b=ri(1,9);var d2=b+(a-c)*x;return numQ('alg','Find','<b>x</b> if <b>'+a+'x + '+b+' = '+(c===1?'':c)+'x + '+d2+'</b>',x,3,{type:wantNum(3)?'num':'mc',cands:[x+1,x-1,d2-b,(d2-b)/(a+c)],hint:'Collect the x terms on one side first.',why:'Subtract '+c+'x and '+b+': '+(a-c)+'x = '+(d2-b)+', so x = '+x+'.'});}
+    if(k===1){a=ri(2,5);b=ri(1,7);rhs=a*(x+b);return numQ('alg','Find','<b>x</b> if <b>'+a+'(x + '+b+') = '+rhs+'</b>',x,3,{type:wantNum(3)?'num':'mc',cands:[x+b,rhs/a,x+1,x-1],hint:'Divide both sides by '+a+' first.',why:rhs+' \u00F7 '+a+' = '+(x+b)+', then subtract '+b+': x = '+x+'.'});}
+    a=ri(2,5);b=ri(2,9);rhs=a*x-b*2;if(rhs<1){x+=3;rhs=a*x-b*2;}
+    return numQ('alg','Find','<b>x</b> if <b>'+a+'x \u2212 '+(b*2)+' = '+rhs+'</b>',x,3,{type:wantNum(3)?'num':'mc',cands:[(rhs-b*2)/a,x+1,x-1,rhs+b],hint:'Add '+(b*2)+' to both sides, then divide.',why:'x = ('+rhs+' + '+(b*2)+') \u00F7 '+a+' = '+x+'.'});
+  };
+
+  G.geo=function(L){
+    var w,h,k,ans,r,tr3;
+    if(L===1){
+      k=ri(0,2);
+      if(k===0){w=ri(3,12);h=ri(2,w);ans=w*h;return numQ('geo','A rectangle is','<b>'+w+' by '+h+'</b>. What is its <b>area</b>?',ans,1,{cands:[2*(w+h),w+h,ans+w,ans-h],hint:'Area = length \u00D7 width.',why:'Area = '+w+' \u00D7 '+h+' = '+ans+'.'});}
+      if(k===1){w=ri(3,12);h=ri(2,12);ans=2*(w+h);return numQ('geo','A rectangle is','<b>'+w+' by '+h+'</b>. What is its <b>perimeter</b>?',ans,1,{cands:[w*h,w+h,ans+2,ans-2],hint:'Walk all the way around: two lengths and two widths.',why:'Perimeter = 2 \u00D7 ('+w+' + '+h+') = '+ans+'.'});}
+      var a1=ri(30,80),a2=ri(30,80);ans=180-a1-a2;
+      return numQ('geo','A triangle has angles <b>'+a1+'\u00B0</b> and <b>'+a2+'\u00B0</b>. The third angle is','?',ans,1,{cands:[360-a1-a2,ans+10,ans-10,a1+a2],hint:'Angles in a triangle add up to 180\u00B0.',why:'180 \u2212 '+a1+' \u2212 '+a2+' = '+ans+'.'});
+    }
+    if(L===2){
+      k=ri(0,2);
+      if(k===0){w=2*ri(3,10);h=ri(3,12);ans=w*h/2;return numQ('geo','A triangle has base <b>'+w+'</b> and height <b>'+h+'</b>. Its','<b>area</b> is?',ans,2,{cands:[w*h,w+h,ans+h,ans-w/2],hint:'Triangle = half of base \u00D7 height.',why:'\u00BD \u00D7 '+w+' \u00D7 '+h+' = '+ans+'.'});}
+      if(k===1){r=pick([2,3,4,5,10]);ans=Math.round(3.14*r*r*100)/100;return numQ('geo','Circle with radius <b>'+r+'</b>. Area? (use \u03C0 = 3.14)','',ans,2,{cands:[Math.round(3.14*2*r*100)/100,Math.round(3.14*r*100)/100,r*r,Math.round(3.14*r*r*2*100)/100],hint:'Area = \u03C0 \u00D7 r \u00D7 r.',why:'3.14 \u00D7 '+r+' \u00D7 '+r+' = '+ans+'.'});}
+      var s=ri(30,150);ans=180-s;
+      return numQ('geo','Two angles on a straight line. One is <b>'+s+'\u00B0</b>. The other is','?',ans,2,{cands:[90-s>0?90-s:s+10,360-s,ans+10,ans-10],hint:'A straight line is 180\u00B0.',why:'180 \u2212 '+s+' = '+ans+'.'});
+    }
+    k=ri(0,2);
+    if(k===0){tr3=pick([[3,4,5],[5,12,13],[8,15,17],[6,8,10],[9,12,15]]);var miss=ri(0,1)?2:0;
+      if(miss===2){return numQ('geo','Right triangle, legs <b>'+tr3[0]+'</b> and <b>'+tr3[1]+'</b>. The <b>hypotenuse</b> is','?',tr3[2],3,{type:wantNum(3)?'num':'mc',cands:[tr3[0]+tr3[1],tr3[2]+1,tr3[2]-1,tr3[1]],hint:'a\u00B2 + b\u00B2 = c\u00B2.',why:tr3[0]+'\u00B2 + '+tr3[1]+'\u00B2 = '+(tr3[0]*tr3[0]+tr3[1]*tr3[1])+', so c = '+tr3[2]+'.'});}
+      return numQ('geo','Right triangle: hypotenuse <b>'+tr3[2]+'</b>, one leg <b>'+tr3[0]+'</b>. The other leg is','?',tr3[1],3,{type:wantNum(3)?'num':'mc',cands:[tr3[2]-tr3[0],tr3[1]+1,tr3[1]-1,tr3[2]+tr3[0]],hint:'b\u00B2 = c\u00B2 \u2212 a\u00B2.',why:tr3[2]+'\u00B2 \u2212 '+tr3[0]+'\u00B2 = '+(tr3[1]*tr3[1])+', so the leg is '+tr3[1]+'.'});}
+    if(k===1){r=pick([5,7,10,20]);ans=Math.round(2*3.14*r*100)/100;return numQ('geo','Circle with radius <b>'+r+'</b>. <b>Circumference</b>? (\u03C0 = 3.14)','',ans,3,{type:wantNum(3)?'num':'mc',cands:[Math.round(3.14*r*r*100)/100,Math.round(3.14*r*100)/100,r*2,ans+10],hint:'C = 2 \u00D7 \u03C0 \u00D7 r.',why:'2 \u00D7 3.14 \u00D7 '+r+' = '+ans+'.'});}
+    var l=ri(3,9),wd=ri(2,6),ht=ri(2,6);ans=l*wd*ht;
+    return numQ('geo','A box is <b>'+l+' \u00D7 '+wd+' \u00D7 '+ht+'</b>. Its <b>volume</b> is','?',ans,3,{type:wantNum(3)?'num':'mc',cands:[2*(l*wd+wd*ht+l*ht),l+wd+ht,l*wd,ans+l],hint:'Volume = length \u00D7 width \u00D7 height.',why:l+' \u00D7 '+wd+' \u00D7 '+ht+' = '+ans+'.'});
+  };
+
+  G.pow=function(L){
+    var n,k,ans;
+    if(L===1){
+      k=ri(0,2);
+      if(k===0){n=ri(2,12);ans=n*n;return numQ('pow','What is','<b>'+n+'\u00B2</b> ?',ans,1,{cands:[n*2,ans+n,ans-n,(n+1)*(n+1)],hint:'Squared means times itself.',why:n+'\u00B2 = '+n+' \u00D7 '+n+' = '+ans+'.'});}
+      if(k===1){n=ri(2,5);ans=Math.pow(2,n);return numQ('pow','What is','<b>2<sup>'+n+'</sup></b> ?',ans,1,{cands:[2*n,ans+2,ans-2,n*n],hint:'Multiply 2 by itself '+n+' times.',why:'2 doubled '+n+' times is '+ans+'.'});}
+      n=ri(2,10);ans=n;return numQ('pow','What is','<b>\u221A'+(n*n)+'</b> ?',ans,1,{cands:[n*n/2,n+1,n-1,n*2],hint:'Which number times itself is '+(n*n)+'?',why:n+' \u00D7 '+n+' = '+(n*n)+', so \u221A'+(n*n)+' = '+n+'.'});
+    }
+    if(L===2){
+      k=ri(0,3);
+      if(k===0){n=ri(2,4);var e=ri(3,4);ans=Math.pow(n,e);return numQ('pow','What is','<b>'+n+'<sup>'+e+'</sup></b> ?',ans,2,{cands:[n*e,ans+n,ans-n,Math.pow(n,e-1)],hint:'Multiply '+n+' by itself '+e+' times.',why:Array(e).fill(n).join(' \u00D7 ')+' = '+ans+'.'});}
+      if(k===1){n=ri(11,20);return numQ('pow','What is','<b>\u221A'+(n*n)+'</b> ?',n,2,{cands:[n+1,n-1,n*2,n+10],hint:'Think of the square numbers you know.',why:n+' \u00D7 '+n+' = '+(n*n)+'.'});}
+      if(k===2){n=ri(2,5);ans=n*n*n;return numQ('pow','What is','<b>'+n+'\u00B3</b> ?',ans,2,{cands:[n*3,n*n,ans+n,ans-n],hint:'Cubed: '+n+' \u00D7 '+n+' \u00D7 '+n+'.',why:n+' \u00D7 '+n+' \u00D7 '+n+' = '+ans+'.'});}
+      n=ri(2,4);ans=Math.pow(10,n);return numQ('pow','What is','<b>10<sup>'+n+'</sup></b> ?',ans,2,{cands:[10*n,ans/10,ans*10,n*n],hint:'A 1 followed by '+n+' zeros.',why:'10<sup>'+n+'</sup> = '+ans+'.'});
+    }
+    k=ri(0,3);
+    if(k===0){var a=ri(2,5),b=ri(2,5);ans=a+b;return numQ('pow','<b>3<sup>'+a+'</sup> \u00D7 3<sup>'+b+'</sup> = 3<sup>?</sup></b>','',ans,3,{type:wantNum(3)?'num':'mc',cands:[a*b,ans+1,ans-1,a],hint:'Same base: add the powers.',why:'3<sup>'+a+'</sup> \u00D7 3<sup>'+b+'</sup> = 3<sup>'+a+'+'+b+'</sup> = 3<sup>'+ans+'</sup>.'});}
+    if(k===1){var p1=ri(3,10),p2=ri(2,8);ans=p1+p2;return numQ('pow','What is','<b>\u221A'+(p1*p1)+' + \u221A'+(p2*p2)+'</b> ?',ans,3,{type:wantNum(3)?'num':'mc',cands:[Math.sqrt(p1*p1+p2*p2),ans+1,ans-1,p1*p2],hint:'Take each root separately, then add.',why:p1+' + '+p2+' = '+ans+'.'});}
+    if(k===2){n=pick([2,3,5]);return numQ('pow','What is','<b>(\u2212'+n+')\u00B3</b> ?',-Math.pow(n,3),3,{type:wantNum(3)?'num':'mc',cands:[Math.pow(n,3),-n*3,Math.pow(n,2),-Math.pow(n,2)],hint:'An odd number of minus signs stays negative.',why:'(\u2212'+n+')\u00D7(\u2212'+n+')\u00D7(\u2212'+n+') = \u2212'+Math.pow(n,3)+'.'});}
+    n=ri(2,9);return numQ('pow','What is','<b>'+n+'<sup>0</sup></b> ?',1,3,{type:wantNum(3)?'num':'mc',cands:[0,n,n*n,-1],hint:'Anything (not zero) to the power 0 is special.',why:'Any number to the power 0 equals 1.'});
+  };
+
+  G.stat=function(L){
+    var n,m,arr,sum,i,ans,k;
+    if(L===1){
+      k=ri(0,1);
+      if(k===0){m=ri(3,9);n=4;arr=[];sum=0;for(i=0;i<n-1;i++){var v=Math.max(1,m+ri(-3,3));arr.push(v);sum+=v;}var last=m*n-sum;if(last<1){arr[0]+=(1-last);last=1;sum=arr.reduce(function(s,z){return s+z;},0);m=Math.round((sum+last)/n);}
+        arr.push(last);sum=arr.reduce(function(s,z){return s+z;},0);if(sum%n){arr[arr.length-1]+=n-(sum%n);sum=arr.reduce(function(s,z){return s+z;},0);}ans=sum/n;arr=shuffle(arr);
+        return numQ('stat','What is the <b>mean</b> (average) of','<b>'+arr.join(', ')+'</b> ?',ans,1,{cands:[sum,ans+1,ans-1,Math.max.apply(null,arr)],hint:'Add them all up, then divide by how many there are.',why:arr.join(' + ')+' = '+sum+'; '+sum+' \u00F7 '+n+' = '+ans+'.'});}
+      arr=[];for(i=0;i<5;i++)arr.push(ri(2,20));arr=shuffle(arr);var mx=Math.max.apply(null,arr),mn=Math.min.apply(null,arr);
+      return numQ('stat','What is the <b>range</b> (biggest \u2212 smallest) of','<b>'+arr.join(', ')+'</b> ?',mx-mn,1,{cands:[mx,mn,mx+mn,mx-mn+1],hint:'Find the biggest and smallest numbers.',why:mx+' \u2212 '+mn+' = '+(mx-mn)+'.'});
+    }
+    if(L===2){
+      k=ri(0,1);
+      if(k===0){arr=[];for(i=0;i<5;i++)arr.push(ri(1,20));var srt=arr.slice().sort(function(a,b){return a-b;});ans=srt[2];arr=shuffle(arr);
+        return numQ('stat','What is the <b>median</b> (middle number) of','<b>'+arr.join(', ')+'</b> ?',ans,2,{cands:[srt[1],srt[3],arr[2],srt[0]],hint:'Put them in order first, then pick the middle one.',why:'In order: '+srt.join(', ')+'. The middle is '+ans+'.'});}
+      var md=ri(2,15),cnt=ri(3,4);arr=[md];for(i=0;i<cnt;i++)arr.push(ri(1,20));while(arr.filter(function(z){return z===md;}).length<2)arr.push(md);
+      var other=arr.filter(function(z){return z!==md;});var dup=false;arr.forEach(function(z){if(z!==md&&arr.filter(function(y){return y===z;}).length>=arr.filter(function(y){return y===md;}).length)dup=true;});
+      if(dup)arr=[md,md,md,ri(1,9),ri(10,20)];arr=shuffle(arr);
+      return numQ('stat','What is the <b>mode</b> (most common) of','<b>'+arr.join(', ')+'</b> ?',md,2,{cands:[Math.max.apply(null,arr),Math.min.apply(null,arr),md+1,md-1],hint:'Which number appears the most?',why:md+' shows up most often.'});
+    }
+    k=ri(0,1);
+    if(k===0){arr=[];for(i=0;i<6;i++)arr.push(ri(1,25));var s2=arr.slice().sort(function(a,b){return a-b;});ans=(s2[2]+s2[3])/2;arr=shuffle(arr);
+      return numQ('stat','What is the <b>median</b> of','<b>'+arr.join(', ')+'</b> ?',ans,3,{type:wantNum(3)?'num':'mc',cands:[s2[2],s2[3],(s2[0]+s2[5])/2,ans+0.5],hint:'With an even count, average the two middle numbers.',why:'In order: '+s2.join(', ')+'. Middle two: '+s2[2]+' and '+s2[3]+' \u2192 '+ans+'.'});}
+    var tm=ri(4,12),c5=4;arr=[];sum=0;for(i=0;i<c5;i++){var vv=Math.max(1,tm+ri(-4,4));arr.push(vv);sum+=vv;}ans=tm*(c5+1)-sum;
+    if(ans<1){arr[0]+=ans-1;sum+=ans-1;ans=1;if(arr[0]<1){arr[0]=1;sum=arr.reduce(function(s,z){return s+z;},0);tm=Math.ceil((sum+ans)/(c5+1));ans=tm*(c5+1)-sum;}}
+    return numQ('stat','The mean of 5 numbers is <b>'+tm+'</b>. Four of them are <b>'+arr.join(', ')+'</b>. The fifth is','?',ans,3,{type:wantNum(3)?'num':'mc',cands:[tm,ans+1,ans-1,ans+tm],hint:'Total = mean \u00D7 5. Subtract the numbers you know.',why:tm+' \u00D7 5 = '+(tm*5)+'; minus ('+arr.join('+')+') = '+ans+'.'});
+  };
+
+  /* ---------------- topic catalogue ---------------- */
+  var TOPICS=[
+    {id:'arith',name:'Number Power',emoji:'\uD83D\uDD22',color:'#ec4899',kb:'multiplication',kw:['add','subtract','plus','minus','times','multipl','divid','arithmetic','basic','number','tables','counting']},
+    {id:'frac',name:'Fractions',emoji:'\uD83C\uDF55',color:'#f59e0b',kb:'fractions',kw:['fraction','half','quarter','numerator']},
+    {id:'dec',name:'Decimals & Percent',emoji:'\uD83D\uDCAF',color:'#10b981',kb:'percentages',kw:['decimal','percent','%','discount']},
+    {id:'neg',name:'Negative Numbers',emoji:'\uD83C\uDF21\uFE0F',color:'#38bdf8',kb:'negatives',kw:['negative','integer','below zero','minus numbers']},
+    {id:'ops',name:'Order of Operations',emoji:'\uD83E\uDDE9',color:'#8b5cf6',kb:'pemdas',kw:['order of op','pemdas','bodmas','bidmas','brackets']},
+    {id:'alg',name:'Algebra',emoji:'\uD83D\uDD0D',color:'#6366f1',kb:'equations',kw:['algebra','equation','solve for','variable','unknown','x and y']},
+    {id:'geo',name:'Geometry',emoji:'\uD83D\uDCD0',color:'#14b8a6',kb:'area',kw:['geometry','area','perimeter','shape','angle','triangle','circle','volume','pythag']},
+    {id:'pow',name:'Powers & Roots',emoji:'\u26A1',color:'#f97316',kb:'exponents',kw:['power','exponent','root','square','cube','indices']},
+    {id:'stat',name:'Averages & Data',emoji:'\uD83D\uDCCA',color:'#ef4444',kb:'mean',kw:['mean','average','median','mode','statistic','data','probab']}
+  ];
+  var TIPS={
+    arith:['Break big sums into friendly pieces: 38 + 27 = 38 + 20 + 7.','Multiply by 10 first, then adjust: 9 \u00D7 7 = 10 \u00D7 7 \u2212 7.','Split numbers into hundreds/tens/ones (partition) and multiply each part.'],
+    frac:['A fraction is just \u201Cparts of a whole\u201D \u2014 the bottom says how many parts, the top says how many you have.','To compare or add fractions, give them the same bottom number first.','Multiply tops \u00D7 tops and bottoms \u00D7 bottoms; to divide, keep-flip-multiply.'],
+    dec:['10% is the same as dividing by 10 \u2014 build other percents from it.','Percent means \u201Cout of 100\u201D: 35% = 35/100 = 0.35.','Discount: multiply by (100 \u2212 off)/100. 25% off = \u00D7 0.75.'],
+    neg:['Think of a thermometer or lift floors \u2014 below zero is just more minus.','Subtracting a negative is the same as adding a positive.','Same signs \u00D7 or \u00F7 \u2192 positive. Different signs \u2192 negative.'],
+    ops:['Do the multiplication before the addition: 2 + 3 \u00D7 4 = 14.','Brackets first, then powers, then \u00D7 \u00F7, then + \u2212.','Work left to right inside each level; rewrite the expression after every step.'],
+    alg:['Whatever you do to one side of the equals sign, do to the other side.','Undo operations in reverse order: first the + or \u2212, then the \u00D7 or \u00F7.','Get all the x\u2019s on one side, numbers on the other, then divide.'],
+    geo:['Perimeter is the walk around, area is the carpet inside.','Triangle area = half of base \u00D7 height; circle area uses \u03C0r\u00B2.','Pythagoras: a\u00B2 + b\u00B2 = c\u00B2 for the longest side c of a right triangle.'],
+    pow:['A square is a number times itself \u2014 it really makes a square of dots!','Learn the squares up to 15\u00B2 and cubes up to 5\u00B3 by heart \u2014 they pop up everywhere.','Same base: multiply \u2192 add the powers; anything\u2070 = 1.'],
+    stat:['Mean = add everything, divide by how many. It\u2019s the \u201Cfair share\u201D.','Median = the middle value once the numbers are in order.','Missing value? Mean \u00D7 count gives the total \u2014 subtract what you know.']
+  };
+  var BY={};TOPICS.forEach(function(t){BY[t.id]=t;});
+
+  function make(topic,L){
+    L=Math.max(1,Math.min(3,L|0||1));
+    var q=G[topic](L);q.lvl=L;q.t=topic;return q;
+  }
+  /* pick a question not yet seen (by text) */
+  function makeFresh(topic,L,seen){
+    var q,i=0;
+    do{q=make(topic,L);i++;}while(seen&&seen[q.q]&&i<12);
+    if(seen)seen[q.q]=1;
+    return q;
+  }
+  /* compare a typed or tapped answer with the right one */
+  function parseNum(s){
+    s=String(s).trim().replace(/\u2212/g,'-').replace(/,/g,'.').replace(/\s+/g,'');
+    var m=s.match(/^(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?)$/);
+    if(m)return parseFloat(m[2])?parseFloat(m[1])/parseFloat(m[2]):NaN;
+    if(/^-?\d*\.?\d+$/.test(s))return parseFloat(s);
+    return NaN;
+  }
+  function same(user,right){
+    var u=String(user).trim().replace(/\u2212/g,'-').replace(/\s+/g,'').toLowerCase(),r=String(right).replace(/\u2212/g,'-').replace(/\s+/g,'').toLowerCase();
+    if(u===r)return true;
+    var a=parseNum(u),b=parseNum(r);
+    return !isNaN(a)&&!isNaN(b)&&Math.abs(a-b)<1e-6;
+  }
+  return {TOPICS:TOPICS,BY:BY,TIPS:TIPS,make:make,makeFresh:makeFresh,same:same,ri:ri,pick:pick,shuffle:shuffle};
+})();
+
+/* =====================================================================
+   MXV5 / PART 3b — MATH LEARN ADVENTURE: screens, quiz engine, minigame
+   Flow: "What do you know?" → friendly warm-up → your map → personalised
+   course (lessons + challenges + minigame) → final quest.
+   State lives in localStorage ("mx_ml5_<user>") — no backend needed.
+   The old "ask me about anything" teacher is still one tap away.
+   ===================================================================== */
+(function(){
+  if(typeof MXML5==='undefined')return;
+  var MX=MXML5,TOP=MX.TOPICS,BY=MX.BY,ML={root:null,S:null,legacy:false,tok:0,tm:0,raf:0,draft:{level:null,topics:[]}};
+  window.MXML=ML;
+  var oldRender=window.renderLearn;
+
+  var LEVEL_NAMES=['Number Newbie','Sum Scout','Equation Explorer','Fraction Fighter','Algebra Adventurer','Geometry Guru','Math Wizard','Matix Legend'];
+  var MAP_LABEL=['Seedling \uD83C\uDF31 \u2014 let\u2019s grow it','Sprout \uD83C\uDF3F \u2014 getting there','Tree \uD83C\uDF33 \u2014 solid','Star \u2B50 \u2014 already strong'];
+  var PRAISE=['Nice one! \u2728','Boom! \uD83D\uDCA5','You\u2019re on fire! \uD83D\uDD25','Brilliant! \uD83C\uDF1F','Smooth! \uD83D\uDE0E','Yes! \uD83C\uDF89'];
+  var OOPS=['Almost! Good try \uD83D\uDCAA','No worries \u2014 that\u2019s how brains grow \uD83C\uDF31','So close! Here\u2019s the trick:','Oops \u2014 happens to everyone! \uD83E\uDD17'];
+  var BADGES={first:['\uD83D\uDC63','First steps','Finished your first lesson'],star3:['\uD83C\uDF1F','Perfectionist','Got 3 stars on a lesson'],
+    hot:['\uD83D\uDD25','Hot streak','5 right answers in a row'],blitz:['\u26A1','Speedster','Scored 80+ in a Blitz'],
+    pop:['\uD83E\uDEE7','Bubble master','Scored 100+ in Bubble Pop'],streak3:['\uD83D\uDCC5','On a roll','3-day learning streak'],
+    done:['\uD83D\uDC51','Course complete','Beat the Final Quest']};
+
+  /* ---------- helpers ---------- */
+  function E(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function key(){return 'mx_ml5_'+(window.ME||'guest');}
+  function load(){
+    var s=null;try{s=JSON.parse(lsGet(key())||'null');}catch(e){}
+    if(!s||typeof s!=='object')s={};
+    s.v=1;s.placed=!!s.placed;s.levels=s.levels||{};s.claim=s.claim||{level:0,topics:[],text:''};
+    s.course=s.course||[];s.done=s.done||{};s.xp=s.xp||0;s.streak=s.streak||{n:0,last:''};
+    s.best=s.best||{blitz:0,pop:0};s.badges=s.badges||{};s.revise=s.revise||[];s.tested=s.tested||[];
+    ML.S=s;return s;
+  }
+  function save(){try{lsSet(key(),JSON.stringify(ML.S));}catch(e){}}
+  function stopAll(){ML.tok++;clearInterval(ML.tm);cancelAnimationFrame(ML.raf);}
+  function alive(tok){return tok===ML.tok&&ML.root&&ML.root.isConnected;}
+  function $q(sel,r){return (r||ML.root).querySelector(sel);}
+  function toTop(){try{ML.root.scrollTop=0;window.scrollTo(0,0);}catch(e){}}
+  function userName(){var n=window.ME||'';return n?String(n).split(/[\s@]/)[0]:'friend';}
+  function dstr(d){return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();}
+  function today(){return dstr(new Date());}
+  function lvlOf(xp){return Math.floor(xp/120);}
+  function totalStars(){var n=0;for(var k in ML.S.done)n+=ML.S.done[k].stars||0;return n;}
+  function confetti(){try{if(typeof lxConfetti==='function')lxConfetti();}catch(e){}}
+  function fixNeg(s){return String(s).replace(/^-(?=\d)/,'\u2212');}
+  function starsHtml(n){return '<div class="mlv-stars">'+[1,2,3].map(function(k){return '<span class="'+(k<=n?'on':'')+'">\u2605</span>';}).join('')+'</div>';}
+  function badgeGive(id){
+    var b=BADGES[id];if(!b||ML.S.badges[id])return;
+    ML.S.badges[id]=today();
+    try{toast(b[0]+' New badge: '+b[1]+'!','ok');}catch(e){}
+  }
+  function tickStreak(){
+    var s=ML.S.streak,t=today();
+    if(s.last===t)return;
+    var y=new Date();y.setDate(y.getDate()-1);
+    s.n=(s.last===dstr(y))?s.n+1:1;s.last=t;
+    if(s.n>=3)badgeGive('streak3');
+  }
+
+  /* ---------- screen shell ---------- */
+  function show(html,cls){
+    stopAll();
+    ML.root.innerHTML='<div class="mlv '+(cls||'')+'">'+html+'</div>';
+    toTop();
+    return ML.root.firstChild;
+  }
+  function openLegacy(){
+    stopAll();ML.legacy=true;
+    try{if(window.LX)window.LX.view='start';}catch(e){}
+    oldRender(ML.root);
+  }
+  function backToCourse(c){
+    ML.legacy=false;
+    try{if(window.LX){window.LX.view='start';window.LX.lesson=null;}}catch(e){}
+    ML.root=c;route();
+  }
+
+  /* ---------- 1. WHAT DO YOU KNOW? ---------- */
+  function parseKnows(text){
+    var t=(text||'').toLowerCase(),res={level:null,topics:[]};
+    TOP.forEach(function(tp){if(tp.kw.some(function(k){return t.indexOf(k)>=0;}))res.topics.push(tp.id);});
+    if(/never|nothing|zero|no idea|beginner|\bnew\b|scared|hate|bad at/.test(t))res.level=0;
+    else if(/advanced|expert|calculus|college|universit|high school|genius|wizard/.test(t))res.level=3;
+    else if(/comfortable|decent|good at|\bok\b|okay|intermediate|fractions|percent/.test(t))res.level=2;
+    else if(/basic|little|some|add|subtract|times/.test(t))res.level=1;
+    var g=t.match(/(?:grade|year|class)\s*(\d{1,2})/);
+    if(g){var n=+g[1];res.level=n<=4?1:(n<=7?2:3);}
+    return res;
+  }
+  function renderIntro(){
+    var d=ML.draft;
+    var lv=[['\uD83C\uDF31','Just starting','I\u2019m new or a bit rusty'],['\uD83C\uDF3F','The basics','Add, subtract, times tables'],['\uD83C\uDF33','Comfortable','Fractions, percents, order of operations'],['\uD83D\uDE80','Pretty advanced','Algebra, geometry, powers']];
+    var h='<div class="mlv-hero"><div class="mlv-owl">\uD83E\uDD89</div><div><h1>Math Learn</h1><p>Hi '+E(userName())+'! Let\u2019s find your perfect starting point \u2014 a quick, friendly game. No grades, no pressure.</p></div></div>'
+      +'<div class="mlv-card"><h2>What do you know?</h2><p class="mlv-sub">Pick what sounds most like you:</p>'
+      +'<div class="mlv-lv" id="mlLv">'+lv.map(function(x,i){return '<button type="button" class="mlv-lvb'+(d.level===i?' on':'')+'" data-i="'+i+'"><span class="e">'+x[0]+'</span><b>'+x[1]+'</b><small>'+x[2]+'</small></button>';}).join('')+'</div>'
+      +'<p class="mlv-sub">Anything you already enjoy? <small>(tap any \u2014 optional)</small></p>'
+      +'<div class="mlv-chips" id="mlTp">'+TOP.map(function(t){return '<button type="button" class="mlv-chip'+(d.topics.indexOf(t.id)>=0?' on':'')+'" data-t="'+t.id+'">'+t.emoji+' '+E(t.name)+'</button>';}).join('')+'</div>'
+      +'<textarea id="mlText" class="mlv-text" rows="2" maxlength="300" placeholder="\u2026or tell me in your own words, e.g. \u201CI\u2019m okay with fractions but algebra confuses me\u201D"></textarea>'
+      +'<div class="mlv-actions"><button type="button" class="btn mlv-go" id="mlStart">Start my warm-up \uD83D\uDE80</button><button type="button" class="mlv-link" id="mlSkip">Skip \u2014 start from the beginning</button></div>'
+      +'<div class="mlv-note">\u2728 It\u2019s not a test! About 8 quick questions that help me build your course. Mistakes help me more than perfect answers.</div></div>'
+      +'<div class="mlv-quick">Want a lesson on one specific topic instead? <button type="button" class="mlv-link" id="mlLegacy">Ask Matix to teach me anything \u2192</button></div>';
+    show(h,'mlv-intro');
+    var lvBox=$q('#mlLv'),tpBox=$q('#mlTp');
+    lvBox.onclick=function(e){var b=e.target.closest('.mlv-lvb');if(!b)return;d.level=+b.getAttribute('data-i');Array.prototype.forEach.call(lvBox.children,function(x){x.classList.toggle('on',x===b);});};
+    tpBox.onclick=function(e){var b=e.target.closest('.mlv-chip');if(!b)return;var id=b.getAttribute('data-t'),i=d.topics.indexOf(id);if(i>=0)d.topics.splice(i,1);else d.topics.push(id);b.classList.toggle('on',i<0);};
+    $q('#mlLegacy').onclick=openLegacy;
+    $q('#mlSkip').onclick=function(){ML.S.claim={level:0,topics:[],text:''};startPlacement(true);};
+    $q('#mlStart').onclick=function(){
+      var txt=($q('#mlText').value||'').trim(),p=parseKnows(txt);
+      var topics=d.topics.slice();p.topics.forEach(function(t){if(topics.indexOf(t)<0)topics.push(t);});
+      var level=d.level!==null?d.level:(p.level!==null?p.level:(topics.length?2:1));
+      ML.S.claim={level:level,topics:topics,text:txt};
+      startPlacement(false);
+    };
+  }
+
+  /* ---------- 2. QUIZ ENGINE (warm-up, lessons, final quest) ---------- */
+  function runQuiz(cfg){
+    stopAll();var tok=ML.tok,root=ML.root;
+    var i=0,score=0,streak=0,bestStreak=0,right=0,hist=[],q,t0=0,hinted=false,locked=false;
+    var gentle=cfg.mode==='place';
+    root.innerHTML='<div class="mlv mlv-run">'
+      +'<div class="mlv-top"><button type="button" class="mlv-x" id="qX" aria-label="Exit">\u2715</button>'
+      +'<div class="mlv-bar"><i id="qBar"></i></div>'
+      +(gentle?'<div class="mlv-pill">\uD83C\uDFAF <b id="qCnt"></b></div>':'<div class="mlv-pill">\u2B50 <b id="qPts">0</b></div><div class="mlv-pill hot" id="qStk">\uD83D\uDD25 <b>0</b></div>')+'</div>'
+      +'<div class="mlv-qcard"><div class="mlv-qmeta"><span class="mlv-tag" id="qTag"></span><span class="mlv-tag soft" id="qTitle"></span></div>'
+      +(cfg.speed?'<div class="mlv-timer" title="Answer fast for bonus points"><i id="qTim"></i></div>':'')
+      +'<div class="mlv-q" id="qText"></div><div class="mlv-ans" id="qAns"></div><div class="mlv-fb" id="qFb" hidden></div>'
+      +'<div class="mlv-actions"><button type="button" class="mlv-link" id="qHint">\uD83D\uDCA1 Hint</button><button type="button" class="btn" id="qNext" hidden>Next \u2192</button></div></div></div>';
+    toTop();
+    $q('#qX',root).onclick=function(){stopAll();cfg.onExit();};
+    $q('#qTitle',root).textContent=cfg.title||'';
+    var seen={},fb=$q('#qFb',root),ans=$q('#qAns',root),nextBtn=$q('#qNext',root),hintBtn=$q('#qHint',root);
+    function setStats(){
+      var p=$q('#qPts',root);if(p)p.textContent=score;
+      var s=$q('#qStk',root);if(s){s.querySelector('b').textContent=streak;s.classList.toggle('on',streak>=3);}
+      var c=$q('#qCnt',root);if(c)c.textContent=Math.min(i+1,cfg.total)+' / '+cfg.total;
+      $q('#qBar',root).style.width=Math.round(i/cfg.total*100)+'%';
+    }
+    function ask(){
+      locked=false;hinted=false;fb.hidden=true;fb.className='mlv-fb';nextBtn.hidden=true;hintBtn.hidden=false;hintBtn.disabled=false;
+      q=cfg.next(i,hist,seen);t0=Date.now();
+      var tp=BY[q.t]||{emoji:'\u2753',name:''};
+      $q('#qTag',root).textContent=tp.emoji+' '+tp.name+(gentle?'':' \u00B7 L'+q.lvl);
+      $q('#qText',root).innerHTML='<span class="p">'+(q.p||'')+'</span> <span class="b">'+(q.q||'')+'</span>';
+      if(q.type==='mc'){
+        ans.className='mlv-ans mc';
+        ans.innerHTML=q.ch.map(function(c,k){return '<button type="button" class="mlv-opt" data-v="'+E(c)+'"><kbd>'+(k+1)+'</kbd><span>'+E(fixNeg(c))+'</span></button>';}).join('');
+        ans.onclick=function(e){var b=e.target.closest('.mlv-opt');if(b&&!locked)answer(b.getAttribute('data-v'),b);};
+      }else{
+        ans.className='mlv-ans num';
+        ans.innerHTML='<input class="mlv-input" id="qIn" inputmode="decimal" autocomplete="off" placeholder="Type your answer"><button type="button" class="btn" id="qOk">Check</button>';
+        var inp=$q('#qIn',root);
+        $q('#qOk',root).onclick=function(){if(!locked&&inp.value.trim())answer(inp.value,null);};
+        inp.onkeydown=function(e){if(e.key==='Enter'&&!locked&&inp.value.trim())answer(inp.value,null);};
+        ans.onclick=null;setTimeout(function(){try{inp.focus();}catch(e){}},50);
+      }
+      if(cfg.speed){var tm=$q('#qTim',root);tm.style.transition='none';tm.style.width='100%';void tm.offsetWidth;tm.style.transition='width 12s linear';tm.style.width='0%';}
+      setStats();
+    }
+    hintBtn.onclick=function(){
+      if(locked||hinted)return;hinted=true;hintBtn.disabled=true;
+      fb.hidden=false;fb.className='mlv-fb hint';fb.innerHTML='\uD83D\uDCA1 '+E(q.hint||'Take your time and break it into small steps.');
+    };
+    function answer(v,btn){
+      locked=true;
+      var ok=MX.same(v,q.a),ms=Date.now()-t0,pts=0;
+      if(cfg.speed){var tm=$q('#qTim',root);if(tm)tm.style.transition='none';}
+      if(ok){right++;streak++;if(streak>bestStreak)bestStreak=streak;
+        if(!gentle){pts=hinted?5:10;pts+=Math.min(streak,5)*2;if(cfg.speed&&ms<10000&&!hinted)pts+=5;score+=pts;}
+        if(streak>=5)badgeGive('hot');
+      }else streak=0;
+      hist.push({q:q,ok:ok,ms:ms,hinted:hinted,given:v});
+      Array.prototype.forEach.call(ans.querySelectorAll('.mlv-opt'),function(b){
+        b.disabled=true;
+        if(MX.same(b.getAttribute('data-v'),q.a))b.classList.add('right');else if(b===btn)b.classList.add('wrong');
+      });
+      var inp=$q('#qIn',root);if(inp){inp.disabled=true;inp.classList.add(ok?'right':'wrong');var okb=$q('#qOk',root);if(okb)okb.disabled=true;}
+      hintBtn.hidden=true;fb.hidden=false;fb.className='mlv-fb '+(ok?'ok':'no');
+      if(ok)fb.innerHTML='<b>'+MX.pick(PRAISE)+'</b>'+(pts?' <span class="plus">+'+pts+'</span>':'')+(gentle?'':'<div class="why">'+(q.why||'')+'</div>');
+      else fb.innerHTML='<b>'+(gentle?'No worries \u2014 that\u2019s exactly what I needed to know! \uD83C\uDF31':MX.pick(OOPS))+'</b><div class="why">Answer: <b>'+E(fixNeg(q.a))+'</b>. '+(q.why||'')+'</div>';
+      nextBtn.hidden=false;nextBtn.textContent=(i+1>=cfg.total)?'Finish \uD83C\uDF89':'Next \u2192';
+      setStats();setTimeout(function(){try{nextBtn.focus();}catch(e){}},30);
+    }
+    nextBtn.onclick=function(){
+      if(!alive(tok))return;
+      i++;
+      if(i>=cfg.total){cfg.onDone({hist:hist,score:score,right:right,total:cfg.total,bestStreak:bestStreak});return;}
+      ask();
+    };
+    root.onkeydown=function(e){
+      if(!alive(tok))return;
+      if(e.target&&e.target.tagName==='INPUT')return;
+      if(!locked&&q&&q.type==='mc'&&/^[1-4]$/.test(e.key)){var b=ans.querySelectorAll('.mlv-opt')[+e.key-1];if(b)answer(b.getAttribute('data-v'),b);}
+    };
+    ask();
+  }
+
+  /* ---------- 3. WARM-UP (placement) ---------- */
+  function planTopics(claim){
+    var L=claim.level|0,list=claim.topics.slice(0,4);
+    var defaults=[['arith','frac','dec','neg'],['arith','frac','dec','ops'],['frac','dec','ops','alg'],['alg','geo','pow','stat']][Math.max(0,Math.min(3,L))];
+    defaults.forEach(function(t){if(list.length<4&&list.indexOf(t)<0)list.push(t);});
+    return list;
+  }
+  function startPlacement(skipped){
+    var claim=ML.S.claim,topics=planTopics(claim),startL=skipped?1:Math.max(1,Math.min(3,claim.level||1));
+    var per={};topics.forEach(function(t){per[t]={lvls:[],oks:[]};});
+    runQuiz({
+      mode:'place',title:'Warm-up',total:topics.length*2,
+      next:function(i,hist,seen){
+        var t=topics[i%topics.length],p=per[t],L=startL;
+        if(p.lvls.length){var k=p.lvls.length-1;L=p.oks[k]?Math.min(3,p.lvls[k]+1):Math.max(1,p.lvls[k]-1);}
+        p.lvls.push(L);return MX.makeFresh(t,L,seen);
+      },
+      onDone:function(res){
+        var idx={};topics.forEach(function(t){idx[t]=0;});
+        res.hist.forEach(function(h){var t=h.q.t;per[t].oks[idx[t]]=h.ok;idx[t]++;});
+        var lv={};
+        topics.forEach(function(t){var m=0;per[t].lvls.forEach(function(L,k){if(per[t].oks[k]&&L>m)m=L;});lv[t]=m;});
+        TOP.forEach(function(tp){if(lv[tp.id]===undefined)lv[tp.id]=(claim.level>=2&&(tp.id==='frac'||tp.id==='dec'||tp.id==='arith'||tp.id==='neg'||tp.id==='ops'))?1:0;});
+        ML.S.levels=lv;ML.S.tested=topics;
+        showMap(res);
+      },
+      onExit:function(){route();}
+    });
+  }
+  function pips(n){var s='';for(var k=1;k<=3;k++)s+='<i class="'+(k<=n?'on':'')+'"></i>';return '<span class="mlv-pips" aria-label="level '+n+' of 3">'+s+'</span>';}
+  function showMap(res){
+    var tested=ML.S.tested||[];
+    var h='<div class="mlv-hero tight"><div class="mlv-owl">\uD83C\uDF89</div><div><h1>Warm-up done \u2014 nice work!</h1><p>You got <b>'+res.right+' of '+res.total+'</b>. Here\u2019s your starting map:</p></div></div>'
+      +'<div class="mlv-card"><div class="mlv-map">'+tested.map(function(t){var tp=BY[t],m=ML.S.levels[t]||0;return '<div class="mlv-mrow"><span class="n">'+tp.emoji+' '+E(tp.name)+'</span>'+pips(m)+'<small>'+MAP_LABEL[m]+'</small></div>';}).join('')+'</div>'
+      +'<div class="mlv-note">\uD83C\uDF31 Every topic starts somewhere. I\u2019ll spend more time on the sprouts and cheer you on through the rest.</div>'
+      +'<div class="mlv-actions"><button type="button" class="btn mlv-go" id="mkBuild">Build my course \u2728</button></div></div>';
+    show(h,'mlv-map-screen');
+    $q('#mkBuild').onclick=function(){
+      show('<div class="mlv-building"><div class="mlv-owl big">\uD83E\uDD89</div><h2>Building your course\u2026</h2><p id="mkMsg">Mixing in bite-sized lessons</p><div class="mlv-bar wide"><i id="mkBar"></i></div></div>');
+      var msgs=['Mixing in bite-sized lessons','Sprinkling in challenges \u26A1','Hiding a minigame \uD83C\uDFAE','Adding a boss at the end \uD83D\uDC51'],k=0,tok=ML.tok;
+      ML.tm=setInterval(function(){
+        if(!alive(tok)){clearInterval(ML.tm);return;}
+        k++;var b=$q('#mkBar'),m=$q('#mkMsg');if(b)b.style.width=Math.min(100,k*26)+'%';if(m&&msgs[k])m.textContent=msgs[k];
+        if(k>=4){clearInterval(ML.tm);buildCourse();ML.S.placed=true;ML.S.done={};save();route();}
+      },450);
+    };
+  }
+
+  /* ---------- 4. COURSE BUILDER ---------- */
+  function buildCourse(){
+    var lv=ML.S.levels,units=TOP.map(function(t,i){return {id:t.id,m:lv[t.id]||0,o:i};});
+    units.sort(function(a,b){return (a.m-b.m)||(a.o-b.o);});
+    var chosen=units.filter(function(u){return u.m<3;}).slice(0,5);
+    if(chosen.length<3)units.filter(function(u){return u.m>=3;}).slice(0,3-chosen.length).forEach(function(u){chosen.push(u);});
+    chosen.sort(function(a,b){return a.o-b.o;});
+    var nodes=[],seenT=[];
+    chosen.forEach(function(u,i){
+      var L=Math.min(3,u.m+1);
+      nodes.push({id:'u'+i+'a',kind:'lesson',topic:u.id,L:L,part:'a'});
+      nodes.push({id:'u'+i+'b',kind:'lesson',topic:u.id,L:L,part:'b'});
+      seenT.push(u.id);
+      if(i%2===1)nodes.push({id:'c'+i,kind:'blitz',topics:seenT.slice()});
+      if(i%2===1||i===chosen.length-1)nodes.push({id:'g'+i,kind:'game',topics:seenT.slice(-3)});
+    });
+    nodes.push({id:'boss',kind:'boss',topics:seenT.slice()});
+    ML.S.course=nodes;
+  }
+  function nodeTitle(n){
+    if(n.kind==='lesson'){var t=BY[n.topic];return t.emoji+' '+t.name+' \u00B7 Part '+(n.part==='a'?1:2);}
+    if(n.kind==='blitz')return '\u26A1 60-second Blitz';
+    if(n.kind==='game')return '\uD83E\uDEE7 Bubble Pop revision';
+    return '\uD83D\uDC51 Final Quest';
+  }
+  function nodeSub(n){
+    if(n.kind==='lesson')return (n.part==='a'?'Learn the trick, then try 5 questions':'Level-up round with speed bonuses')+' \u00B7 Level '+n.L;
+    if(n.kind==='blitz')return 'Score as many points as you can \u2014 build combos!';
+    if(n.kind==='game')return 'A minigame that replays what you just learned';
+    return 'Mixed challenge \u2014 your big moment!';
+  }
+  function nextNode(){var c=ML.S.course;for(var i=0;i<c.length;i++)if(!ML.S.done[c[i].id])return c[i];return null;}
+  function nodeLevels(topics){var o={};topics.forEach(function(t){o[t]=Math.max(1,Math.min(3,ML.S.levels[t]||1));});return o;}
+  function courseTopics(){var t=ML.S.tested.slice();ML.S.course.forEach(function(n){if(n.kind==='lesson'&&t.indexOf(n.topic)<0)t.push(n.topic);});return t.length?t:['arith','frac'];}
+
+  /* ---------- 5. COURSE DASHBOARD ---------- */
+  function renderCourse(){
+    var S=ML.S,nx=nextNode(),xp=S.xp,lv=lvlOf(xp),into=xp-lv*120,doneN=S.course.filter(function(n){return S.done[n.id];}).length;
+    var h='<div class="mlv-hero tight"><div class="mlv-owl">\uD83E\uDD89</div><div><h1>Hi '+E(userName())+'! Ready to level up?</h1><p>'+(nx?'Your next quest is waiting. A few minutes is plenty \u2014 small steps count!':'You finished the whole course \u2014 amazing! Replay anything or try the minigames.')+'</p></div></div>'
+      +'<div class="mlv-stats"><div class="mlv-stat"><span>\u2B50</span><b>'+xp+'</b><small>points</small></div><div class="mlv-stat"><span>\uD83D\uDD25</span><b>'+S.streak.n+'</b><small>day streak</small></div><div class="mlv-stat"><span>\uD83C\uDF1F</span><b>'+totalStars()+'</b><small>stars</small></div>'
+      +'<div class="mlv-stat wide"><small>Level '+(lv+1)+' \u00B7 '+LEVEL_NAMES[Math.min(LEVEL_NAMES.length-1,lv)]+'</small><div class="mlv-bar"><i style="width:'+Math.round(into/120*100)+'%"></i></div></div></div>'
+      +'<div class="mlv-grid"><div class="mlv-col">'
+      +(nx?'<div class="mlv-card mlv-next"><small>Up next</small><h2>'+E(nodeTitle(nx))+'</h2><p>'+E(nodeSub(nx))+'</p><button type="button" class="btn mlv-go" id="mlGo">Let\u2019s go \u25B6</button></div>':'')
+      +'<div class="mlv-card"><h3>Your course <small>'+doneN+' / '+S.course.length+' done</small></h3><ol class="mlv-path">'
+      +S.course.map(function(n,i){
+        var d=S.done[n.id],cur=nx&&nx.id===n.id;
+        return '<li class="'+(d?'done':(cur?'cur':'lock'))+' k-'+n.kind+'"><button type="button" data-i="'+i+'"><span class="dot">'+(d?'\u2713':(cur?(i+1):'\uD83D\uDD12'))+'</span><span class="tx"><b>'+E(nodeTitle(n))+'</b><small>'+(d?'\u2605'.repeat(d.stars||1)+' \u00B7 best '+(d.best||0)+' pts':E(nodeSub(n)))+'</small></span></button></li>';
+      }).join('')+'</ol></div></div>'
+      +'<div class="mlv-col"><div class="mlv-card"><h3>Skill map</h3><div class="mlv-map">'+TOP.map(function(t){return '<div class="mlv-mrow"><span class="n">'+t.emoji+' '+E(t.name)+'</span>'+pips(S.levels[t.id]||0)+'</div>';}).join('')+'</div></div>'
+      +'<div class="mlv-card"><h3>Play &amp; practise</h3><div class="mlv-quickbtns"><button type="button" class="mlv-qb" id="mlFreePop">\uD83E\uDEE7 Bubble Pop<small>best '+S.best.pop+'</small></button><button type="button" class="mlv-qb" id="mlFreeBlitz">\u26A1 60s Blitz<small>best '+S.best.blitz+'</small></button></div></div>'
+      +'<div class="mlv-card"><h3>Badges</h3><div class="mlv-badges">'+Object.keys(BADGES).map(function(k){var b=BADGES[k],has=S.badges[k];return '<span class="mlv-bdg'+(has?' on':'')+'" title="'+E(b[1]+' \u2014 '+b[2])+'"><i>'+b[0]+'</i><small>'+E(b[1])+'</small></span>';}).join('')+'</div></div>'
+      +'<div class="mlv-card mlv-more"><button type="button" class="mlv-link" id="mlRetake">\uD83D\uDD04 Retake the warm-up</button><button type="button" class="mlv-link" id="mlAsk">\uD83D\uDCA1 Ask Matix to teach me anything</button><button type="button" class="mlv-link dim" id="mlReset">Reset my progress</button></div>'
+      +'</div></div>';
+    show(h,'mlv-course');
+    var go=$q('#mlGo');if(go)go.onclick=function(){openNode(nx);};
+    $q('.mlv-path').onclick=function(e){
+      var b=e.target.closest('button');if(!b)return;var n=S.course[+b.getAttribute('data-i')];
+      if(!S.done[n.id]&&(!nx||nx.id!==n.id)){try{toast('Finish the one before first \u2014 you\u2019ve got this! \uD83D\uDCAA','');}catch(x){}return;}
+      openNode(n);
+    };
+    $q('#mlFreePop').onclick=function(){openNode({id:'free-pop',kind:'game',topics:courseTopics(),free:true});};
+    $q('#mlFreeBlitz').onclick=function(){openNode({id:'free-blitz',kind:'blitz',topics:courseTopics(),free:true});};
+    $q('#mlRetake').onclick=function(){ML.draft={level:null,topics:[]};ML.S.placed=false;save();route();};
+    $q('#mlAsk').onclick=openLegacy;
+    $q('#mlReset').onclick=function(){
+      var doReset=function(){ML.S=null;try{localStorage.removeItem(key());}catch(e){}ML.draft={level:null,topics:[]};route();};
+      if(typeof customConfirm==='function')customConfirm('Reset all Math Learn progress? This starts you fresh.',doReset);else if(confirm('Reset all Math Learn progress?'))doReset();
+    };
+  }
+  function openNode(n){
+    if(!n)return;
+    if(n.kind==='lesson')return lessonCards(n);
+    if(n.kind==='blitz')return blitz(n);
+    if(n.kind==='game')return bubblePop(n);
+    return boss(n);
+  }
+
+  /* ---------- 6. LESSON: learn cards → practice ---------- */
+  function lessonDeck(n){
+    var tp=BY[n.topic],kb=(window.LX_KB&&window.LX_KB[tp.kb])||null,cards=[],tip=(MX.TIPS[n.topic]||[])[n.L-1];
+    function step(s){if(s&&s.title)cards.push({h:String(s.title),b:String(s.body||''),ex:String(s.example||'')});}
+    if(n.part==='a'){
+      cards.push({h:tp.name+' \u2014 the big idea',b:String((kb&&kb.intro)||tip||'Let\u2019s get comfortable with '+tp.name+'.')});
+      if(kb&&kb.steps){step(kb.steps[0]);step(kb.steps[1]);}
+      if(tip)cards.push({h:'\uD83D\uDCA1 Level '+n.L+' trick',b:tip});
+    }else{
+      if(tip)cards.push({h:'\uD83D\uDCA1 Level '+n.L+' trick',b:tip});
+      if(kb&&kb.steps){step(kb.steps[2]);step(kb.steps[3]);}
+      if(kb&&kb.mistakes&&kb.mistakes.length)cards.push({h:'\u26A0\uFE0F Watch out for this',b:kb.mistakes.slice(0,2).map(String).join(' \u2022 ')});
+      if(kb&&kb.examples&&kb.examples[0])cards.push({h:'Worked example',b:String(kb.examples[0].problem||''),ex:String(kb.examples[0].solution||'')});
+    }
+    return cards.filter(function(c){return c.b||c.ex;}).slice(0,4);
+  }
+  function lessonCards(n){
+    var cards=lessonDeck(n),tp=BY[n.topic],k=0;
+    function card(){
+      var c=cards[k],last=k>=cards.length-1;
+      var h='<div class="mlv-top"><button type="button" class="mlv-x" id="lcX" aria-label="Back">\u2715</button><div class="mlv-bar"><i style="width:'+Math.round((k+1)/(cards.length+1)*100)+'%"></i></div><div class="mlv-pill">'+tp.emoji+' L'+n.L+'</div></div>'
+        +'<div class="mlv-card mlv-learn" style="--tc:'+tp.color+'"><small>Quick idea '+(k+1)+' of '+cards.length+'</small><h2>'+E(c.h)+'</h2><p>'+E(c.b)+'</p>'
+        +(c.ex?'<div class="mlv-ex">'+E(c.ex).replace(/\n/g,'<br>')+'</div>':'')
+        +'<div class="mlv-actions"><button type="button" class="btn mlv-go" id="lcNext">'+(last?'Let\u2019s play! \uD83C\uDFAE':'Got it \u2192')+'</button></div></div>';
+      show(h,'mlv-run');
+      $q('#lcX').onclick=function(){route();};
+      $q('#lcNext').onclick=function(){if(last)lessonQuiz(n);else{k++;card();}};
+    }
+    if(!cards.length)return lessonQuiz(n);
+    card();
+  }
+  function lessonQuiz(n){
+    var tp=BY[n.topic],L=n.L,Lm=Math.max(1,L-1),Lh=Math.min(3,L+1);
+    var plan=n.part==='a'?[Lm,Lm,L,L,L]:[L,L,L,Lh,Lh];
+    runQuiz({
+      mode:'lesson',title:tp.name,total:plan.length,speed:n.part==='b',
+      next:function(i,hist,seen){return MX.makeFresh(n.topic,plan[i],seen);},
+      onDone:function(res){finishLesson(n,res);},
+      onExit:function(){route();}
+    });
+  }
+  function noteRevise(hist){
+    var S=ML.S;
+    hist.forEach(function(h){if(h.ok)return;var t=h.q.t,i=S.revise.indexOf(t);if(i>=0)S.revise.splice(i,1);S.revise.push(t);});
+    S.revise=S.revise.slice(-5);
+  }
+  function recordRun(node,res){
+    var S=ML.S,prev=S.done[node.id],pct=res.total?res.right/res.total:0,stars=pct>=0.9?3:(pct>=0.6?2:1);
+    var gain=res.score+stars*10;if(prev)gain=Math.round(gain*0.5);
+    S.xp+=gain;
+    S.done[node.id]={stars:Math.max(stars,prev?prev.stars:0),best:Math.max(res.score,prev?prev.best:0)};
+    tickStreak();noteRevise(res.hist);save();
+    return {stars:stars,gain:gain,miss:res.hist.filter(function(h){return !h.ok;})};
+  }
+  function recapHtml(miss){
+    if(!miss.length)return '<div class="mlv-note">\uD83C\uDF1F Flawless \u2014 nothing to revise!</div>';
+    return '<div class="mlv-recap"><h3>Quick revision</h3>'+miss.slice(0,5).map(function(h){return '<div class="mlv-rc"><div class="q">'+(h.q.p||'')+' '+(h.q.q||'')+'</div><div class="a">Answer: <b>'+E(fixNeg(h.q.a))+'</b></div><div class="w">'+(h.q.why||'')+'</div></div>';}).join('')+'</div>';
+  }
+  function finishLesson(n,res){
+    var S=ML.S,r=recordRun(n,res);
+    if(n.part==='b'&&r.stars>=2)S.levels[n.topic]=Math.max(S.levels[n.topic]||0,n.L);
+    badgeGive('first');if(r.stars===3)badgeGive('star3');
+    save();
+    var nx=nextNode(),tp=BY[n.topic];
+    show('<div class="mlv-card mlv-result">'+starsHtml(r.stars)
+      +'<h2>'+(r.stars===3?'Perfect round! \uD83C\uDF89':(r.stars===2?'Great job! \uD83D\uDE04':'You did it! \uD83D\uDCAA'))+'</h2>'
+      +'<p>'+tp.emoji+' '+E(tp.name)+' \u2014 <b>'+res.right+' of '+res.total+'</b> right \u00B7 best streak <b>'+res.bestStreak+'</b> \uD83D\uDD25</p>'
+      +'<div class="mlv-gain">+'+r.gain+' points</div>'+recapHtml(r.miss)
+      +'<div class="mlv-actions">'+(nx?'<button type="button" class="btn mlv-go" id="rsNext">Next: '+E(nodeTitle(nx))+' \u25B6</button>':'<button type="button" class="btn mlv-go" id="rsHome">Back to my course</button>')
+      +'<button type="button" class="mlv-link" id="rsAgain">Try again for more stars</button><button type="button" class="mlv-link" id="rsHome2">My course</button></div></div>','mlv-run');
+    if(r.stars===3)confetti();
+    var nb=$q('#rsNext');if(nb)nb.onclick=function(){openNode(nx);};
+    var hb=$q('#rsHome');if(hb)hb.onclick=route;
+    $q('#rsAgain').onclick=function(){lessonQuiz(n);};
+    $q('#rsHome2').onclick=route;
+  }
+
+  /* ---------- 7. BLITZ (60 s challenge) ---------- */
+  function mcQuestion(topic,L,seen){
+    var q,k=0;do{q=MX.makeFresh(topic,L,seen);k++;}while(q.type!=='mc'&&k<14);
+    return q;
+  }
+  function finishArcade(n,score,stars,gainDiv,hist,bestKey){
+    var S=ML.S,newBest=score>S.best[bestKey];if(newBest)S.best[bestKey]=score;
+    var gain=Math.round(score/gainDiv);
+    if(n.free||S.done[n.id])gain=Math.round(gain/2);
+    S.xp+=gain;
+    if(!n.free){var p=S.done[n.id]||{};S.done[n.id]={stars:Math.max(stars,p.stars||0),best:Math.max(score,p.best||0)};}
+    noteRevise(hist);tickStreak();save();
+    return {newBest:newBest,gain:gain};
+  }
+  function blitz(n){
+    stopAll();var tok=ML.tok,root=ML.root,lvs=nodeLevels(n.topics),T=60,left=T,score=0,combo=0,best=0,right=0,total=0,seen={},q,hist=[],busy=false,over=false;
+    root.innerHTML='<div class="mlv mlv-run mlv-blitz"><div class="mlv-top"><button type="button" class="mlv-x" id="bzX" aria-label="Exit">\u2715</button><div class="mlv-bar time"><i id="bzBar" style="width:100%"></i></div><div class="mlv-pill">\u23F1 <b id="bzT">'+T+'</b></div></div>'
+      +'<div class="mlv-qcard"><div class="mlv-scoreline"><span>\u2B50 <b id="bzS">0</b></span><span class="mlv-combo" id="bzC"></span></div><div class="mlv-q" id="bzQ"></div><div class="mlv-ans mc" id="bzA"></div></div></div>';
+    toTop();
+    $q('#bzX',root).onclick=function(){stopAll();route();};
+    var A=$q('#bzA',root);
+    function nextQ(){
+      busy=false;var t=MX.pick(n.topics);q=mcQuestion(t,lvs[t]||1,seen);
+      $q('#bzQ',root).innerHTML='<span class="p">'+(q.p||'')+'</span> <span class="b">'+(q.q||'')+'</span>';
+      A.innerHTML=q.ch.map(function(c,k){return '<button type="button" class="mlv-opt" data-v="'+E(c)+'"><kbd>'+(k+1)+'</kbd><span>'+E(fixNeg(c))+'</span></button>';}).join('');
+    }
+    function pickAns(b){
+      if(busy||over)return;busy=true;var v=b.getAttribute('data-v'),ok=MX.same(v,q.a);total++;
+      hist.push({q:q,ok:ok});
+      if(ok){right++;combo++;if(combo>best)best=combo;score+=10*Math.min(4,1+Math.floor(combo/3));b.classList.add('right');if(combo>=5)badgeGive('hot');}
+      else{combo=0;b.classList.add('wrong');Array.prototype.forEach.call(A.children,function(x){if(MX.same(x.getAttribute('data-v'),q.a))x.classList.add('right');});}
+      $q('#bzS',root).textContent=score;
+      $q('#bzC',root).textContent=combo>=3?'\uD83D\uDD25 x'+Math.min(4,1+Math.floor(combo/3))+' combo':'';
+      setTimeout(function(){if(alive(tok)&&!over)nextQ();},ok?260:700);
+    }
+    A.onclick=function(e){var b=e.target.closest('.mlv-opt');if(b)pickAns(b);};
+    root.onkeydown=function(e){if(/^[1-4]$/.test(e.key)){var b=A.children[+e.key-1];if(b)pickAns(b);}};
+    nextQ();
+    ML.tm=setInterval(function(){
+      if(!alive(tok)){clearInterval(ML.tm);return;}
+      left--;var bt=$q('#bzT',root),br=$q('#bzBar',root);if(bt)bt.textContent=Math.max(0,left);if(br)br.style.width=Math.max(0,left/T*100)+'%';
+      if(left<=0)end();
+    },1000);
+    function end(){
+      if(over)return;over=true;stopAll();
+      var stars=score>=80?3:(score>=50?2:1);
+      var f=finishArcade(n,score,stars,2,hist,'blitz');
+      if(score>=80)badgeGive('blitz');save();
+      var nx=nextNode();
+      show('<div class="mlv-card mlv-result">'+starsHtml(stars)+'<h2>Time! \u26A1 '+score+' points</h2>'
+        +'<p>'+right+' right in 60 seconds \u00B7 best combo <b>'+best+'</b>'+(f.newBest?' \u00B7 <b>new personal best! \uD83C\uDFC6</b>':'')+'</p><div class="mlv-gain">+'+f.gain+' XP</div>'
+        +recapHtml(hist.filter(function(h){return !h.ok;}))
+        +'<div class="mlv-actions">'+((nx&&!n.free)?'<button type="button" class="btn mlv-go" id="bzNext">Next: '+E(nodeTitle(nx))+' \u25B6</button>':'<button type="button" class="btn mlv-go" id="bzAgain">Play again</button>')
+        +'<button type="button" class="mlv-link" id="bzHome">My course</button></div></div>','mlv-run');
+      if(stars===3)confetti();
+      var nb=$q('#bzNext');if(nb)nb.onclick=function(){openNode(nx);};
+      var ab=$q('#bzAgain');if(ab)ab.onclick=function(){blitz(n);};
+      $q('#bzHome').onclick=route;
+    }
+  }
+
+  /* ---------- 8. MINIGAME: BUBBLE POP (revision through play) ---------- */
+  function bubblePop(n){
+    stopAll();var tok=ML.tok,root=ML.root,lvs=nodeLevels(n.topics),D=45,left=D,lives=3,score=0,combo=0,right=0,seen={},hist=[],q,bubbles=[],t0=0,over=false,tLast=0,phase='play';
+    root.innerHTML='<div class="mlv mlv-run mlv-pop"><div class="mlv-top"><button type="button" class="mlv-x" id="bpX" aria-label="Exit">\u2715</button><div class="mlv-bar time"><i id="bpBar" style="width:100%"></i></div><div class="mlv-pill" id="bpL"></div></div>'
+      +'<div class="mlv-qcard pop"><div class="mlv-scoreline"><span>\u2B50 <b id="bpS">0</b></span><span class="mlv-combo" id="bpC"></span><span class="mlv-hint">Pop the bubble with the right answer!</span></div><div class="mlv-q" id="bpQ"></div>'
+      +'<div class="mlv-arena" id="bpArena"></div></div></div>';
+    toTop();
+    $q('#bpX',root).onclick=function(){stopAll();route();};
+    var arena=$q('#bpArena',root);
+    function hearts(){var l=Math.max(0,lives);$q('#bpL',root).textContent=new Array(l+1).join('\u2764')+new Array(3-l+1).join('\u2661');}
+    function setCombo(){$q('#bpC',root).textContent=combo>=2?'\uD83D\uDD25 x'+combo:'';}
+    function newQ(){
+      var t=MX.pick(n.topics);q=mcQuestion(t,lvs[t]||1,seen);t0=Date.now();phase='play';
+      $q('#bpQ',root).innerHTML='<span class="p">'+(q.p||'')+'</span> <span class="b">'+(q.q||'')+'</span>';
+      arena.innerHTML='';bubbles=[];
+      var lanes=MX.shuffle([0,1,2,3]),W=arena.clientWidth||320,H=arena.clientHeight||320,lw=W/4,dur=Math.max(4.8,8.5-(D-left)/12);
+      q.ch.forEach(function(c,k){
+        var b=document.createElement('button');b.type='button';b.className='mlv-bub c'+(k%5);
+        b.textContent=fixNeg(c);b.setAttribute('data-v',c);
+        arena.appendChild(b);
+        var bs=b.offsetWidth||72,x=lanes[k]*lw+(lw-bs)/2;
+        var o={el:b,y:H+k*(H*0.22)+Math.random()*20,v:(H+bs)/(dur*(0.85+Math.random()*0.3)),right:MX.same(c,q.a)};
+        b.style.left=x+'px';b.style.transform='translate3d(0,'+o.y+'px,0)';
+        bubbles.push(o);
+      });
+    }
+    function reveal(){var cor=bubbles.filter(function(o){return o.right;})[0];if(cor)cor.el.classList.add('hint');}
+    function wrongRound(){
+      lives--;combo=0;hearts();setCombo();hist.push({q:q,ok:false});phase='freeze';reveal();
+      if(lives<=0){setTimeout(function(){if(alive(tok))finish();},650);return;}
+      setTimeout(function(){if(alive(tok)&&!over)newQ();},850);
+    }
+    arena.onclick=function(e){
+      var b=e.target.closest('.mlv-bub');if(!b||over||phase!=='play')return;
+      var o=bubbles.filter(function(z){return z.el===b;})[0];if(!o)return;
+      if(o.right){
+        phase='freeze';right++;combo++;score+=10+Math.min(combo,6)*2+(Date.now()-t0<4000?5:0);hist.push({q:q,ok:true});
+        b.classList.add('pop');$q('#bpS',root).textContent=score;setCombo();
+        bubbles.forEach(function(z){if(z!==o)z.el.classList.add('fade');});
+        if(combo>=5)badgeGive('hot');
+        setTimeout(function(){if(alive(tok)&&!over)newQ();},320);
+      }else{b.classList.add('wrong');b.disabled=true;wrongRound();}
+    };
+    function frame(ts){
+      if(!alive(tok)||over)return;
+      var dt=Math.min(0.05,(ts-(tLast||ts))/1000),missed=false;tLast=ts;
+      if(phase==='play'){
+        bubbles.forEach(function(o){
+          o.y-=o.v*dt;o.el.style.transform='translate3d(0,'+o.y+'px,0)';
+          if(o.right&&o.y<-(o.el.offsetHeight||70))missed=true;
+        });
+        if(missed)wrongRound();
+      }
+      ML.raf=requestAnimationFrame(frame);
+    }
+    hearts();newQ();
+    ML.raf=requestAnimationFrame(frame);
+    ML.tm=setInterval(function(){
+      if(!alive(tok)){clearInterval(ML.tm);return;}
+      left--;var br=$q('#bpBar',root);if(br)br.style.width=Math.max(0,left/D*100)+'%';
+      if(left<=0)finish();
+    },1000);
+    function finish(){
+      if(over)return;over=true;stopAll();
+      var stars=score>=100?3:(score>=50?2:1),miss=hist.filter(function(h){return !h.ok;});
+      var f=finishArcade(n,score,stars,3,hist,'pop');
+      if(score>=100)badgeGive('pop');save();
+      var nx=nextNode();
+      show('<div class="mlv-card mlv-result">'+starsHtml(stars)+'<h2>'+(lives>0?'Time\u2019s up!':'Out of hearts!')+' \uD83E\uDEE7 '+score+' points</h2>'
+        +'<p>'+right+' bubbles popped'+(f.newBest?' \u00B7 <b>new personal best! \uD83C\uDFC6</b>':'')+'</p><div class="mlv-gain">+'+f.gain+' XP</div>'+recapHtml(miss)
+        +'<div class="mlv-actions">'+((nx&&!n.free)?'<button type="button" class="btn mlv-go" id="bpNext">Next: '+E(nodeTitle(nx))+' \u25B6</button>':'')
+        +'<button type="button" class="'+((nx&&!n.free)?'mlv-link':'btn mlv-go')+'" id="bpAgain">Play again</button><button type="button" class="mlv-link" id="bpHome">My course</button></div></div>','mlv-run');
+      if(stars===3)confetti();
+      var nb=$q('#bpNext');if(nb)nb.onclick=function(){openNode(nx);};
+      $q('#bpAgain').onclick=function(){bubblePop(n);};
+      $q('#bpHome').onclick=route;
+    }
+  }
+
+  /* ---------- 9. FINAL QUEST ---------- */
+  function boss(n){
+    var lvs=nodeLevels(n.topics),T=n.topics;
+    runQuiz({
+      mode:'boss',title:'Final Quest \uD83D\uDC51',total:8,speed:true,
+      next:function(i,hist,seen){var t=T[i%T.length];return MX.makeFresh(t,Math.min(3,(lvs[t]||1)+(i>=4?1:0)),seen);},
+      onDone:function(res){
+        var r=recordRun(n,res);badgeGive('done');save();confetti();
+        show('<div class="mlv-card mlv-result"><div class="mlv-owl big">\uD83D\uDC51</div>'+starsHtml(r.stars)
+          +'<h2>You beat the Final Quest!</h2><p><b>'+res.right+' of '+res.total+'</b> \u00B7 +'+r.gain+' points. You\u2019ve finished your personal course \u2014 so proud of you! \uD83C\uDF89</p>'+recapHtml(r.miss)
+          +'<div class="mlv-actions"><button type="button" class="btn mlv-go" id="bsHome">Back to my course</button><button type="button" class="mlv-link" id="bsRe">Retake the warm-up for a new course</button></div></div>','mlv-run');
+        $q('#bsHome').onclick=route;
+        $q('#bsRe').onclick=function(){ML.draft={level:null,topics:[]};ML.S.placed=false;save();route();};
+      },
+      onExit:function(){route();}
+    });
+  }
+
+  /* ---------- router + hooks ---------- */
+  function route(){
+    if(!ML.root)return;
+    load();
+    if(!ML.S.placed||!ML.S.course.length)renderIntro();else renderCourse();
+  }
+  window.renderLearn=function(c){
+    if(window.LX_PENDING_TOPIC)ML.legacy=true;
+    else if(ML.legacy&&!(window.LX&&(window.LX.view==='lesson'||window.LX.view==='practice')&&window.LX.lesson))ML.legacy=false;
+    if(ML.legacy&&typeof oldRender==='function')return oldRender(c);
+    stopAll();ML.root=c;route();
+  };
+
+  /* the old "teach me anything" screens get a way back to the course */
+  function addBar(c){
+    if(!c||!c.querySelector||c.querySelector('.mlv-back'))return;
+    var d=document.createElement('div');d.className='mlv-back';
+    d.innerHTML='<button type="button" class="mlv-link">\u2190 Back to my Math Learn course</button>';
+    d.firstChild.onclick=function(){backToCourse(c);};
+    c.insertBefore(d,c.firstChild);
+  }
+  ['lxRenderStart','lxRenderLesson','lxRenderPractice','lxRenderScore','lxRenderOffline'].forEach(function(nm){
+    var f=window[nm];if(typeof f!=='function')return;
+    window[nm]=function(c){var r=f.apply(this,arguments);try{addBar(c);}catch(e){}return r;};
+  });
+})();
+
+</script>
+<!-- MXV5:END -->
 </body>
 </html>
