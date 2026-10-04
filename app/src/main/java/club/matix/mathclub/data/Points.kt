@@ -46,7 +46,8 @@ object Points {
 
     fun load() = PointsData(
         Firebase.get("/points") as? JSONObject ?: JSONObject(), obj("/roles"), obj("/profiles"),
-        obj("/members"), obj("/member_notes"), obj("/point_requests")
+        JSONObject().apply { Firebase.getKeys("/members").forEach { put(it, true) } },
+        obj("/member_notes"), obj("/point_requests")
     )
 
     private fun notify(user: String, title: String, body: String, from: String) {

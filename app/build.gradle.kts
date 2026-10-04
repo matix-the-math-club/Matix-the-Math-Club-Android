@@ -16,11 +16,9 @@ android {
         resourceConfigurations += listOf("en")
     }
 
-    // Release signing is optional: CI (or a local dev) can point
-    // KEYSTORE_PATH/KEYSTORE_PASSWORD/KEY_ALIAS/KEY_PASSWORD env vars at a
-    // real upload keystore. Without those set, release falls back to the
-    // debug keystore so `assembleRelease`/`bundleRelease` still produce an
-    // installable APK/AAB out of the box.
+    // Release signing is optional. Set KEYSTORE_PATH/KEYSTORE_PASSWORD/
+    // KEY_ALIAS/KEY_PASSWORD for a CI upload key, or sign the bundle from
+    // Android Studio. Never silently sign a release with the debug key.
     val ksPath = System.getenv("KEYSTORE_PATH")
     signingConfigs {
         if (ksPath != null && file(ksPath).exists()) {
@@ -45,11 +43,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = if (ksPath != null && file(ksPath).exists()) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            if (ksPath != null && file(ksPath).exists()) signingConfig = signingConfigs.getByName("release")
         }
     }
 

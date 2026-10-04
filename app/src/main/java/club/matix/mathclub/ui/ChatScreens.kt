@@ -431,9 +431,13 @@ private fun PersonAvatar(person: ChatPerson, size: Int) {
         MaterialTheme.colorScheme.primary
     }
     Box(Modifier.size(size.dp).clip(CircleShape).background(bg), contentAlignment = Alignment.Center) {
-        Text(person.emoji.ifBlank { person.displayName.firstOrNull()?.uppercase() ?: "?" },
-            color = Color.White, fontSize = if (person.emoji.isBlank()) (size / 2.4).sp else (size / 2.0).sp,
-            fontWeight = FontWeight.Bold)
+        if (person.photo.isNotBlank()) {
+            DataUriImage(person.photo, Modifier.fillMaxSize(), "${person.displayName}'s profile photo")
+        } else {
+            Text(person.emoji.ifBlank { person.displayName.firstOrNull()?.uppercase() ?: "?" },
+                color = Color.White, fontSize = if (person.emoji.isBlank()) (size / 2.4).sp else (size / 2.0).sp,
+                fontWeight = FontWeight.Bold)
+        }
         if (person.hasBadge) Text("★", Modifier.align(Alignment.BottomEnd), fontSize = 11.sp, color = Color(0xFFFFD54F))
     }
 }

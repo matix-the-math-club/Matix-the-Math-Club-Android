@@ -20,6 +20,13 @@ object Firebase {
         return if (v == JSONObject.NULL) null else v
     }
 
+    /** Enumerates database child names without downloading member values such as plaintext passwords. */
+    fun getKeys(path: String, base: String = MAIN): Set<String> {
+        val raw = request("GET", "$base$path.json?shallow=true", null) ?: return emptySet()
+        val value = JSONTokener(raw).nextValue()
+        return (value as? JSONObject)?.keys()?.asSequence()?.toSet() ?: emptySet()
+    }
+
     fun put(path: String, body: Any?, base: String = MAIN): Boolean =
         request("PUT", base + path + ".json", JSONObject.wrap(body)?.toString() ?: "null") != null
 

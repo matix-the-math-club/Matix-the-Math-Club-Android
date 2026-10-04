@@ -19,7 +19,8 @@ data class ChatPerson(
     val role: String,
     val emoji: String,
     val color: String,
-    val hasBadge: Boolean
+    val hasBadge: Boolean,
+    val photo: String = ""
 )
 
 data class DirectMessage(
@@ -50,11 +51,12 @@ object DirectChatRepository {
         "jad" to "Jad", "marwan" to "Marwan", "mak" to "Mohammad-ali", "hicham" to "Hicham"
     )
 
-    /** Deliberately reads public profile/role indexes, not /members (which contains passwords). */
+    /** Uses shallow member keys so the directory never downloads password values. */
     fun people(me: String): List<ChatPerson> {
         val profiles = Firebase.get("/profiles") as? JSONObject ?: JSONObject()
         val roles = Firebase.get("/roles") as? JSONObject ?: JSONObject()
         val usernames = linkedSetOf<String>().apply {
+            addAll(Firebase.getKeys("/members"))
             addAll(profiles.keys().asSequence().toList())
             addAll(roles.keys().asSequence().toList())
             addAll(corePeople.keys)
@@ -74,7 +76,8 @@ object DirectChatRepository {
                     role = role,
                     emoji = profile.optString("emoji"),
                     color = profile.optString("color"),
-                    hasBadge = profile.optBoolean("hasBadge")
+                    hasBadge = profile.optBoolean("hasBadge"),
+                    photo = profile.optString("profileImage").ifEmpty { profile.optString("photo") }
                 )
             }
             .sortedWith(compareBy<ChatPerson> { it.displayName.lowercase() }.thenBy { it.username })

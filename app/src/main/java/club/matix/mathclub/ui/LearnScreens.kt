@@ -16,24 +16,36 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import club.matix.mathclub.data.*
+import org.json.JSONObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 /** Math Learn: units > chapters > lessons, hearts, XP, crowns. Port of the web app's renderLearn. */
 @Composable
-fun LearnScreen(me: String, isOwner: Boolean) {
+fun LearnScreen(store: Store, me: String, isOwner: Boolean) {
     var state by remember { mutableStateOf<LearnState?>(null) }
     var failed by remember { mutableStateOf(false) }
     var playing by remember { mutableStateOf<Lesson?>(null) }
     var teaching by remember { mutableStateOf<Lesson?>(null) }
     val scope = rememberCoroutineScope()
-    var tick by remember { mutableStateOf(0) }
-    var sub by remember { mutableStateOf("path") }
+    var tick by remember { mutableIntStateOf(0) }
+    var sub by remember { mutableStateOf("anything") }
+    var assessment by remember { mutableStateOf<LearningAssessment?>(null) }
 
-    LaunchedEffect(me) {
+    LaunchedEffect(me, tick) {
         state = withContext(Dispatchers.IO) { runCatching { Learn.load(me) }.getOrNull() }
         failed = state == null
+    }
+    LaunchedEffect(me, sub) {
+        if (sub == "quests") {
+            while (isActive) {
+                delay(15_000)
+                tick++
+            }
+        }
     }
     val s = state
     if (s == null) {
@@ -46,8 +58,17 @@ fun LearnScreen(me: String, isOwner: Boolean) {
     val t = teaching
     val p = playing
     when {
+        assessment != null -> {
+            val a = assessment!!
+            QuizScreen(
+                title = a.title, exercises = a.exercises, showHearts = false, state = s,
+                me = me, lessonId = null, mode = a.mode, targetId = a.targetId,
+                onExit = { assessment = null; tick++ }
+            )
+        }
         p != null -> QuizScreen(
             title = p.title, exercises = p.ex, showHearts = !isOwner, state = s, me = me, lessonId = p.id,
+            mode = "lesson",
             onExit = {
                 playing = null; tick++
                 scope.launch(Dispatchers.IO) { Learn.awardBadges(me, s) }
@@ -56,11 +77,34 @@ fun LearnScreen(me: String, isOwner: Boolean) {
         t != null -> TeachScreen(t, onStart = { playing = t; teaching = null }, onBack = { teaching = null })
         else -> Column(Modifier.fillMaxSize()) {
             Row(Modifier.horizontalScrollCompat().padding(horizontal = 12.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf("path" to "🗺 Path", "shop" to "🛒 Shop", "badges" to "🏅 Badges", "board" to "🏆 Board").forEach { (id, l) ->
+                val tabs = buildList {
+                    add("anything" to "✨ Learn anything")
+                    add("path" to "🗺 Course path")
+                    add("practice" to "🧠 Practice")
+                    add("quests" to "🎯 Quests")
+                    add("tests" to "🧭 Tests")
+                    add("shop" to "🛒 Shop")
+                    add("badges" to "🏅 Badges")
+                    add("board" to "🏆 Board")
+                    if (isOwner) add("edit" to "✏️ Edit course")
+                }
+                tabs.forEach { (id, l) ->
                     FilterChip(sub == id, { sub = id }, label = { Text(l) })
                 }
             }
             when (sub) {
+                "anything" -> LearnAnythingScreen(store, me, isOwner, s, onPractice = { assessment = it }, onRefresh = { tick++ })
+                "practice" -> LearnPracticeScreen(me, s) { run ->
+                    assessment = run
+                }
+                "quests" -> LearnQuestsScreen(me, s) { friend ->
+                    scope.launch {
+                        withContext(Dispatchers.IO) { Learn.startFriendQuest(me, friend) }
+                        tick++
+                    }
+                }
+                "tests" -> LearnTestsScreen(store, me, s) { assessment = it }
+                "edit" -> if (isOwner) LearnCourseEditor(me, s) { tick++ }
                 "shop" -> LearnShop(s, me) { tick++ }
                 "badges" -> LearnBadges(s)
                 "board" -> LearnBoard(me)
@@ -71,6 +115,16 @@ fun LearnScreen(me: String, isOwner: Boolean) {
                         l.howto.isBlank() -> playing = l
                         else -> teaching = l
                     }
+                }, onTest = { kind, id ->
+                    val tests = when (kind) {
+                        "unit-test" -> s.units.firstOrNull { it.id == id }?.test.orEmpty()
+                        else -> s.chapters.firstOrNull { it.id == id }?.test.orEmpty()
+                    }
+                    assessment = LearningAssessment(
+                        if (kind == "unit-test") s.units.firstOrNull { it.id == id }?.title ?: "Unit final test"
+                        else s.chapters.firstOrNull { it.id == id }?.title ?: "Chapter final test",
+                        tests, kind, id
+                    )
                 }) }
             }
         }
@@ -78,7 +132,7 @@ fun LearnScreen(me: String, isOwner: Boolean) {
 }
 
 @Composable
-private fun LearnPath(s: LearnState, isOwner: Boolean, onOpen: (Lesson) -> Unit) {
+private fun LearnPath(s: LearnState, isOwner: Boolean, onOpen: (Lesson) -> Unit, onTest: (String, String) -> Unit) {
     val hearts = s.currentHearts()
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("🦉 Math Learn", fontSize = 24.sp, fontWeight = FontWeight.Bold)
@@ -88,28 +142,52 @@ private fun LearnPath(s: LearnState, isOwner: Boolean, onOpen: (Lesson) -> Unit)
         }
         if (!isOwner && hearts <= 0) Text("Out of hearts — one comes back every 20 minutes.", color = MaterialTheme.colorScheme.error)
         if (s.lessons.isEmpty()) Text("No lessons yet — check back soon!")
-        s.units.forEach { u ->
-            Text(u.title, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
-            s.chapters.filter { it.unitId == u.id }.forEach { c ->
-                Text(c.title, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
-                s.lessonsOf(c.id).forEach { l -> LessonRow(l, s.crowns(l.id), onOpen) }
+        s.units.forEachIndexed { unitIndex, u ->
+            Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(u.icon, fontSize = 22.sp)
+                Spacer(Modifier.width(8.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(u.title, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    if (u.description.isNotBlank()) Text(u.description, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Text(if (s.unitDone(u)) "✅" else "⭐")
             }
-            s.looseLessons(u.id).forEach { l -> LessonRow(l, s.crowns(l.id), onOpen) }
+            if (u.test.isNotEmpty()) {
+                OutlinedButton(enabled = isOwner || s.units.take(unitIndex).all { s.unitDone(it) }, onClick = { onTest("unit-test", u.id) }) {
+                    Text("🏆 Unit final test · ${u.test.size} questions · no hearts")
+                }
+            }
+            s.chapters.filter { it.unitId == u.id }.forEach { c ->
+                Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(c.icon, fontSize = 17.sp)
+                    Spacer(Modifier.width(6.dp))
+                    Text(c.title, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
+                    Text(if (s.chapterSkipped(c.id) || s.lessonsOf(c.id).isNotEmpty() && s.lessonsOf(c.id).all { s.lessonCleared(it) }) "✅" else "")
+                }
+                if (c.test.isNotEmpty()) {
+                    OutlinedButton(enabled = isOwner || (s.units.take(unitIndex).all { s.unitDone(it) } && s.lessonsOf(c.id).any { s.lessonCleared(it) }),
+                        onClick = { onTest("chapter-test", c.id) }) {
+                        Text("⚡ Chapter skip test · ${c.test.size} questions")
+                    }
+                }
+                s.lessonsOf(c.id).forEach { l -> LessonRow(l, s.crowns(l.id), s.lessonOpen(l, isOwner), onOpen) }
+            }
+            s.looseLessons(u.id).forEach { l -> LessonRow(l, s.crowns(l.id), s.lessonOpen(l, isOwner), onOpen) }
         }
         val orphan = s.lessons.filter { l -> l.unitId == null && s.chapters.none { it.id == l.chapterId } }
-        orphan.forEach { l -> LessonRow(l, s.crowns(l.id), onOpen) }
+        orphan.forEach { l -> LessonRow(l, s.crowns(l.id), isOwner, onOpen) }
     }
 }
 
 @Composable
-private fun LessonRow(l: Lesson, crowns: Int, onOpen: (Lesson) -> Unit) {
-    Card(Modifier.fillMaxWidth().clickable { onOpen(l) }) {
+private fun LessonRow(l: Lesson, crowns: Int, open: Boolean, onOpen: (Lesson) -> Unit) {
+    Card(Modifier.fillMaxWidth().clickable(enabled = open && l.ex.isNotEmpty()) { onOpen(l) }) {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(l.title, fontWeight = FontWeight.Bold)
                 Text(if (l.ex.isEmpty()) "Still being written" else "${l.ex.size} questions", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Text(if (crowns > 0) "👑".repeat(crowns) else "▶")
+            Text(if (crowns > 0) "👑".repeat(crowns) else if (open) "▶" else "🔒")
         }
     }
 }
@@ -132,7 +210,7 @@ private fun TeachScreen(l: Lesson, onStart: () -> Unit, onBack: () -> Unit) {
 @Composable
 fun QuizScreen(
     title: String, exercises: List<Exercise>, showHearts: Boolean, state: LearnState?, me: String,
-    lessonId: String?, onExit: () -> Unit
+    lessonId: String?, mode: String = "lesson", targetId: String? = null, onExit: () -> Unit
 ) {
     var i by remember { mutableStateOf(0) }
     var right by remember { mutableStateOf(0) }
@@ -153,7 +231,13 @@ fun QuizScreen(
     if (i >= exercises.size) {
         LaunchedEffect(Unit) {
             xpGot = withContext(Dispatchers.IO) {
-                if (state != null) runCatching { Learn.finish(me, state, lessonId, right, wrong) }.getOrDefault(0) else 0
+                if (state == null) 0 else runCatching {
+                    if (lessonId != null) {
+                        val xp = Learn.finish(me, state, lessonId, right, wrong)
+                        Learn.markLessonFinished(me, state, right, wrong, xp)
+                        xp
+                    } else Learn.finishTest(me, state, mode, targetId, right, wrong)
+                }.getOrDefault(0)
             }
         }
         val asked = right + wrong
@@ -258,6 +342,11 @@ fun QuizScreen(
                 if (answered == null) {
                     val ok = e.isRight(given())
                     answered = ok
+                    if (state != null && mode != "placement") {
+                        scope.launch(Dispatchers.IO) {
+                            if (ok) Learn.clearMistake(me, state, e) else Learn.recordMistake(me, state, e)
+                        }
+                    }
                     if (ok) right++ else {
                         wrong++
                         if (showHearts && state != null) {

@@ -5,6 +5,8 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.webkit.WebView
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -12,6 +14,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -20,6 +23,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -186,23 +190,27 @@ fun BugsScreen(me: String, isOwner: Boolean) {
 /* Users                                                               */
 /* ------------------------------------------------------------------ */
 
-private class UserInfo(val name: String, val role: String, val bio: String, val emoji: String, val games: Int, val points: Int, val followers: Int, val password: String?)
+private class UserInfo(
+    val name: String, val role: String, val bio: String, val emoji: String, val color: String, val photo: String,
+    val games: Int, val points: Int, val followers: Int
+)
 
-private fun loadUsers(isOwner: Boolean): List<UserInfo> {
+private fun loadUsers(): List<UserInfo> {
     fun obj(p: String, base: String = Firebase.MAIN) = Firebase.get(p, base) as? JSONObject ?: JSONObject()
-    val members = obj("/members"); val roles = obj("/roles"); val profiles = obj("/profiles")
+    val memberNames = Firebase.getKeys("/members"); val roles = obj("/roles"); val profiles = obj("/profiles")
     val games = obj("/hubprojects"); val points = Firebase.get("/points") as? JSONObject ?: JSONObject(); val follows = obj("/follows")
-    val names = (members.keyList() + profiles.keyList()).map { Auth.normalize(it) }.filter { it.isNotEmpty() }.toSortedSet()
+    val names = (memberNames + profiles.keyList() + roles.keyList()).map { Auth.normalize(it) }.filter { it.isNotEmpty() }.toSortedSet()
     val gameCount = HashMap<String, Int>()
     games.keyList().forEach { k -> games.optJSONObject(k)?.let { g -> val a = Auth.normalize(g.optString("author")); gameCount[a] = (gameCount[a] ?: 0) + 1 } }
     val followers = HashMap<String, Int>()
     follows.keyList().forEach { a -> follows.optJSONObject(a)?.keyList()?.forEach { b -> val n = Auth.normalize(b); followers[n] = (followers[n] ?: 0) + 1 } }
     return names.map { u ->
-        val p = profiles.optJSONObject(u); val m = members.optJSONObject(u)
+        val p = profiles.optJSONObject(u)
         val pt = points.opt(u).let { if (it is JSONObject) it.optInt("total") else (it as? Number)?.toInt() ?: 0 }
         val emoji = p?.optString("emoji").orEmpty().takeIf { it.length <= 6 && !it.contains("http") && !it.startsWith("data:") } ?: ""
         UserInfo(u, if (u in Owners) "owner" else roles.optString(u, "member"), p?.optString("bio").orEmpty(), emoji,
-            gameCount[u] ?: 0, pt, followers[u] ?: 0, if (isOwner) m?.optString("password") else null)
+            p?.optString("color").orEmpty(), p?.optString("profileImage").orEmpty().ifEmpty { p?.optString("photo").orEmpty() },
+            gameCount[u] ?: 0, pt, followers[u] ?: 0)
     }.sortedWith(compareBy<UserInfo>({ if (it.name == "ghadi") 0 else 1 }, { it.name }))
 }
 
@@ -211,10 +219,10 @@ fun UsersScreen(isOwner: Boolean) {
     var users by remember { mutableStateOf<List<UserInfo>?>(null) }
     var q by remember { mutableStateOf("") }
     var sort by remember { mutableStateOf("az") }
-    LaunchedEffect(Unit) { users = withContext(Dispatchers.IO) { runCatching { loadUsers(isOwner) }.getOrDefault(emptyList()) } }
+    LaunchedEffect(Unit) { users = withContext(Dispatchers.IO) { runCatching { loadUsers() }.getOrDefault(emptyList()) } }
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Text("👥 Users", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Text("Browse everyone in the Matix club" + if (isOwner) " — passwords are only visible to you, the owner." else ".", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Browse everyone in the Matix club.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         val all = users
         if (all == null) { CircularProgressIndicator(); return@Column }
         Text("${all.size} members · ${all.count { it.role == "owner" }} owner · ${all.sumOf { it.games }} games made", fontSize = 13.sp)
@@ -230,10 +238,16 @@ fun UsersScreen(isOwner: Boolean) {
             items(vis) { u ->
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(12.dp)) {
-                        Text((u.emoji.ifEmpty { initials(u.name) }) + "  @${u.name}  · ${u.role}", fontWeight = FontWeight.Bold)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier.size(48.dp).clip(CircleShape).background(runCatching { Color(android.graphics.Color.parseColor(u.color)) }.getOrDefault(MaterialTheme.colorScheme.primary)), contentAlignment = Alignment.Center) {
+                                if (u.photo.isNotBlank()) DataUriImage(u.photo, Modifier.fillMaxSize(), "${u.name}'s profile photo")
+                                else Text(u.emoji.ifEmpty { initials(u.name) }, color = Color.White, fontWeight = FontWeight.Bold)
+                            }
+                            Spacer(Modifier.width(10.dp))
+                            Text("@${u.name}  · ${u.role}", fontWeight = FontWeight.Bold)
+                        }
                         if (u.bio.isNotEmpty()) Text(u.bio, fontSize = 13.sp)
                         Text("🎮 ${u.games}   ⭐ ${u.points}   👥 ${u.followers}", fontSize = 13.sp)
-                        if (isOwner) Text(if (!u.password.isNullOrEmpty()) "🔑 ${u.password}" else "🔒 none", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -326,12 +340,35 @@ fun GameBuilderScreen(me: String, existingId: String?, onDone: () -> Unit) {
     var busy by remember { mutableStateOf(false) }
     var preview by remember { mutableStateOf(false) }
     var madeWithAi by remember { mutableStateOf(false) }
+    var thumb by remember { mutableStateOf("") }
+    var uploadName by remember { mutableStateOf("") }
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val htmlPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) scope.launch {
+            val result = runCatching {
+                withContext(Dispatchers.IO) {
+                    val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                        ?: error("Couldn't open that file.")
+                    require(bytes.size <= 1_500_000) { "HTML files must be under 1.5 MB." }
+                    bytes.toString(Charsets.UTF_8)
+                }
+            }
+            result.onSuccess { html = it; uploadName = uri.lastPathSegment ?: "index.html"; mode = "code"; preview = false; err = "" }
+                .onFailure { err = it.message ?: "Couldn't read the HTML file." }
+        }
+    }
+    val thumbnailPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) scope.launch {
+            val result = runCatching { withContext(Dispatchers.IO) { ImageCodec.encodeJpegDataUri(context, uri) } }
+            result.onSuccess { thumb = it; err = "" }.onFailure { err = it.message ?: "Couldn't read that picture." }
+        }
+    }
 
     LaunchedEffect(existingId) {
         if (existingId != null) {
             withContext(Dispatchers.IO) { Firebase.get("/hubprojects/$existingId") as? JSONObject }?.let {
-                html = it.optString("html", SKELETON); name = it.optString("name"); mode = "code"
+                html = it.optString("html", SKELETON); name = it.optString("name"); mode = "code"; thumb = it.optString("thumb")
             }
         }
     }
@@ -358,6 +395,9 @@ fun GameBuilderScreen(me: String, existingId: String?, onDone: () -> Unit) {
                 }
             }) { Text(if (busy) "✨ Generating…" else "✨ Generate with AI") }
         } else {
+            OutlinedButton(enabled = !busy, onClick = { htmlPicker.launch("text/html") }) {
+                Text(if (uploadName.isEmpty()) "📂 Upload HTML file" else "📂 $uploadName")
+            }
             OutlinedTextField(html, { html = it }, label = { Text("index.html") }, minLines = 10, textStyle = androidx.compose.ui.text.TextStyle(fontFamily = FontFamily.Monospace, fontSize = 12.sp), modifier = Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = { preview = true }) { Text("▶ Preview") }
@@ -367,6 +407,13 @@ fun GameBuilderScreen(me: String, existingId: String?, onDone: () -> Unit) {
         if (preview && html.isNotBlank()) HtmlPreview(html, Modifier.fillMaxWidth().height(300.dp).clip(RoundedCornerShape(12.dp)))
         if (mode == "code" || generated) {
             OutlinedTextField(name, { name = it }, label = { Text("Project name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (thumb.isNotBlank()) DataUriImage(thumb, Modifier.size(84.dp).clip(RoundedCornerShape(10.dp)), "Game thumbnail")
+                OutlinedButton(enabled = !busy, onClick = { thumbnailPicker.launch("image/*") }) {
+                    Text(if (thumb.isBlank()) "🖼 Add thumbnail" else "🖼 Change thumbnail")
+                }
+                if (thumb.isNotBlank()) TextButton(onClick = { thumb = "" }) { Text("Remove") }
+            }
             OutlinedTextField(
                 pw, { pw = it }, label = { Text("Confirm your password") }, singleLine = true,
                 visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), modifier = Modifier.fillMaxWidth()
@@ -381,8 +428,8 @@ fun GameBuilderScreen(me: String, existingId: String?, onDone: () -> Unit) {
                 scope.launch {
                     val ok = withContext(Dispatchers.IO) {
                         if (Auth.signIn(me, pw) != SignInResult.OK) false
-                        else if (existingId != null) Firebase.patch("/hubprojects/$existingId", JSONObject().put("name", name.trim()).put("html", html))
-                        else Firebase.post("/hubprojects", JSONObject().put("name", name.trim()).put("author", me).put("html", html).put("thumb", "").put("loves", 0)
+                        else if (existingId != null) Firebase.patch("/hubprojects/$existingId", JSONObject().put("name", name.trim()).put("html", html).put("thumb", thumb))
+                        else Firebase.post("/hubprojects", JSONObject().put("name", name.trim()).put("author", me).put("html", html).put("thumb", thumb).put("loves", 0)
                             .put("createdAt", System.currentTimeMillis()).put("madeWithAI", madeWithAi).put("published", true))
                     }
                     busy = false
