@@ -166,19 +166,43 @@ fun AuthScreen(onBack: () -> Unit, onDone: (String) -> Unit) {
 }
 
 private enum class Tab(val label: String, val icon: String) {
-    Chat("Chat", "💬"), Games("Games", "🎮"), Ideas("Ideas", "💡"), Messages("Inbox", "🔔"), Settings("Settings", "⚙")
+    Labs("Home", "🏠"), Learn("Learn", "🦉"), Chat("AI", "💬"), Games("Games", "🎮"), Messages("Inbox", "🔔"),
+    Ideas("Ideas", "💡"), Users("Users", "👥"), Bugs("Bugs", "🐞"), Changelog("Changelog", "📝"),
+    Translator("Translator", "🌐"), Settings("Settings", "⚙")
 }
 
+private val BottomTabs = listOf(Tab.Labs, Tab.Learn, Tab.Chat, Tab.Games, Tab.Messages)
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(store: Store, user: String, dark: Boolean, onDark: (Boolean) -> Unit, themeId: String, onTheme: (String) -> Unit, onSignOut: () -> Unit) {
-    var tab by remember { mutableStateOf(Tab.Chat) }
+    var tab by remember { mutableStateOf(Tab.Labs) }
+    var menu by remember { mutableStateOf(false) }
+    var role by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(user) {
+        role = withContext(Dispatchers.IO) { Firebase.get("/roles/${Firebase.enc(user)}") as? String }
+    }
+    val owner = isOwnerUser(user, role)
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Matix — ${tab.label}") },
+                actions = {
+                    TextButton(onClick = { menu = true }) { Text("☰ More") }
+                    DropdownMenu(menu, { menu = false }) {
+                        Tab.values().filter { it !in BottomTabs }.forEach {
+                            DropdownMenuItem(text = { Text("${it.icon}  ${it.label}") }, onClick = { tab = it; menu = false })
+                        }
+                    }
+                }
+            )
+        },
         bottomBar = {
             NavigationBar {
-                Tab.values().forEach {
+                BottomTabs.forEach {
                     NavigationBarItem(
                         selected = tab == it, onClick = { tab = it },
-                        icon = { Text(it.icon, fontSize = 20.sp) }, label = { Text(it.label) }
+                        icon = { Text(it.icon, fontSize = 20.sp) }, label = { Text(it.label, maxLines = 1, fontSize = 11.sp) }
                     )
                 }
             }
@@ -186,10 +210,18 @@ fun HomeScreen(store: Store, user: String, dark: Boolean, onDark: (Boolean) -> U
     ) { pad ->
         Box(Modifier.padding(pad).fillMaxSize()) {
             when (tab) {
+                Tab.Labs -> LabsScreen(store, user, owner) { id ->
+                    tab = when (id) { "learn" -> Tab.Learn; "games" -> Tab.Games; "chat" -> Tab.Chat; "ideas" -> Tab.Ideas; else -> Tab.Translator }
+                }
+                Tab.Learn -> LearnScreen(user, owner)
                 Tab.Chat -> ChatScreen(store)
-                Tab.Games -> GamesScreen(user)
+                Tab.Games -> GamesScreen(user, owner)
                 Tab.Ideas -> IdeasScreen(user)
                 Tab.Messages -> MessagesScreen(store, user)
+                Tab.Users -> UsersScreen(owner)
+                Tab.Bugs -> BugsScreen(user, owner)
+                Tab.Changelog -> ChangelogScreen(user, owner)
+                Tab.Translator -> TranslatorScreen(store)
                 Tab.Settings -> SettingsScreen(store, user, dark, onDark, themeId, onTheme, onSignOut)
             }
         }
@@ -238,10 +270,14 @@ fun ChatScreen(store: Store) {
 private class Game(val id: String, val name: String, val author: String, val ai: Boolean, val likes: Int, val html: String)
 
 @Composable
-fun GamesScreen(user: String) {
+fun GamesScreen(user: String, isOwner: Boolean) {
+    var building by remember { mutableStateOf(false) }
+    var editId by remember { mutableStateOf<String?>(null) }
+    var reload by remember { mutableStateOf(0) }
+    if (building) { GameBuilderScreen(user, editId) { building = false; editId = null; reload++ }; return }
     var games by remember { mutableStateOf<List<Game>?>(null) }
     var playing by remember { mutableStateOf<Game?>(null) }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(reload) {
         games = withContext(Dispatchers.IO) {
             val o = Firebase.get("/hubprojects") as? JSONObject
             o?.keys()?.asSequence()?.mapNotNull { k ->
@@ -253,7 +289,10 @@ fun GamesScreen(user: String) {
         }
     }
     Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Text("🎮 Games Hub", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("🎮 Games Hub", Modifier.weight(1f), fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Button(onClick = { editId = null; building = true }) { Text("＋ New") }
+        }
         Text("Play games made by the club.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(8.dp))
         val g = games
@@ -285,6 +324,12 @@ fun GamesScreen(user: String) {
                         TextButton(onClick = {
                             scope.launch(Dispatchers.IO) { Firebase.put("/hubprojects/${game.id}/likes/${Firebase.enc(user)}", true) }
                         }) { Text("🤍 Like") }
+                        if (game.author == user || isOwner) {
+                            TextButton(onClick = { editId = game.id; playing = null; building = true }) { Text("✏ Edit") }
+                            TextButton(onClick = {
+                                scope.launch { withContext(Dispatchers.IO) { Firebase.delete("/hubprojects/${game.id}") }; playing = null; reload++ }
+                            }) { Text("Delete") }
+                        }
                         TextButton(onClick = { playing = null }) { Text("Close") }
                     }
                     GameStage(game.html)
