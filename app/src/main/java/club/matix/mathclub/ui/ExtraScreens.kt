@@ -289,7 +289,7 @@ fun TranslatorScreen(store: Store) {
 private fun LangPicker(label: String, value: String, options: List<String>, modifier: Modifier, onPick: (String) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box(modifier) {
-        OutlinedButton(onClick = { open = true }, Modifier.fillMaxWidth()) { Text("$label: $value", maxLines = 1, fontSize = 12.sp) }
+        OutlinedButton(onClick = { open = true }, modifier = Modifier.fillMaxWidth()) { Text("$label: $value", maxLines = 1, fontSize = 12.sp) }
         DropdownMenu(open, { open = false }) {
             options.forEach { o -> DropdownMenuItem(text = { Text(o) }, onClick = { onPick(o); open = false }) }
         }

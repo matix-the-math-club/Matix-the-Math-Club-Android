@@ -91,7 +91,7 @@ fun WelcomeScreen(onContinue: () -> Unit) {
         Goal("🎮", "Play & create", "Try club games or publish your own.")
         Goal("✨", "Club community", "Share ideas, earn points, and shape what Matix builds next.")
         Spacer(Modifier.height(20.dp))
-        Button(onClick = onContinue, Modifier.fillMaxWidth()) { Text("Continue → Sign in") }
+        Button(onClick = onContinue, modifier = Modifier.fillMaxWidth()) { Text("Continue → Sign in") }
         Spacer(Modifier.height(8.dp))
         Text("100% free · forever", color = Accent, fontWeight = FontWeight.Bold)
     }

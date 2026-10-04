@@ -92,11 +92,11 @@ private fun loadEvents(me: String): List<Event> {
 
     follows.keys().forEach { k ->
         val u = norm(k); if (u.isEmpty() || u == me) return@forEach
-        out += Event("follower", u, follows.optJSONObject(k)?.optLong("at") ?: 0, "", "")
+        out += Event("follower", u, follows.optJSONObject(k)?.optLong("at") ?: 0L, "", "")
     }
     members.keys().forEach { k ->
         val u = norm(k); if (u.isEmpty() || u == me) return@forEach
-        val jt = members.optJSONObject(k)?.optLong("joinedAt") ?: 0
+        val jt = members.optJSONObject(k)?.optLong("joinedAt") ?: 0L
         if (jt > 0) out += Event("joined", u, jt, "", "")
     }
     comments.keys().forEach { k ->
@@ -106,7 +106,7 @@ private fun loadEvents(me: String): List<Event> {
     }
     stored.keys().forEach { k ->
         val s = stored.optJSONObject(k) ?: return@forEach
-        out += Event(s.optString("type", "role"), s.optString("user").ifEmpty { null }, s.optLong("at"),
+        out += Event(s.optString("type", "role"), s.optString("user").takeIf { it.isNotEmpty() }, s.optLong("at"),
             s.optString("title", "Notification"), s.optString("body"))
     }
     changelog.keys().forEach { k ->

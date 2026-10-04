@@ -106,7 +106,7 @@ private fun TeachScreen(l: Lesson, onStart: () -> Unit, onBack: () -> Unit) {
             Text("💡 Keep in mind", fontWeight = FontWeight.Bold)
             l.hints.forEach { Text("• $it") }
         }
-        Button(onClick = onStart, Modifier.fillMaxWidth()) { Text("Got it — let's go") }
+        Button(onClick = onStart, modifier = Modifier.fillMaxWidth()) { Text("Got it — let's go") }
         TextButton(onClick = onBack) { Text("Back to the map") }
     }
 }
@@ -129,7 +129,7 @@ fun QuizScreen(
         Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
             Text("💔 Out of hearts", fontSize = 24.sp, fontWeight = FontWeight.Bold)
             Text("A heart comes back every 20 minutes.")
-            Button(onClick = onExit, Modifier.padding(top = 16.dp)) { Text("Back to the map") }
+            Button(onClick = onExit, modifier = Modifier.padding(top = 16.dp)) { Text("Back to the map") }
         }
         return
     }
@@ -145,7 +145,7 @@ fun QuizScreen(
             Text(if (wrong == 0) "🎉 Perfect!" else if (pct >= LRN_PASS) "✅ Lesson complete!" else "Keep practising!", fontSize = 26.sp, fontWeight = FontWeight.Bold)
             Text("$right of $asked right ($pct%)")
             xpGot?.let { Text("⭐ +$it XP") }
-            Button(onClick = onExit, Modifier.padding(top = 16.dp)) { Text("Continue") }
+            Button(onClick = onExit, modifier = Modifier.padding(top = 16.dp)) { Text("Continue") }
         }
         return
     }
@@ -182,7 +182,7 @@ fun QuizScreen(
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onExit) { Text("✕") }
-            LinearProgressIndicator(progress = { i / exercises.size.toFloat() }, Modifier.weight(1f))
+            LinearProgressIndicator(progress = { i / exercises.size.toFloat() }, modifier = Modifier.weight(1f))
             if (showHearts && state != null) Text("  ❤ ${state.currentHearts()}")
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {

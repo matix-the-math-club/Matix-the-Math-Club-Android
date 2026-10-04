@@ -101,12 +101,12 @@ object Learn {
         fun num(x: Any?): Int = (x as? Number)?.toInt() ?: 0
         return LearnState(
             un.map { CourseUnit(it.getString("id"), it.optString("title", it.optString("name", "Unit")), it.optInt("order")) },
-            ch.map { Chapter(it.getString("id"), it.optString("title", it.optString("name", "Chapter")), it.optString("unitId").ifEmpty { null }, it.optInt("order")) },
+            ch.map { Chapter(it.getString("id"), it.optString("title", it.optString("name", "Chapter")), it.optString("unitId").takeIf { id -> id.isNotEmpty() }, it.optInt("order")) },
             le.map { l ->
                 Lesson(
                     l.getString("id"), l.optString("title", "Lesson"), l.optString("howto"),
-                    anyList(l.opt("hints")).map { it.toString() }, l.optString("chapterId").ifEmpty { null },
-                    l.optString("unitId").ifEmpty { null }, l.optInt("order"),
+                    anyList(l.opt("hints")).map { it.toString() }, l.optString("chapterId").takeIf { id -> id.isNotEmpty() },
+                    l.optString("unitId").takeIf { id -> id.isNotEmpty() }, l.optInt("order"),
                     anyList(l.opt("ex")).mapNotNull { (it as? JSONObject)?.let(Exercise::from) }
                 )
             },
