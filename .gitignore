@@ -33,9 +33,6 @@ output-metadata.json
 *.keystore
 keystore.properties
 
-# Generated: app.html is copied here from the project root by the
-# `syncWebApp` Gradle task. Edit the ROOT app.html, not this copy.
-/app/src/main/assets/app.html
 
 # Logs / OS noise
 *.log
