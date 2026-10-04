@@ -187,7 +187,7 @@ fun MessagesScreen(store: Store, me: String) {
 }
 
 @Composable
-private fun Modifier.horizontalScrollCompat(): Modifier =
+internal fun Modifier.horizontalScrollCompat(): Modifier =
     this.then(Modifier.horizontalScroll(rememberScrollState()))
 
 @Composable

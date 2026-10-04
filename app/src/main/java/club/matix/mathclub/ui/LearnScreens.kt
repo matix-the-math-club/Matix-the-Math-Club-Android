@@ -27,7 +27,9 @@ fun LearnScreen(me: String, isOwner: Boolean) {
     var failed by remember { mutableStateOf(false) }
     var playing by remember { mutableStateOf<Lesson?>(null) }
     var teaching by remember { mutableStateOf<Lesson?>(null) }
+    val scope = rememberCoroutineScope()
     var tick by remember { mutableStateOf(0) }
+    var sub by remember { mutableStateOf("path") }
 
     LaunchedEffect(me) {
         state = withContext(Dispatchers.IO) { runCatching { Learn.load(me) }.getOrNull() }
@@ -46,17 +48,32 @@ fun LearnScreen(me: String, isOwner: Boolean) {
     when {
         p != null -> QuizScreen(
             title = p.title, exercises = p.ex, showHearts = !isOwner, state = s, me = me, lessonId = p.id,
-            onExit = { playing = null; tick++ }
+            onExit = {
+                playing = null; tick++
+                scope.launch(Dispatchers.IO) { Learn.awardBadges(me, s) }
+            }
         )
         t != null -> TeachScreen(t, onStart = { playing = t; teaching = null }, onBack = { teaching = null })
-        else -> key(tick) { LearnPath(s, isOwner, onOpen = { l ->
-            when {
-                l.ex.isEmpty() -> {}
-                !isOwner && s.currentHearts() <= 0 -> {}
-                l.howto.isBlank() -> playing = l
-                else -> teaching = l
+        else -> Column(Modifier.fillMaxSize()) {
+            Row(Modifier.horizontalScrollCompat().padding(horizontal = 12.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf("path" to "🗺 Path", "shop" to "🛒 Shop", "badges" to "🏅 Badges", "board" to "🏆 Board").forEach { (id, l) ->
+                    FilterChip(sub == id, { sub = id }, label = { Text(l) })
+                }
             }
-        }) }
+            when (sub) {
+                "shop" -> LearnShop(s, me) { tick++ }
+                "badges" -> LearnBadges(s)
+                "board" -> LearnBoard(me)
+                else -> key(tick) { LearnPath(s, isOwner, onOpen = { l ->
+                    when {
+                        l.ex.isEmpty() -> {}
+                        !isOwner && s.currentHearts() <= 0 -> {}
+                        l.howto.isBlank() -> playing = l
+                        else -> teaching = l
+                    }
+                }) }
+            }
+        }
     }
 }
 
@@ -264,4 +281,73 @@ private fun OptionRow(text: String, selected: Boolean, disabled: Boolean, onClic
             .background(if (selected) MaterialTheme.colorScheme.primary.copy(alpha = .18f) else MaterialTheme.colorScheme.surfaceVariant)
             .clickable(enabled = !disabled, onClick = onClick).padding(14.dp)
     ) { Text(text, color = if (disabled && !selected) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface) }
+}
+
+@Composable
+private fun LearnShop(s: LearnState, me: String, refresh: () -> Unit) {
+    var msg by remember { mutableStateOf("") }
+    var gems by remember { mutableStateOf(s.gems) }
+    val scope = rememberCoroutineScope()
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("🛒 Shop", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+        Text("💎 $gems gems in your pocket", fontWeight = FontWeight.SemiBold)
+        Text("Earn more from perfect lessons.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (msg.isNotEmpty()) Text(msg, color = MaterialTheme.colorScheme.primary)
+        Learn.Shop.forEach { it ->
+            val off = (it.id == "hearts" && s.currentHearts() >= LRN_MAX_HEARTS) || (it.id == "boost" && s.boosted()) || (it.id == "freeze" && s.freeze)
+            Card(Modifier.fillMaxWidth()) {
+                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(it.icon, fontSize = 26.sp); Spacer(Modifier.width(10.dp))
+                    Column(Modifier.weight(1f)) { Text(it.name, fontWeight = FontWeight.Bold); Text(it.desc, fontSize = 12.sp) }
+                    Button(enabled = !off && gems >= it.cost, onClick = {
+                        scope.launch {
+                            msg = withContext(Dispatchers.IO) { Learn.buy(me, s, it.id) }
+                            gems = s.gems; refresh()
+                        }
+                    }) { Text(if (off) "Owned" else "💎 ${it.cost}") }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LearnBadges(s: LearnState) {
+    val st = Learn.stats(s)
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("🏅 Badges", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+        Text("You have ${s.badges.size} of ${Learn.Badges.size}. ${s.xp} XP · ${st.lessons} lessons done · ${st.streak} day streak.", fontSize = 13.sp)
+        Learn.Badges.forEach { b ->
+            val have = b.id in s.badges
+            Card(Modifier.fillMaxWidth()) {
+                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(if (have) b.icon else "🔒", fontSize = 24.sp); Spacer(Modifier.width(10.dp))
+                    Column { Text(b.name, fontWeight = FontWeight.Bold); Text(b.desc, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LearnBoard(me: String) {
+    var rows by remember { mutableStateOf<List<Pair<String, Int>>?>(null) }
+    LaunchedEffect(Unit) { rows = withContext(Dispatchers.IO) { runCatching { Learn.leaderboard() }.getOrDefault(emptyList()) } }
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text("🏆 Leaderboard", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+        Text("Everyone in the club, ranked by total XP.", fontSize = 13.sp)
+        val r = rows
+        if (r == null) CircularProgressIndicator()
+        else if (r.isEmpty()) Text("Nobody has earned any XP yet — be the first!")
+        else r.forEachIndexed { i, (u, xp) ->
+            val medal = when (i) { 0 -> "🥇"; 1 -> "🥈"; 2 -> "🥉"; else -> "#${i + 1}" }
+            Card(Modifier.fillMaxWidth()) {
+                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(medal, Modifier.width(44.dp), fontWeight = FontWeight.Bold)
+                    Text(u + if (Auth.normalize(u) == Auth.normalize(me)) "  (you)" else "", Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+                    Text("$xp XP", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
 }

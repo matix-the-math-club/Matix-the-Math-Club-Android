@@ -167,7 +167,7 @@ fun AuthScreen(onBack: () -> Unit, onDone: (String) -> Unit) {
 
 private enum class Tab(val label: String, val icon: String) {
     Labs("Home", "🏠"), Learn("Learn", "🦉"), Chat("AI", "💬"), Games("Games", "🎮"), Messages("Inbox", "🔔"),
-    Ideas("Ideas", "💡"), Users("Users", "👥"), Bugs("Bugs", "🐞"), Changelog("Changelog", "📝"),
+    Ideas("Ideas", "💡"), Points("Points", "⭐"), Users("Users", "👥"), Bugs("Bugs", "🐞"), Changelog("Changelog", "📝"),
     Translator("Translator", "🌐"), Settings("Settings", "⚙")
 }
 
@@ -218,6 +218,7 @@ fun HomeScreen(store: Store, user: String, dark: Boolean, onDark: (Boolean) -> U
                 Tab.Games -> GamesScreen(user, owner)
                 Tab.Ideas -> IdeasScreen(user)
                 Tab.Messages -> MessagesScreen(store, user)
+                Tab.Points -> PointsScreen(user, owner)
                 Tab.Users -> UsersScreen(owner)
                 Tab.Bugs -> BugsScreen(user, owner)
                 Tab.Changelog -> ChangelogScreen(user, owner)
