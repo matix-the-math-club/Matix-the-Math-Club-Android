@@ -166,7 +166,8 @@ fun AuthScreen(onBack: () -> Unit, onDone: (String) -> Unit) {
 }
 
 private enum class Tab(val label: String, val icon: String) {
-    Labs("Home", "🏠"), Learn("Learn", "🦉"), Chat("AI", "💬"), Games("Games", "🎮"), Messages("Inbox", "🔔"),
+    Labs("Home", "🏠"), Learn("Learn", "🦉"), Chat("AI", "✨"), Games("Games", "🎮"), Messages("Inbox", "🔔"),
+    Discussions("Discussions", "💬"), MathChat("Math Chat", "🧮"),
     Ideas("Ideas", "💡"), Points("Points", "⭐"), Users("Users", "👥"), Bugs("Bugs", "🐞"), Changelog("Changelog", "📝"),
     Translator("Translator", "🌐"), Settings("Settings", "⚙")
 }
@@ -177,6 +178,7 @@ private val BottomTabs = listOf(Tab.Labs, Tab.Learn, Tab.Chat, Tab.Games, Tab.Me
 @Composable
 fun HomeScreen(store: Store, user: String, dark: Boolean, onDark: (Boolean) -> Unit, themeId: String, onTheme: (String) -> Unit, onSignOut: () -> Unit) {
     var tab by remember { mutableStateOf(Tab.Labs) }
+    var selectedChat by remember { mutableStateOf<String?>(null) }
     var menu by remember { mutableStateOf(false) }
     var role by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(user) {
@@ -191,7 +193,14 @@ fun HomeScreen(store: Store, user: String, dark: Boolean, onDark: (Boolean) -> U
                     TextButton(onClick = { menu = true }) { Text("☰ More") }
                     DropdownMenu(menu, { menu = false }) {
                         Tab.values().filter { it !in BottomTabs }.forEach {
-                            DropdownMenuItem(text = { Text("${it.icon}  ${it.label}") }, onClick = { tab = it; menu = false })
+                            DropdownMenuItem(
+                                text = { Text("${it.icon}  ${it.label}") },
+                                onClick = {
+                                    if (it == Tab.MathChat) selectedChat = null
+                                    tab = it
+                                    menu = false
+                                }
+                            )
                         }
                     }
                 }
@@ -215,6 +224,11 @@ fun HomeScreen(store: Store, user: String, dark: Boolean, onDark: (Boolean) -> U
                 }
                 Tab.Learn -> LearnScreen(user, owner)
                 Tab.Chat -> ChatScreen(store)
+                Tab.Discussions -> DiscussionsScreen(user) { peer ->
+                    selectedChat = peer
+                    tab = Tab.MathChat
+                }
+                Tab.MathChat -> MathChatScreen(user, selectedChat)
                 Tab.Games -> GamesScreen(user, owner)
                 Tab.Ideas -> IdeasScreen(user)
                 Tab.Messages -> MessagesScreen(store, user)
@@ -344,14 +358,14 @@ fun GamesScreen(user: String, isOwner: Boolean) {
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 private fun GameStage(html: String) {
-    AndroidView(Modifier.fillMaxSize(), factory = { ctx ->
+    AndroidView(factory = { ctx ->
         WebView(ctx).apply {
             settings.javaScriptEnabled = true
             settings.allowFileAccess = false
             settings.allowContentAccess = false
             loadDataWithBaseURL(null, html, "text/html", "utf-8", null)
         }
-    })
+    }, modifier = Modifier.fillMaxSize())
 }
 
 private class Idea(val id: String, val text: String, val by: String, val votes: Int, val voted: Boolean)

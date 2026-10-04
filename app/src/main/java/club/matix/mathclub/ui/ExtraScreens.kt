@@ -305,13 +305,13 @@ private const val SKELETON = "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"u
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun HtmlPreview(html: String, modifier: Modifier = Modifier) {
-    AndroidView(modifier, factory = { c ->
+    AndroidView(factory = { c ->
         WebView(c).apply {
             settings.javaScriptEnabled = true
             settings.allowFileAccess = false
             settings.allowContentAccess = false
         }
-    }, update = { it.loadDataWithBaseURL(null, html, "text/html", "utf-8", null) })
+    }, modifier = modifier, update = { it.loadDataWithBaseURL(null, html, "text/html", "utf-8", null) })
 }
 
 @Composable
