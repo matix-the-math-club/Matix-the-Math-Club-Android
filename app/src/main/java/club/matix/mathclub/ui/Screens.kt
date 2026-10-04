@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,12 +36,13 @@ import org.json.JSONObject
 @Composable
 fun MatixApp(store: Store) {
     var dark by remember { mutableStateOf(store.dark) }
+    var themeId by remember { mutableStateOf(store.themeId) }
     var user by remember { mutableStateOf(store.user) }
     var booting by remember { mutableStateOf(true) }
     var welcomed by remember { mutableStateOf(store.seenWelcome) }
     LaunchedEffect(Unit) { delay(1200); booting = false }
 
-    MatixTheme(dark) {
+    MatixTheme(dark, themeId) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             when {
                 booting -> BootScreen()
@@ -49,6 +51,8 @@ fun MatixApp(store: Store) {
                 else -> HomeScreen(
                     store, user!!, dark,
                     onDark = { dark = it; store.dark = it },
+                    themeId = themeId,
+                    onTheme = { themeId = it; store.themeId = it },
                     onSignOut = { store.user = null; user = null }
                 )
             }
@@ -162,11 +166,11 @@ fun AuthScreen(onBack: () -> Unit, onDone: (String) -> Unit) {
 }
 
 private enum class Tab(val label: String, val icon: String) {
-    Chat("Chat", "💬"), Games("Games", "🎮"), Ideas("Ideas", "💡"), Settings("Settings", "⚙")
+    Chat("Chat", "💬"), Games("Games", "🎮"), Ideas("Ideas", "💡"), Messages("Inbox", "🔔"), Settings("Settings", "⚙")
 }
 
 @Composable
-fun HomeScreen(store: Store, user: String, dark: Boolean, onDark: (Boolean) -> Unit, onSignOut: () -> Unit) {
+fun HomeScreen(store: Store, user: String, dark: Boolean, onDark: (Boolean) -> Unit, themeId: String, onTheme: (String) -> Unit, onSignOut: () -> Unit) {
     var tab by remember { mutableStateOf(Tab.Chat) }
     Scaffold(
         bottomBar = {
@@ -185,7 +189,8 @@ fun HomeScreen(store: Store, user: String, dark: Boolean, onDark: (Boolean) -> U
                 Tab.Chat -> ChatScreen(store)
                 Tab.Games -> GamesScreen(user)
                 Tab.Ideas -> IdeasScreen(user)
-                Tab.Settings -> SettingsScreen(store, user, dark, onDark, onSignOut)
+                Tab.Messages -> MessagesScreen(store, user)
+                Tab.Settings -> SettingsScreen(store, user, dark, onDark, themeId, onTheme, onSignOut)
             }
         }
     }
@@ -368,16 +373,20 @@ fun IdeasScreen(user: String) {
 }
 
 @Composable
-fun SettingsScreen(store: Store, user: String, dark: Boolean, onDark: (Boolean) -> Unit, onSignOut: () -> Unit) {
+fun SettingsScreen(store: Store, user: String, dark: Boolean, onDark: (Boolean) -> Unit, themeId: String, onTheme: (String) -> Unit, onSignOut: () -> Unit) {
+    var showProfile by remember { mutableStateOf(false) }
+    if (showProfile) ProfileDialog(user) { showProfile = false }
     var key by remember { mutableStateOf(store.aiKey) }
     var saved by remember { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(androidx.compose.foundation.rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("⚙ Settings", fontSize = 24.sp, fontWeight = FontWeight.Bold)
         Text("Signed in as @$user", color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("🌙 Dark mode", Modifier.weight(1f))
             Switch(dark, onDark)
         }
+        OutlinedButton(onClick = { showProfile = true }) { Text("🎨 My profile") }
+        ThemePicker(themeId, onTheme)
         Text("AI key (Gemini, Groq, OpenAI, OpenRouter or GitHub token)", fontWeight = FontWeight.Bold)
         OutlinedTextField(
             key, { key = it; saved = false }, singleLine = true, modifier = Modifier.fillMaxWidth(),
