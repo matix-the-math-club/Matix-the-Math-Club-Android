@@ -8,11 +8,11 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "club.matix.mathclub"
+        applicationId = "com.matixmathclubappandroid.app"
         minSdk = 26
-        targetSdk = 34
-        versionCode = 4
-        versionName = "4.0"
+        targetSdk = 36
+        versionCode = 6
+        versionName = "1.0.0"
         resourceConfigurations += listOf("en")
     }
 
