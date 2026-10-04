@@ -25,9 +25,8 @@ fun LearnAnythingScreen(
     store: Store,
     me: String,
     isOwner: Boolean,
-    state: LearnState,
-    onPractice: (LearningAssessment) -> Unit,
-    onRefresh: () -> Unit
+    onPractice: (LearnAnythingPractice) -> Unit,
+    onBackToCourse: () -> Unit
 ) {
     var topic by remember { mutableStateOf("") }
     var activeTopic by remember { mutableStateOf("") }
@@ -63,13 +62,13 @@ fun LearnAnythingScreen(
                 store.rememberLearnTopic(found.topic)
                 recent = store.recentLearnTopics()
                 refreshTick++
-                onRefresh()
             }.onFailure { error = it.message ?: "The Learn server could not build that lesson." }
         }
     }
 
     if (lesson == null) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            TextButton(onClick = onBackToCourse) { Text("← My course") }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("🦉 Math Learn", fontSize = 24.sp, fontWeight = FontWeight.Bold)
@@ -131,12 +130,13 @@ fun LearnAnythingScreen(
         AiLessonContent(
             lesson = lesson!!,
             cacheKind = cacheKind,
+            onBackToCourse = onBackToCourse,
             isOwner = isOwner,
             onBack = { lesson = null; error = null; topic = "" },
             onRebuild = { teach(lesson!!.topic, true) },
             onPractice = {
                 if (lesson!!.exercises.isEmpty()) error = "This lesson has no practice questions yet."
-                else onPractice(LearningAssessment(lesson!!.title, lesson!!.exercises, "practice"))
+                else onPractice(LearnAnythingPractice(lesson!!.title, lesson!!.exercises))
             },
             error = error,
             onSource = { url -> runCatching { uriHandler.openUri(url) }.onFailure { error = "Couldn't open this source link." } }
@@ -177,6 +177,7 @@ private fun AiLessonContent(
     lesson: AiLearnLesson,
     cacheKind: String,
     isOwner: Boolean,
+    onBackToCourse: () -> Unit,
     onBack: () -> Unit,
     onRebuild: () -> Unit,
     onPractice: () -> Unit,
@@ -186,7 +187,8 @@ private fun AiLessonContent(
     val expandedExamples = remember(lesson.slug) { mutableStateListOf<Int>() }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text("← Topics") }
+            TextButton(onClick = onBackToCourse) { Text("← My course") }
+            TextButton(onClick = onBack) { Text("Topics") }
             Spacer(Modifier.weight(1f))
             AssistChip(onClick = {}, label = { Text(if (cacheKind == "fresh") "🌟 Freshly researched" else "⚡ Cached · $cacheKind") })
         }

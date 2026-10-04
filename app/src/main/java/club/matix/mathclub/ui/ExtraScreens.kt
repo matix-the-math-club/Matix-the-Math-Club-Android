@@ -454,7 +454,7 @@ fun LabsScreen(store: Store, me: String, isOwner: Boolean, go: (String) -> Unit)
     val scope = rememberCoroutineScope()
 
     lesson?.let { (t, ex) ->
-        QuizScreen(t, ex, false, null, me, null) { lesson = null }
+        ExternalExerciseQuiz(t, ex) { lesson = null }
         return
     }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {

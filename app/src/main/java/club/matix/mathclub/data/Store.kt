@@ -52,6 +52,18 @@ class Store(context: Context) {
         p.edit().putString("learn_recent", org.json.JSONArray(items).toString()).apply()
     }
 
+    fun mathLearnProfile(username: String): org.json.JSONObject = runCatching {
+        org.json.JSONObject(p.getString("ml5_${Auth.normalize(username)}", "{}") ?: "{}")
+    }.getOrDefault(org.json.JSONObject())
+
+    fun saveMathLearnProfile(username: String, state: org.json.JSONObject) {
+        p.edit().putString("ml5_${Auth.normalize(username)}", state.toString()).apply()
+    }
+
+    fun clearMathLearnProfile(username: String) {
+        p.edit().remove("ml5_${Auth.normalize(username)}").apply()
+    }
+
     fun seenAt(user: String): Long = p.getLong("msg_seen_$user", 0L)
     fun setSeenAt(user: String, t: Long) = p.edit().putLong("msg_seen_$user", t).apply()
 
