@@ -3,31 +3,6 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
-// ---------------------------------------------------------------------------
-// The web app lives at the PROJECT ROOT as `app.html` - that file is the single
-// source of truth. This task copies it into the APK assets before every build,
-// so you only ever edit the root file and never keep two copies in sync.
-// The copy at app/src/main/assets/app.html is generated and git-ignored.
-// ---------------------------------------------------------------------------
-val rootWebApp = rootProject.file("app.html")
-
-val syncWebApp by tasks.registering(Copy::class) {
-    group = "build"
-    description = "Copies the root app.html into app/src/main/assets/ for the WebView."
-    from(rootWebApp)
-    into(layout.projectDirectory.dir("src/main/assets"))
-    doFirst {
-        if (!rootWebApp.exists()) {
-            throw GradleException(
-                "app.html is missing from the project root: ${rootWebApp.absolutePath}\n" +
-                "The WebView loads this file, so the build cannot continue without it."
-            )
-        }
-    }
-}
-
-tasks.named("preBuild") { dependsOn(syncWebApp) }
-
 android {
     namespace = "club.matix.mathclub"
     compileSdk = 34
@@ -80,6 +55,11 @@ android {
 
     buildFeatures {
         buildConfig = true
+        compose = true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.14"
     }
 
     compileOptions {
@@ -106,15 +86,17 @@ android {
         checkReleaseBuilds = false
     }
 
-    // app.html is already ~850 KB of minified-ish HTML; don't let aapt
-    // re-compress it badly or strip it.
-    androidResources {
-        noCompress += listOf("html")
-    }
 }
 
 dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.activity:activity-ktx:1.9.2")
-    implementation("androidx.webkit:webkit:1.11.0")
+    implementation(platform("androidx.compose:compose-bom:2024.09.03"))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.foundation:foundation")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-core")
+    implementation("androidx.activity:activity-compose:1.9.2")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.6")
 }
