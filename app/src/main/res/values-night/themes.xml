@@ -3,7 +3,10 @@
     <!-- Dark counterpart so the native window matches the app's dark mode
          and there is no white flash before the boot screen paints. -->
     <style name="Theme.Matix" parent="android:Theme.Material.NoActionBar">
-        <item name="android:windowBackground">@color/bg</item>
-        <item name="android:colorBackground">@color/bg</item>
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:colorBackground">@android:color/black</item>
+        <item name="android:statusBarColor">@android:color/black</item>
+        <item name="android:navigationBarColor">@android:color/black</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 </resources>

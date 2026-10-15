@@ -1,33 +1,44 @@
-# Matix the Math Club — Android Studio source
+# Matix — Android WebView source
 
-This is the source-only native Android project. It uses Kotlin, Java 17, and Jetpack Compose; no APK or Android App Bundle is included.
+The Android app is restored to a **WebView host of the original supplied HTML**, not the native Compose redesign. The bundled `app/src/main/assets/app.html` contains the original UI, CSS, JavaScript features, and Math Learn implementation. JavaScript navigation timing errors found in testing were fixed without changing the design; see `HTML_FIXES.md`.
 
 ## Open in Android Studio
 
-1. Extract `Matix-Android-Source.zip` and open `Matix-the-Math-Club-Android`.
-2. Use JDK 17 and Android SDK 34; allow Gradle sync to finish.
-3. Choose an emulator/device and use **Run** from Android Studio.
-4. For your own release bundle, use **Build → Generate Signed Bundle / APK → Android App Bundle** and select your upload key. No APK/AAB was produced for this handoff.
+1. Extract the ZIP and open `Matix-the-Math-Club-Android`.
+2. Use JDK 17. Install Android SDK Platform 34 and let Gradle sync finish.
+3. Run on an emulator or device. Keep Android System WebView / Chrome updated.
+4. When ready, use Android Studio's **Generate Signed Bundle / APK → Android App Bundle** with your own upload key. This handoff contains source only; no APK or AAB was generated.
 
-## Requested app settings
+## Requested Android settings
 
-- `minSdk`: 26
-- `versionName`: `1.0.0`
-- `versionCode`: 7
-- `targetSdk` / `compileSdk`: 34
+| Setting | Value |
+| --- | --- |
+| Namespace | `com.matixmathclubappandroid.app` |
+| Application ID | `com.matixmathclubappandroid.app` |
+| minSdk | 26 |
+| targetSdk | 26 |
+| compileSdk | 34 |
+| versionName | `1.0.0` |
+| versionCode | 7 |
 
-## Math Learn
+**Play Console warning:** targetSdk 26 is retained because it was explicitly requested, but it is too old for a new Google Play submission. Raise the target SDK to the level currently required by Play before uploading. The lint rule `ExpiredTargetSdkVersion` is explicitly suppressed for this requested legacy configuration; it is not a Play-policy exemption. An update must also use a versionCode higher than the one already on Play.
 
-The old fixed unit/chapter Math Learn course UI has been removed from the Android navigation and replaced with the supplied HTML's MLV5-style adaptive journey: level/topic self-assessment, adaptive warm-up, skill map, generated personal course, two lesson parts per topic, Blitz/Bubble Pop checkpoints, Final Quest, XP/stars/streaks/badges, and local per-user progress. The course's topic lesson cards use the corresponding teaching content from the supplied HTML. Progress is stored on-device in SharedPreferences; it is not synced to Firebase.
+## Android shell support
 
-“Ask Matix to teach me anything” remains available as a separate feature, like in the HTML. It uses the Python Learn service or cached Firebase lessons. That server is not bundled; configure a reachable URL in Learn settings (the Android emulator can use `http://10.0.2.2:8787` when the service runs on the development computer). Some AI-generated exercise formats and interactive effects are simplified in the native practice/game UI.
+- HTTPS asset loading at the stable `https://appassets.androidplatform.net/assets/app.html` origin.
+- JavaScript, localStorage, cookies, and normal page state persistence across launches. No clearing of stored app data on startup.
+- System document picker for HTML, images, and multiple files, including cancellation/concurrent-request handling.
+- Camera/microphone runtime permissions for the trusted app origin; other origins/resources are denied.
+- JavaScript alerts/confirmations/prompts; user-initiated popup windows; external links opened in installed apps.
+- Video fullscreen, Android Back handling, renderer-crash recovery, and WebView cleanup.
+- No unrestricted JavaScript-to-Android bridge, no file-origin access, and no invalid-certificate bypass.
 
-## Other app notes
+## Validation / remaining limits
 
-- Native club screens are written in Kotlin/Compose. HTML games and owner-uploaded HTML pages still run in WebViews.
-- Matix AI requires a key in Settings. The native assistant does not cover every web-app tool workflow.
-- Legacy Firebase data layout is retained for compatibility. Review Firebase security rules and migrate client-side password handling before public distribution. No hard-coded member passwords were copied.
+See `QA_REPORT.md`. Compilation is not proof of complete on-device correctness: upload pickers, WebRTC calls, speech recognition, keyboard behavior, popup handling, and device-specific WebView behavior need a real Android run.
 
-## Validation and parity
+The optional Learn Anything server at `http://127.0.0.1:8787` is not included or started by this app. On a phone that address refers to the phone, not your development computer. Remote Firebase, AI services, and any configured server must be available and allow the app's origin. Prefer HTTPS for remote endpoints; arbitrary cleartext servers and mixed content are blocked. Loopback/emulator cleartext exceptions are declared only for local development.
 
-Kotlin compile and Android lint pass. This is a functional native port, not a guarantee of pixel-for-pixel or complete behavior parity with the desktop HTML. There has been no emulator/device end-to-end QA; see `PARITY_STATUS.md` for known limitations.
+Android WebView does not guarantee desktop folder-upload (`webkitdirectory`) or browser speech-recognition support. Use ordinary/multiple file selection where directory selection is unavailable. Browser-managed remote downloads open externally; blob/data downloads are not bridged.
+
+Preserving the supplied page also preserves its client-side account/password logic and service configuration. Review authentication, embedded credentials, Firebase security rules, and data privacy before public distribution. Camera and microphone are requested only when the page asks for them; WebView session/API-key storage is excluded from cloud/device-transfer backup.

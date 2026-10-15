@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
-    <!-- Keep the WebView's localStorage so "Keep me signed in" and the
-         cached theme/language survive a restore. -->
-    <include domain="database" path="." />
-    <include domain="sharedpref" path="." />
+    <!-- Session/API-key storage persists across normal launches, but is not cloud-backed-up. -->
+    <exclude domain="root" path="app_webview/" />
 </full-backup-content>
