@@ -2322,10 +2322,53 @@ body.dark{--mxa-dot:rgba(255,255,255,.075)}
 #gateLogo,#wsLogo,#tbLogo{background:none !important;box-shadow:none !important;
   color:inherit !important;padding:0}
 </style>
+<!-- Matix v1.1: bundled SVG files + emoji, and the media layer (videos live in assets/media) -->
+<link rel="stylesheet" href="css/matix-media.css">
+<script src="js/matix-svg.js"></script>
 </head>
 <body>
 <script>try{if((localStorage.getItem('matix_theme')||'light')==='dark')document.body.classList.add('dark');}catch(e){}</script>
 <div id="mxBoot" role="status" aria-live="polite" aria-label="Loading Matix">
+  <video id="mxBootVid" class="mxb-vid" muted playsinline webkit-playsinline preload="auto" disablepictureinpicture disableremoteplayback aria-hidden="true" tabindex="-1"></video>
+  <button class="mxb-skip" id="mxBootSkip" type="button">Skip intro</button>
+  <script>
+  /* Matix intro film (assets/media/brand/intro_*.mp4): plays over the boot screen.
+     First launch shows the whole film; later launches cap it at 3 s. Tap "Skip intro" to go straight in. */
+  (function(){
+    var boot=document.getElementById('mxBoot'),v=document.getElementById('mxBootVid'),skip=document.getElementById('mxBootSkip');
+    var t0=Date.now(),held=null,done=false,seen=false;
+    function reduced(){
+      try{if(localStorage.getItem('matix_reduce_motion')==='1')return true;}catch(e){}
+      try{return !!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);}catch(e){return false;}
+    }
+    if(!boot||!v||reduced()){if(v&&v.parentNode)v.parentNode.removeChild(v);if(skip&&skip.parentNode)skip.parentNode.removeChild(skip);return;}
+    try{seen=localStorage.getItem('mx_intro_seen')==='1';}catch(e){}
+    var cap=seen?3000:5300;
+    try{var sl={ar:'تخطي المقدمة',fr:"Passer l'intro",es:'Saltar intro'}[localStorage.getItem('matix_lang')];if(sl)skip.textContent=sl;}catch(e){}
+    function release(){
+      if(done)return;done=true;
+      try{localStorage.setItem('mx_intro_seen','1');}catch(e){}
+      if(held){var f=held;held=null;f();}
+      setTimeout(function(){try{v.pause();v.removeAttribute('src');v.load();}catch(e){}},900);
+    }
+    v.muted=true;
+    v.addEventListener('playing',function(){boot.classList.add('mx-vid-on');});
+    v.addEventListener('ended',release);
+    v.addEventListener('error',function(){boot.classList.remove('mx-vid-on');release();});
+    v.src='media/brand/intro_'+((window.innerHeight||1)>=(window.innerWidth||1)?'portrait':'landscape')+'.mp4';
+    var p=null;try{p=v.play();}catch(e){}
+    if(p&&p.catch)p.catch(function(){boot.classList.remove('mx-vid-on');release();});
+    skip.onclick=function(e){e.stopPropagation();release();};
+    /* afterBoot() asks this before hiding the boot screen */
+    window.mxBootHold=function(fn){
+      if(done)return false;
+      var left=cap-(Date.now()-t0);
+      if(left<=0||v.error){release();return false;}
+      held=fn;setTimeout(release,left);
+      return true;
+    };
+  })();
+  </script>
   <div class="mxb-blob" aria-hidden="true"></div>
   <div class="mxb-collage" aria-hidden="true">
     <span class="mxb-tile b1"></span><span class="mxb-tile b2"></span><span class="mxb-tile b3"></span>
@@ -3675,7 +3718,7 @@ document.addEventListener('keydown',function(e){
 /* ===================================================================
    ADDED: logo, roles, lessons, changelog, users directory
    =================================================================== */
-var LOGO_SVG="<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1000 1000\" width=\"100%\" height=\"100%\"><rect width=\"1000\" height=\"1000\" rx=\"112\" fill=\"#f7a600\"/><g fill=\"#ffffff\" opacity=\"0.15\"><text x=\"150\" y=\"200\" font-size=\"80\" font-weight=\"bold\">+</text><text x=\"800\" y=\"150\" font-size=\"70\" font-weight=\"bold\">−</text><text x=\"100\" y=\"850\" font-size=\"60\" font-weight=\"bold\">×</text><text x=\"750\" y=\"800\" font-size=\"75\" font-weight=\"bold\">÷</text><text x=\"450\" y=\"900\" font-size=\"65\" font-weight=\"bold\">+</text><text x=\"850\" y=\"500\" font-size=\"70\" font-weight=\"bold\">−</text></g><text x=\"500\" y=\"580\" font-family=\"Arial, sans-serif\" font-size=\"420\" font-weight=\"900\" fill=\"#ffffff\" text-anchor=\"middle\">MATIX</text></svg>";
+var LOGO_SVG=mxSvgTag('svg/brand/matix-tile.svg');
 var BUILTIN_MEMBERS={ghadi:'iamtheownerofmatix',dahlia:'cheeseflower',yara:'yara10yoyo20',jad:'ilikebatatameshwiyye',marwan:'ilikebeingnumberonebutiamnumbertwo',mak:'mak2130',hicham:'pwrbulleye'};
 function setLogos(){var g=$('gateLogo'),w=$('wsLogo');if(g)g.innerHTML=LOGO_SVG;if(w)w.innerHTML=LOGO_SVG;}
 function loadRole(){if(!ME)return;fbGet('/roles/'+encodeURIComponent(ME)).then(function(r){if(r==='owner'&&!ROLE_OWNER){ROLE_OWNER=true;var el2=$('sbRole');if(el2)el2.textContent='Owner';renderNav();}});}
@@ -3714,57 +3757,57 @@ var LRN_TYPE_LBL={mc:'Pick one',tf:'True or false',order:'Put in order',
                   input:'Type the answer'};
 /* ---------- inline SVG icon set (replaces every emoji) ---------- */
 var LRN_SVG={
- star:'<path fill="currentColor" stroke="none" d="M12 2.5l2.9 5.9 6.5.95-4.7 4.6 1.1 6.5L12 17.4l-5.8 3.05 1.1-6.5-4.7-4.6 6.5-.95z"/>',
- plus:'<path d="M12 5v14M5 12h14"/>',
- minus:'<path d="M5 12h14"/>',
- times:'<path d="M6 6l12 12M18 6L6 18"/>',
- divide:'<path d="M5 12h14"/><circle cx="12" cy="7" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="17" r="1.5" fill="currentColor" stroke="none"/>',
- equals:'<path d="M5 9h14M5 15h14"/>',
- num123:'<path d="M4 8l2-1v10M11 8.5a2 2 0 013.4 1.4L11 17h4.5M18.5 7.5h3l-1.8 3a2.2 2.2 0 11-1 4.2"/>',
- abacus:'<rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M3.5 9.5h17M3.5 14.5h17"/><circle cx="8" cy="9.5" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="14.5" r="1.4" fill="currentColor" stroke="none"/>',
- fraction:'<path d="M17 6L7 18"/><path d="M6 9h4M14 15h4"/>',
- book:'<path d="M4 5.5A1.5 1.5 0 015.5 4H10a2 2 0 012 2v13a2 2 0 00-2-1.6H5.5A1.5 1.5 0 014 16zM20 5.5A1.5 1.5 0 0018.5 4H14a2 2 0 00-2 2v13a2 2 0 012-1.6h4.5A1.5 1.5 0 0020 16z"/>',
- book2:'<path d="M5 4h11a2 2 0 012 2v14H7a2 2 0 01-2-2z"/><path d="M5 17h13"/>',
- books:'<path d="M4 5h4v15H4zM10 5h4v15h-4zM16.5 6l3.5.9-2.6 13.1-3.5-.9z"/>',
- page:'<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/>',
- ruler:'<path d="M3.5 15.5l12-12 5 5-12 12z"/><path d="M7 12l2 2M10 9l2 2M13 6l2 2"/>',
- protractor:'<path d="M3 18h18M4 18a8 8 0 0116 0"/><path d="M12 18V9"/>',
- chart:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
- graph:'<path d="M4 20V4M4 20h16"/><path d="M6 16l4-5 3 3 5-7"/>',
- puzzle:'<path d="M10 4h4v2a2 2 0 104 0h2v4h-2a2 2 0 100 4h2v4h-4v-2a2 2 0 10-4 0v2H6v-4h2a2 2 0 100-4H6V6h2a2 2 0 104 0z"/>',
- bolt:'<path fill="currentColor" stroke="none" d="M13.5 2L5 13.5h5L9.5 22 19 10h-5.4z"/>',
- flame:'<path fill="currentColor" stroke="none" d="M12.8 2c2 3 .6 4.6-.6 6-1 1.2-2 2.4-1 4.2.5.9-.4 1.6-1.1 1-1-.9-1.6-2.2-1.6-3.6C6.5 11 5.5 13 5.5 15.2 5.5 19 8.6 22 12.3 22s6.7-3 6.7-6.8C19 10 15.5 6 12.8 2z"/>',
- sparkle:'<path fill="currentColor" stroke="none" d="M12 2.5l1.7 5.3 5.3 1.7-5.3 1.7L12 16.5l-1.7-5.3L5 9.5l5.3-1.7z"/><path fill="currentColor" stroke="none" d="M18.5 15l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/>',
- pizza:'<path d="M12 3l8 16a18 18 0 01-16 0z"/><circle cx="10" cy="13" r="1.2" fill="currentColor" stroke="none"/><circle cx="14" cy="16" r="1.2" fill="currentColor" stroke="none"/>',
- drop:'<path d="M12 3s6 6.4 6 10.4A6 6 0 016 13.4C6 9.4 12 3 12 3z"/>',
- scales:'<path d="M12 4v16M7 20h10M4 8h16M6 8l-2.5 5a3 3 0 005 0zM18 8l-2.5 5a3 3 0 005 0z"/>',
- target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/>',
- brain:'<path d="M9.5 4A3.5 3.5 0 006 7.5 3 3 0 006 13v2a3 3 0 003 3h.5V4zM14.5 4A3.5 3.5 0 0118 7.5 3 3 0 0118 13v2a3 3 0 01-3 3h-.5V4z"/>',
- key:'<circle cx="8" cy="8" r="4"/><path d="M11 11l8 8M16 16l2-2M18 18l2-2"/>',
- crown:'<path fill="currentColor" stroke="none" d="M3 8l4 3.5L12 4l5 7.5L21 8l-1.8 11H4.8z"/>',
- owl:'<circle cx="12" cy="13" r="8"/><circle cx="9" cy="11.5" r="2"/><circle cx="15" cy="11.5" r="2"/><path d="M12 15l-1.2 1.6h2.4zM6 6l2 2M18 6l-2 2"/>',
- heart:'<path fill="currentColor" stroke="none" d="M12 20.5l-1.4-1.3C6 15 3 12.3 3 8.9A4.7 4.7 0 017.7 4.2c1.6 0 3.2.8 4.3 2.1a5.6 5.6 0 014.3-2.1A4.7 4.7 0 0121 8.9c0 3.4-3 6.1-7.6 10.3z"/>',
- heartOff:'<path d="M12 20l-1.3-1.2C6.2 14.7 3.5 12.2 3.5 9A4.3 4.3 0 017.8 4.7c1.5 0 2.9.7 3.9 1.9a5.1 5.1 0 013.9-1.9A4.3 4.3 0 0119.9 9c0 3.2-2.7 5.7-7.1 9.8z"/>',
- gem:'<path fill="currentColor" stroke="none" d="M7 3h10l4 6-9 12L3 9z"/>',
- trophy:'<path d="M8 4h8v5a4 4 0 01-8 0zM8 6H5a3 3 0 003 3M16 6h3a3 3 0 01-3 3M10 17h4M9 21h6M12 13v4"/>',
- medal:'<circle cx="12" cy="15" r="6"/><path d="M8 3l3 6M16 3l-3 6"/><path fill="currentColor" stroke="none" d="M12 12.5l1 2 2 .3-1.5 1.4.4 2.1-1.9-1-1.9 1 .4-2.1L9 14.8l2-.3z"/>',
- lock:'<rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8.5 10V7.5a3.5 3.5 0 017 0V10"/>',
- check:'<path d="M4 13l5 5L20 6"/>',
- cross:'<path d="M6 6l12 12M18 6L6 18"/>',
- bulb:'<path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9V16h7v-2.1A6 6 0 0012 3z"/>',
- cart:'<circle cx="9" cy="20" r="1.6"/><circle cx="18" cy="20" r="1.6"/><path d="M2 3h3l3 12h12l2-9H6"/>',
- people:'<circle cx="9" cy="8" r="3.4"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><path d="M16 5.2a3.4 3.4 0 010 6.6M17.5 20a6.6 6.6 0 00-2-4.7"/>',
- plusUser:'<circle cx="10" cy="8" r="3.4"/><path d="M3.5 20a6.5 6.5 0 0113 0"/><path d="M18 6v6M15 9h6"/>',
- map:'<path d="M9 3l6 2 6-2v16l-6 2-6-2-6 2V5z"/><path d="M9 3v16M15 5v16"/>',
- pencil:'<path d="M4 20h4L20 8l-4-4L4 16z"/><path d="M14 6l4 4"/>',
- calendar:'<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
- snow:'<path d="M12 3v18M4 7.5l16 9M20 7.5l-16 9"/>',
- gift:'<rect x="3.5" y="9" width="17" height="11" rx="1.6"/><path d="M3.5 13h17M12 9v11M8.5 9a2.5 2.5 0 113.5-2.2A2.5 2.5 0 1115.5 9z"/>',
- compass:'<circle cx="12" cy="12" r="9"/><path fill="currentColor" stroke="none" d="M15 9l-2 5-4 1 2-5z"/>',
- arrowL:'<path d="M19 12H5M11 6l-6 6 6 6"/>',
- seed:'<path d="M12 21v-7M12 14c-4 0-7-2.5-7-6 4 0 7 2.5 7 6zM12 14c0-3.5 3-6 7-6 0 3.5-3 6-7 6z"/>',
- box:'<path d="M3.5 8L12 4l8.5 4v8L12 20l-8.5-4z"/><path d="M3.5 8l8.5 4 8.5-4M12 12v8"/>',
- trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/>'
+ star:'svg/learn/star.svg',
+ plus:'svg/learn/plus.svg',
+ minus:'svg/learn/minus.svg',
+ times:'svg/learn/times.svg',
+ divide:'svg/learn/divide.svg',
+ equals:'svg/learn/equals.svg',
+ num123:'svg/learn/num123.svg',
+ abacus:'svg/learn/abacus.svg',
+ fraction:'svg/learn/fraction.svg',
+ book:'svg/learn/book.svg',
+ book2:'svg/learn/book2.svg',
+ books:'svg/learn/books.svg',
+ page:'svg/learn/page.svg',
+ ruler:'svg/learn/ruler.svg',
+ protractor:'svg/learn/protractor.svg',
+ chart:'svg/learn/chart.svg',
+ graph:'svg/learn/graph.svg',
+ puzzle:'svg/learn/puzzle.svg',
+ bolt:'svg/learn/bolt.svg',
+ flame:'svg/learn/flame.svg',
+ sparkle:'svg/learn/sparkle.svg',
+ pizza:'svg/learn/pizza.svg',
+ drop:'svg/learn/drop.svg',
+ scales:'svg/learn/scales.svg',
+ target:'svg/learn/target.svg',
+ brain:'svg/learn/brain.svg',
+ key:'svg/learn/key.svg',
+ crown:'svg/learn/crown.svg',
+ owl:'svg/learn/owl.svg',
+ heart:'svg/learn/heart.svg',
+ heartOff:'svg/learn/heartOff.svg',
+ gem:'svg/learn/gem.svg',
+ trophy:'svg/learn/trophy.svg',
+ medal:'svg/learn/medal.svg',
+ lock:'svg/learn/lock.svg',
+ check:'svg/learn/check.svg',
+ cross:'svg/learn/cross.svg',
+ bulb:'svg/learn/bulb.svg',
+ cart:'svg/learn/cart.svg',
+ people:'svg/learn/people.svg',
+ plusUser:'svg/learn/plusUser.svg',
+ map:'svg/learn/map.svg',
+ pencil:'svg/learn/pencil.svg',
+ calendar:'svg/learn/calendar.svg',
+ snow:'svg/learn/snow.svg',
+ gift:'svg/learn/gift.svg',
+ compass:'svg/learn/compass.svg',
+ arrowL:'svg/learn/arrowL.svg',
+ seed:'svg/learn/seed.svg',
+ box:'svg/learn/box.svg',
+ trash:'svg/learn/trash.svg'
 };
 var LRN_ICONS=['star','plus','minus','times','divide','equals','num123','fraction','book','ruler',
   'protractor','chart','graph','puzzle','bolt','flame','sparkle','pizza','drop','scales',
@@ -3772,9 +3815,7 @@ var LRN_ICONS=['star','plus','minus','times','divide','equals','num123','fractio
 function lrnIco(n,cls){
   var s=LRN_SVG[n];
   if(!s)return '<span class="lrn-fallback'+(cls?' '+cls:'')+'">'+esc(n||'')+'</span>';
-  return '<svg class="lrn-svg'+(cls?' '+cls:'')+'" viewBox="0 0 24 24" fill="none" '+
-    'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" '+
-    'aria-hidden="true">'+s+'</svg>';
+  return mxSvgTag(s,'lrn-svg'+(cls?' '+cls:''));  /* icon now lives in its own file: assets/svg/learn/*.svg */
 }
 var LRN_COLORS=['#58cc02','#1cb0f6','#ce82ff','#ff9600','#ff4b4b','#ffc800',
                 '#2b70c9','#00cd9c','#a560e8','#ec4899','#14b8a6','#8b5cf6'];
@@ -6184,7 +6225,7 @@ function profileImg(pr){
   return '';
 }
 /* the SVG for the profile badge reward — same graphic used on matixthemathclub.com */
-var BADGE_SVG='<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M16 30 10 44 16 41.5 20 45 18 31Z" fill="#6366f1"/><path d="M32 30 38 44 32 41.5 28 45 30 31Z" fill="#10b981"/><circle cx="24" cy="20" r="16" fill="#818cf8"/><circle cx="24" cy="20" r="12.5" fill="#0f172a"/><path d="M24 11.5l2.47 5.01 5.53.8-4 3.9.94 5.5L24 23.9l-4.94 2.6.94-5.5-4-3.9 5.53-.8L24 11.5Z" fill="#f59e0b"/></svg>';
+var BADGE_SVG=mxSvgTag('svg/brand/profile-badge.svg');
 function badgeHtml(hasBadge){return hasBadge?('<span class="av-badge" title="Unlocked the profile badge">'+BADGE_SVG+'</span>'):'';}
 function avatarHtml(u,i,cls){
   i=i||{};var c=cls||'u-avatar';
@@ -13511,16 +13552,16 @@ function saveContent(payload){
 
 /* --------------------------------- icons --------------------------------- */
 var ICONS={
-  github:'<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38v-1.34c-2.23.49-2.7-1.07-2.7-1.07-.36-.93-.89-1.18-.89-1.18-.73-.5.05-.49.05-.49.81.06 1.23.83 1.23.83.72 1.23 1.88.87 2.34.67.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .66-.21 2.2.82a7.6 7.6 0 014 0c1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>',
-  youtube:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M23 12s0-3.6-.46-5.33a2.78 2.78 0 00-1.94-1.95C18.88 4.25 12 4.25 12 4.25s-6.88 0-8.6.47a2.78 2.78 0 00-1.94 1.95C1 8.4 1 12 1 12s0 3.6.46 5.33a2.78 2.78 0 001.94 1.95c1.72.47 8.6.47 8.6.47s6.88 0 8.6-.47a2.78 2.78 0 001.94-1.95C23 15.6 23 12 23 12zM9.75 15.5v-7l6 3.5-6 3.5z"/></svg>',
-  globe:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm6.93 6h-2.95a15.6 15.6 0 00-1.38-3.56A8.03 8.03 0 0118.93 8zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14A8.13 8.13 0 014 12c0-.69.1-1.36.26-2h3.38a16.6 16.6 0 000 4H4.26zm.81 2h2.95c.33 1.27.8 2.47 1.38 3.56A8.03 8.03 0 015.07 16zm2.95-8H5.07a8.03 8.03 0 014.33-3.56A15.6 15.6 0 008.02 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66a14.4 14.4 0 010-4h4.68a14.4 14.4 0 010 4zm.26 5.56c.58-1.09 1.05-2.29 1.38-3.56h2.95a8.03 8.03 0 01-4.33 3.56zM16.36 14a16.6 16.6 0 000-4h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z"/></svg>',
-  user:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a5 5 0 100-10 5 5 0 000 10zm0 2c-4.42 0-8 2.24-8 5v1a1 1 0 001 1h14a1 1 0 001-1v-1c0-2.76-3.58-5-8-5z"/></svg>',
-  discord:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.54 5.34A16.2 16.2 0 0015.5 4.1l-.3.6a12 12 0 013.5 1.2 11.3 11.3 0 00-9.4 0 12 12 0 013.5-1.2l-.3-.6a16.2 16.2 0 00-4.04 1.24C5.2 9.1 4.5 12.8 4.8 16.4a16.4 16.4 0 004.96 2.5l.6-1a10.8 10.8 0 01-1.7-.82l.42-.33a11.6 11.6 0 009.84 0l.42.33c-.54.32-1.1.6-1.7.82l.6 1a16.4 16.4 0 004.96-2.5c.36-4.2-.72-7.86-3.66-11.06zM9.6 14.4c-.86 0-1.56-.8-1.56-1.78s.68-1.78 1.56-1.78c.88 0 1.58.8 1.56 1.78 0 .98-.68 1.78-1.56 1.78zm4.8 0c-.86 0-1.56-.8-1.56-1.78s.68-1.78 1.56-1.78c.88 0 1.58.8 1.56 1.78 0 .98-.68 1.78-1.56 1.78z"/></svg>',
-  reddit:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 11.6a2.2 2.2 0 00-3.74-1.56c-1.5-.98-3.5-1.6-5.7-1.68l1.1-3.5 3 .7a1.6 1.6 0 103.2-.34 1.6 1.6 0 00-3.07-.6l-3.5-.82a.5.5 0 00-.6.34L9.4 8.36c-2.24.06-4.28.68-5.8 1.68A2.2 2.2 0 002 11.6c0 .8.42 1.5 1.06 1.9-.04.24-.06.5-.06.74 0 3.1 3.6 5.6 8 5.6s8-2.5 8-5.6c0-.24-.02-.48-.06-.72A2.2 2.2 0 0022 11.6zM8.2 13a1.4 1.4 0 112.8 0 1.4 1.4 0 01-2.8 0zm7.2 3.9c-.9.9-2.5 1-3.4 1s-2.5-.1-3.4-1a.36.36 0 01.5-.5c.6.6 1.9.7 2.9.7s2.3-.1 2.9-.7a.36.36 0 01.5.5zM15 14.4a1.4 1.4 0 110-2.8 1.4 1.4 0 010 2.8z"/></svg>',
-  x:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.64l-5.2-6.82-5.96 6.82H1.7l7.5-8.58L1.05 2.25h6.8l4.83 6.38 5.56-6.38zm-1.17 17.52h1.83L6.9 4.13H4.94l12.13 15.64z"/></svg>',
-  instagram:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c2.72 0 3.06.01 4.12.06 1.07.05 1.79.22 2.43.47.66.25 1.22.6 1.77 1.15.55.55.9 1.11 1.15 1.77.25.64.42 1.36.47 2.43C22 8.94 22 9.28 22 12s-.01 3.06-.06 4.12c-.05 1.07-.22 1.79-.47 2.43-.25.66-.6 1.22-1.15 1.77-.55.55-1.11.9-1.77 1.15-.64.25-1.36.42-2.43.47C15.06 22 14.72 22 12 22s-3.06-.01-4.12-.06c-1.07-.05-1.79-.22-2.43-.47a4.9 4.9 0 01-1.77-1.15 4.9 4.9 0 01-1.15-1.77c-.25-.64-.42-1.36-.47-2.43C2 15.06 2 14.72 2 12s.01-3.06.06-4.12c.05-1.07.22-1.79.47-2.43.25-.66.6-1.22 1.15-1.77A4.9 4.9 0 015.45 2.53c.64-.25 1.36-.42 2.43-.47C8.94 2 9.28 2 12 2zm0 5a5 5 0 100 10 5 5 0 000-10zm0 8.2a3.2 3.2 0 110-6.4 3.2 3.2 0 010 6.4zM17.8 6.8a1.2 1.2 0 11-2.4 0 1.2 1.2 0 012.4 0z"/></svg>',
-  mail:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4.24l-8 4.76-8-4.76V6l8 4.76L20 6v2.24z"/></svg>',
-  link:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.6 13.4a1 1 0 001.4 0l4.3-4.3a3 3 0 10-4.24-4.25l-1.4 1.42 1.4 1.4 1.42-1.4a1 1 0 011.4 1.42l-4.28 4.3a1 1 0 000 1.4zm2.8-2.8a1 1 0 00-1.4 0l-4.3 4.3a1 1 0 01-1.4-1.4l4.28-4.3a1 1 0 10-1.4-1.42l-4.3 4.3a3 3 0 104.24 4.25l4.3-4.3a1 1 0 000-1.43z"/></svg>'
+  github:mxSvgTag('svg/social/github.svg'),
+  youtube:mxSvgTag('svg/social/youtube.svg'),
+  globe:mxSvgTag('svg/social/globe.svg'),
+  user:mxSvgTag('svg/social/user.svg'),
+  discord:mxSvgTag('svg/social/discord.svg'),
+  reddit:mxSvgTag('svg/social/reddit.svg'),
+  x:mxSvgTag('svg/social/x.svg'),
+  instagram:mxSvgTag('svg/social/instagram.svg'),
+  mail:mxSvgTag('svg/social/mail.svg'),
+  link:mxSvgTag('svg/social/link.svg')
 };
 
 function iconFor(label,url){
@@ -14102,6 +14143,7 @@ function wireSignOuts(){
 
 /* ------------------------------ boot sequence ------------------------------ */
 function afterBoot(){
+  if(window.mxBootHold&&window.mxBootHold(afterBoot))return; /* wait for the intro film (v1.1) */
   document.documentElement.classList.remove('mx-booting');
   var boot=$id('mxBoot');
   if(boot){
@@ -16752,5 +16794,6 @@ var MXML5=(function(){
 
 </script>
 <!-- MXV5:END -->
+<script src="js/matix-media.js"></script>
 </body>
 </html>

@@ -16,12 +16,34 @@ The Android app is restored to a **WebView host of the original supplied HTML**,
 | Namespace | `com.matixmathclubappandroid.app` |
 | Application ID | `com.matixmathclubappandroid.app` |
 | minSdk | 26 |
-| targetSdk | 26 |
+| targetSdk | 36 |
 | compileSdk | 34 |
-| versionName | `1.0.0` |
-| versionCode | 7 |
+| versionName | `1.1.0` |
+| versionCode | 11 |
 
-**Play Console warning:** targetSdk 26 is retained because it was explicitly requested, but it is too old for a new Google Play submission. Raise the target SDK to the level currently required by Play before uploading. The lint rule `ExpiredTargetSdkVersion` is explicitly suppressed for this requested legacy configuration; it is not a Play-policy exemption. An update must also use a versionCode higher than the one already on Play.
+**Play Console note:** an update must use a versionCode higher than the one already on Play (this release uses 11). The lint rule `ExpiredTargetSdkVersion` remains suppressed from the earlier legacy configuration; it is not a Play-policy exemption.
+
+## Version 1.1.0 — media pack (about 190 MB)
+
+The app now ships a large offline media pack, so the download is roughly **190 MB** instead of about 2.7 MB. That stays under Google Play's 200 MB limit for the base download, so a normal App Bundle upload works without asset packs.
+
+All of it is original: every film and loop is rendered from math by the scripts in `tools/media` (no stock footage, no downloaded images or icon packs), and the SVGs are Matix's own artwork taken out of `app.html`.
+
+| Folder (`app/src/main/assets/…`) | What it is | Where it shows |
+| --- | --- | --- |
+| `svg/brand`, `svg/social`, `svg/learn` | 65 SVG files that used to be inline strings in `app.html` (logo, badge, social icons, Learn icons) | everywhere, loaded by `js/matix-svg.js` |
+| `media/brand` | intro film + ambient welcome loop, portrait and landscape | boot screen (with **Skip intro**), sign-in / welcome screen |
+| `media/hero` | 16 looping math animations | behind the coloured header card of each section |
+| `media/fx` | 4 celebration effects × 2 orientations | layered over the confetti when you finish something |
+| `media/gallery`, `media/posters` | **Math Motion**: 19 math films (Mandelbrot deep zoom, Julia morph, Newton fractal, Fourier epicycles, Lorenz attractor, Galton board, Ulam spiral, Game of Life, …) + highlight reel and posters | new **Math Motion** section (menu, Home, search) with player |
+
+How it works:
+
+- `js/matix-media.js` + `css/matix-media.css` add the videos without changing the existing pages. Videos are muted, play inline, pause when off-screen or when the app is in the background, and at most 3 background loops play at once.
+- **Reduce motion / No motion** (app setting or Android "Remove animations") turns off the intro film, background loops and FX. **Math Motion → Animated backgrounds** turns off just the background loops. The full intro plays on first launch only; later launches cap it at 3 seconds.
+- `MainActivity` serves `assets/media/*` with HTTP Range (206 Partial Content) so films seek and loop smoothly, and `build.gradle.kts` keeps `.mp4` files uncompressed in the APK (`androidResources.noCompress`).
+- Android Back closes the Math Motion player first.
+- `media/manifest.json` lists every file. All films were generated from real equations by the scripts in `tools/media` (Python 3 + pycairo + numpy + ffmpeg/x264, and a small C fractal renderer). To regenerate or resize the pack, see `tools/media/README.md`.
 
 ## Android shell support
 
@@ -31,6 +53,7 @@ The Android app is restored to a **WebView host of the original supplied HTML**,
 - Camera/microphone runtime permissions for the trusted app origin; other origins/resources are denied.
 - JavaScript alerts/confirmations/prompts; user-initiated popup windows; external links opened in installed apps.
 - Video fullscreen, Android Back handling, renderer-crash recovery, and WebView cleanup.
+- Byte-range streaming for bundled media in `assets/media` (seeking/looping large videos).
 - No unrestricted JavaScript-to-Android bridge, no file-origin access, and no invalid-certificate bypass.
 
 ## Validation / remaining limits

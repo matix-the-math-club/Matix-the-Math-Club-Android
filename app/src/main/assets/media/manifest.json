@@ -1,0 +1,288 @@
+{
+ "name": "Matix media",
+ "version": "1.1.0",
+ "generated": "2026-10-17",
+ "note": "Every film is generated procedurally from math (Python + pycairo + C, encoded with x264). Muted H.264 MP4.",
+ "gallery": [
+  {
+   "id": "mandelbrot",
+   "cat": "fractals",
+   "title": "Mandelbrot deep zoom",
+   "sub": "Zoom 640 million times into z → z² + c — the edge never runs out of new shapes",
+   "file": "media/gallery/mandelbrot.mp4",
+   "poster": "media/posters/mandelbrot.jpg",
+   "dur": 24.0,
+   "w": 1280,
+   "h": 720,
+   "bytes": 16134264
+  },
+  {
+   "id": "fourier",
+   "cat": "waves",
+   "title": "Fourier epicycles",
+   "sub": "Any drawing is just circles spinning on circles",
+   "file": "media/gallery/fourier.mp4",
+   "poster": "media/posters/fourier.jpg",
+   "dur": 27.0,
+   "w": 1920,
+   "h": 1080,
+   "bytes": 2897367
+  },
+  {
+   "id": "julia",
+   "cat": "fractals",
+   "title": "Julia sets in motion",
+   "sub": "Slide c around the Mandelbrot set and the Julia set of z² + c melts and re-forms",
+   "file": "media/gallery/julia.mp4",
+   "poster": "media/posters/julia.jpg",
+   "dur": 20.0,
+   "w": 1920,
+   "h": 1080,
+   "bytes": 11901675
+  },
+  {
+   "id": "lorenz",
+   "cat": "chaos",
+   "title": "The Lorenz attractor",
+   "sub": "Three simple equations for weather — and the butterfly of chaos appears",
+   "file": "media/gallery/lorenz.mp4",
+   "poster": "media/posters/lorenz.jpg",
+   "dur": 26.0,
+   "w": 1920,
+   "h": 1080,
+   "bytes": 6480097
+  },
+  {
+   "id": "phyllotaxis",
+   "cat": "geometry",
+   "title": "The golden angle",
+   "sub": "Turn 137.5° between seeds and a sunflower appears — Fibonacci spirals for free",
+   "file": "media/gallery/phyllotaxis.mp4",
+   "poster": "media/posters/phyllotaxis.jpg",
+   "dur": 22.0,
+   "w": 1920,
+   "h": 1080,
+   "bytes": 11772138
+  },
+  {
+   "id": "chaos_game",
+   "cat": "fractals",
+   "title": "The chaos game",
+   "sub": "Jump halfway to a random corner, again and again — order appears out of randomness",
+   "file": "media/gallery/chaos_game.mp4",
+   "poster": "media/posters/chaos_game.jpg",
+   "dur": 24.0,
+   "w": 1920,
+   "h": 1080,
+   "bytes": 6267565
+  },
+  {
+   "id": "double_pendulum",
+   "cat": "chaos",
+   "title": "Chaos: the double pendulum",
+   "sub": "Six pendulums start 0.0001 rad apart — within seconds they disagree completely",
+   "file": "media/gallery/double_pendulum.mp4",
+   "poster": "media/posters/double_pendulum.jpg",
+   "dur": 24.0,
+   "w": 1920,
+   "h": 1080,
+   "bytes": 8332829
+  },
+  {
+   "id": "cardioid",
+   "cat": "geometry",
+   "title": "Times tables on a circle",
+   "sub": "Join n to k·n (mod 200): k = 2 makes a cardioid, then it keeps morphing",
+   "file": "media/gallery/cardioid.mp4",
+   "poster": "media/posters/cardioid.jpg",
+   "dur": 26.0,
+   "w": 1280,
+   "h": 720,
+   "bytes": 14184764
+  },
+  {
+   "id": "newton",
+   "cat": "fractals",
+   "title": "Newton's fractal",
+   "sub": "Colour every start point by the root of z³ − 1 that Newton's method lands on",
+   "file": "media/gallery/newton.mp4",
+   "poster": "media/posters/newton.jpg",
+   "dur": 15.0,
+   "w": 1920,
+   "h": 1080,
+   "bytes": 7304328
+  },
+  {
+   "id": "galton",
+   "cat": "numbers",
+   "title": "The Galton board",
+   "sub": "Each ball flips left or right 14 times — together they draw the bell curve",
+   "file": "media/gallery/galton.mp4",
+   "poster": "media/posters/galton.jpg",
+   "dur": 26.0,
+   "w": 1920,
+   "h": 1080,
+   "bytes": 2685398
+  },
+  {
+   "id": "lissajous",
+   "cat": "waves",
+   "title": "Lissajous table",
+   "sub": "x = sin(a·t), y = sin(b·t) — every pair of frequencies makes its own curve",
+   "file": "media/gallery/lissajous.mp4",
+   "poster": "media/posters/lissajous.jpg",
+   "dur": 24.0,
+   "w": 1920,
+   "h": 1080,
+   "bytes": 7382571
+  },
+  {
+   "id": "primes",
+   "cat": "numbers",
+   "title": "The Ulam spiral",
+   "sub": "Write 1, 2, 3… in a square spiral and light up the primes — diagonals appear",
+   "file": "media/gallery/primes.mp4",
+   "poster": "media/posters/primes.jpg",
+   "dur": 22.0,
+   "w": 1920,
+   "h": 1080,
+   "bytes": 3972852
+  },
+  {
+   "id": "unit_circle",
+   "cat": "waves",
+   "title": "Sine & cosine",
+   "sub": "Walk round the unit circle — your height draws the sine wave",
+   "file": "media/gallery/unit_circle.mp4",
+   "poster": "media/posters/unit_circle.jpg",
+   "dur": 18.0,
+   "w": 1920,
+   "h": 1080,
+   "bytes": 2626544
+  },
+  {
+   "id": "life",
+   "cat": "chaos",
+   "title": "Conway's Game of Life",
+   "sub": "Two rules — born with 3 neighbours, survive with 2 or 3 — and gliders start to fly",
+   "file": "media/gallery/life.mp4",
+   "poster": "media/posters/life.jpg",
+   "dur": 26.0,
+   "w": 1920,
+   "h": 1080,
+   "bytes": 5387083
+  },
+  {
+   "id": "tesseract",
+   "cat": "geometry",
+   "title": "A 4-D hypercube",
+   "sub": "A tesseract turning through the fourth dimension, projected down to your screen",
+   "file": "media/gallery/tesseract.mp4",
+   "poster": "media/posters/tesseract.jpg",
+   "dur": 20.0,
+   "w": 1920,
+   "h": 1080,
+   "bytes": 4026524
+  },
+  {
+   "id": "monte_carlo",
+   "cat": "numbers",
+   "title": "Finding π with random darts",
+   "sub": "Fraction of darts inside the quarter circle × 4  →  π",
+   "file": "media/gallery/monte_carlo.mp4",
+   "poster": "media/posters/monte_carlo.jpg",
+   "dur": 22.0,
+   "w": 1920,
+   "h": 1080,
+   "bytes": 7292055
+  },
+  {
+   "id": "pythagoras",
+   "cat": "geometry",
+   "title": "Pythagoras, proved by moving",
+   "sub": "Same big square, same 4 triangles — so the leftover areas must match",
+   "file": "media/gallery/pythagoras.mp4",
+   "poster": "media/posters/pythagoras.jpg",
+   "dur": 22.0,
+   "w": 1920,
+   "h": 1080,
+   "bytes": 2050370
+  },
+  {
+   "id": "koch_hilbert",
+   "cat": "fractals",
+   "title": "Fractal curves",
+   "sub": "Koch snowflake: infinite edge, finite area. Hilbert curve: a line that fills a square",
+   "file": "media/gallery/koch_hilbert.mp4",
+   "poster": "media/posters/koch_hilbert.jpg",
+   "dur": 26.0,
+   "w": 1920,
+   "h": 1080,
+   "bytes": 2032575
+  },
+  {
+   "id": "cellular",
+   "cat": "chaos",
+   "title": "One-line universes",
+   "sub": "Each row follows a tiny rule from the row above — Rule 30, Rule 90, Rule 110",
+   "file": "media/gallery/cellular.mp4",
+   "poster": "media/posters/cellular.jpg",
+   "dur": 24.0,
+   "w": 1920,
+   "h": 1080,
+   "bytes": 10356264
+  }
+ ],
+ "reel": {
+  "file": "media/gallery/reel.mp4",
+  "poster": "media/posters/reel.jpg",
+  "dur": 45.6,
+  "bytes": 6736069
+ },
+ "hero": {
+  "ai": "media/hero/hero_ai.mp4",
+  "bugs": "media/hero/hero_bugs.mp4",
+  "changelog": "media/hero/hero_changelog.mp4",
+  "discussions": "media/hero/hero_discussions.mp4",
+  "games": "media/hero/hero_games.mp4",
+  "home": "media/hero/hero_home.mp4",
+  "ideas": "media/hero/hero_ideas.mp4",
+  "learn": "media/hero/hero_learn.mp4",
+  "messages": "media/hero/hero_messages.mp4",
+  "page": "media/hero/hero_page.mp4",
+  "points": "media/hero/hero_points.mp4",
+  "private": "media/hero/hero_private.mp4",
+  "theme": "media/hero/hero_theme.mp4",
+  "translate": "media/hero/hero_translate.mp4",
+  "users": "media/hero/hero_users.mp4"
+ },
+ "fx": {
+  "confetti": {
+   "portrait": "media/fx/fx_confetti_portrait.mp4",
+   "landscape": "media/fx/fx_confetti_landscape.mp4"
+  },
+  "stars": {
+   "portrait": "media/fx/fx_stars_portrait.mp4",
+   "landscape": "media/fx/fx_stars_landscape.mp4"
+  },
+  "rings": {
+   "portrait": "media/fx/fx_rings_portrait.mp4",
+   "landscape": "media/fx/fx_rings_landscape.mp4"
+  },
+  "badge": {
+   "portrait": "media/fx/fx_badge_portrait.mp4",
+   "landscape": "media/fx/fx_badge_landscape.mp4"
+  }
+ },
+ "brand": {
+  "intro": {
+   "portrait": "media/brand/intro_portrait.mp4",
+   "landscape": "media/brand/intro_landscape.mp4"
+  },
+  "welcome": {
+   "portrait": "media/brand/welcome_portrait.mp4",
+   "landscape": "media/brand/welcome_landscape.mp4"
+  }
+ },
+ "total_bytes": 187319211
+}

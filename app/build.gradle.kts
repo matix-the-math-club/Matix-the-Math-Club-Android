@@ -11,9 +11,9 @@ android {
     defaultConfig {
         applicationId = "com.matixmathclubappandroid.app"
         minSdk = 26
-        targetSdk = 26 // Retained as explicitly requested; raise for a new Play submission.
-        versionCode = 7
-        versionName = "1.0.0"
+        targetSdk = 36 // Retained as explicitly requested; raise for a new Play submission.
+        versionCode = 11
+        versionName = "1.1.0"
     }
 
     // Release signing stays in Android Studio or your own CI environment.
@@ -38,6 +38,11 @@ android {
                 signingConfig = signingConfigs.getByName("release")
             }
         }
+    }
+    // v1.1 bundles ~170 MB of local videos in assets/media. Keep them stored (not deflated) so the
+    // app can stream them with byte ranges via AssetManager.openFd() and they install faster.
+    androidResources {
+        noCompress += listOf("mp4", "m4v", "webm")
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

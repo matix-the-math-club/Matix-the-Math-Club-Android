@@ -45,6 +45,9 @@ import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewFeature
 import java.io.ByteArrayInputStream
+import java.io.FilterInputStream
+import java.io.IOException
+import java.io.InputStream
 import java.util.Locale
 
 /** Native Android host for the original Matix HTML UI, with documented runtime guards. */
@@ -147,6 +150,8 @@ class MainActivity : ComponentActivity() {
 
     private inner class MatixWebViewClient : WebViewClient() {
         override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
+            // Bundled videos are served with HTTP Range support so they can seek, loop and stream smoothly.
+            serveMedia(request)?.let { return it }
             val response = assetLoader.shouldInterceptRequest(request.url)
             if (response != null) return response
             // Missing files on the reserved app origin must never fall through to the public network.
@@ -370,6 +375,120 @@ class MainActivity : ComponentActivity() {
         } else trimmed.takeIf { it.contains('/') }
     }
 
+    /**
+     * Serves files under assets/media/ (videos, posters) with byte-range support.
+     * WebViewAssetLoader always answers 200 with the whole file, which makes <video> seeking and
+     * looping slow for large films; this answers "Range: bytes=a-b" with 206 Partial Content.
+     * Media files are stored uncompressed in the APK (see androidResources.noCompress), so they
+     * can be opened with openFd(). Returns null to fall back to the normal asset loader.
+     */
+    private fun serveMedia(request: WebResourceRequest): WebResourceResponse? {
+        val uri = request.url
+        if (!isAppOrigin(uri) || !request.method.equals("GET", true)) return null
+        val path = uri.path ?: return null
+        if (!path.startsWith(MEDIA_PREFIX) || path.contains("..")) return null
+        val assetPath = path.removePrefix("/assets/")
+        val afd = try {
+            assets.openFd(assetPath)
+        } catch (e: IOException) {
+            return null
+        }
+        val total = afd.length
+        if (total <= 0L) {
+            afd.close()
+            return null
+        }
+        val mime = when (assetPath.substringAfterLast('.', "").lowercase(Locale.ROOT)) {
+            "mp4", "m4v" -> "video/mp4"
+            "webm" -> "video/webm"
+            "jpg", "jpeg" -> "image/jpeg"
+            "png" -> "image/png"
+            "webp" -> "image/webp"
+            else -> "application/octet-stream"
+        }
+        var start = 0L
+        var end = total - 1
+        var partial = false
+        val rangeHeader = request.requestHeaders.entries.firstOrNull { it.key.equals("Range", true) }?.value
+        val match = rangeHeader?.let { RANGE_RE.matchEntire(it.trim()) }
+        if (match != null) {
+            val (a, b) = match.destructured
+            when {
+                a.isEmpty() && b.isEmpty() -> Unit
+                a.isEmpty() -> {
+                    val suffix = b.toLongOrNull() ?: 0L
+                    start = (total - suffix).coerceAtLeast(0L)
+                    partial = true
+                }
+                else -> {
+                    start = a.toLongOrNull() ?: Long.MAX_VALUE
+                    end = (if (b.isEmpty()) total - 1 else (b.toLongOrNull() ?: (total - 1))).coerceAtMost(total - 1)
+                    partial = true
+                }
+            }
+            if (partial && (start >= total || start > end)) {
+                afd.close()
+                return WebResourceResponse(
+                    mime, null, 416, "Range Not Satisfiable",
+                    mapOf("Content-Range" to "bytes */$total", "Accept-Ranges" to "bytes"),
+                    ByteArrayInputStream(ByteArray(0))
+                )
+            }
+        }
+        val length = end - start + 1
+        val stream: InputStream = try {
+            val raw = afd.createInputStream()
+            var skipped = 0L
+            while (skipped < start) {
+                val n = raw.skip(start - skipped)
+                if (n <= 0L) break
+                skipped += n
+            }
+            BoundedStream(raw, length)
+        } catch (e: IOException) {
+            afd.close()
+            return null
+        }
+        val headers = linkedMapOf(
+            "Accept-Ranges" to "bytes",
+            "Content-Length" to length.toString(),
+            "Cache-Control" to "max-age=86400"
+        )
+        if (partial) headers["Content-Range"] = "bytes $start-$end/$total"
+        return WebResourceResponse(
+            mime, null,
+            if (partial) 206 else 200,
+            if (partial) "Partial Content" else "OK",
+            headers, stream
+        )
+    }
+
+    /** Reads at most [limit] bytes, then reports end-of-stream; closing it closes the asset. */
+    private class BoundedStream(input: InputStream, private var limit: Long) : FilterInputStream(input) {
+        override fun read(): Int {
+            if (limit <= 0L) return -1
+            val r = super.read()
+            if (r >= 0) limit--
+            return r
+        }
+
+        override fun read(b: ByteArray, off: Int, len: Int): Int {
+            if (limit <= 0L) return -1
+            val r = super.read(b, off, minOf(len.toLong(), limit).toInt())
+            if (r > 0) limit -= r
+            return r
+        }
+
+        override fun skip(n: Long): Long {
+            val r = super.skip(minOf(n, limit))
+            if (r > 0) limit -= r
+            return r
+        }
+
+        override fun available(): Int = minOf(super.available().toLong(), limit).toInt()
+        override fun markSupported(): Boolean = false
+    }
+
     private fun isAppOrigin(uri: Uri): Boolean =
         uri.scheme.equals("https", true) && uri.host.equals(APP_HOST, true) && (uri.port == -1 || uri.port == 443)
 
@@ -454,6 +573,8 @@ class MainActivity : ComponentActivity() {
     companion object {
         private const val APP_HOST = "appassets.androidplatform.net"
         private const val APP_URL = "https://$APP_HOST/assets/app.html"
+        private const val MEDIA_PREFIX = "/assets/media/"
+        private val RANGE_RE = Regex("""bytes=(\d*)-(\d*)""", RegexOption.IGNORE_CASE)
         private const val WEB_STATE = "matix_webview_state"
         private const val MATCH = ViewGroup.LayoutParams.MATCH_PARENT
     }
