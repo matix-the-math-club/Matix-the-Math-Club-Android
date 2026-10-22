@@ -18,16 +18,20 @@ The Android app is restored to a **WebView host of the original supplied HTML**,
 | minSdk | 26 |
 | targetSdk | 36 |
 | compileSdk | 34 |
-| versionName | `1.1.0` |
-| versionCode | 11 |
+| versionName | `1.0.2` |
+| versionCode | 13 |
 
-**Play Console note:** an update must use a versionCode higher than the one already on Play (this release uses 11). The lint rule `ExpiredTargetSdkVersion` remains suppressed from the earlier legacy configuration; it is not a Play-policy exemption.
+**Play Console note:** an update must use a versionCode higher than the one already on Play (this release uses 13; versionName 1.0.2 is only the label users see). The lint rule `ExpiredTargetSdkVersion` remains suppressed from the earlier legacy configuration; it is not a Play-policy exemption.
 
-## Version 1.1.0 — media pack (about 190 MB)
+## Version 1.0.2 — animated lessons
+
+Math Motion now holds **19 animated math lessons** instead of the old math films: silent kinetic-text videos that explain one idea step by step ("this is 1/4 — it's 1 of 4 equal parts"). Topics: fractions (what a fraction is, equivalent, adding with same/different bottoms, multiplying, simplifying), percents & decimals (what a percent is, percent of a number, fraction ↔ decimal ↔ percent, place value), numbers (negatives on the number line, order of operations, powers, square roots), algebra (solving x + 5 = 12 with a balance, two-step equations) and geometry (area & perimeter, angles in a triangle, Pythagoras). Every frame is drawn by code in `tools/media/lessons` — no stock footage or downloaded images; the text is set in the open-source Noto Sans font (SIL Open Font License). On-screen text in the videos is English; titles, subtitles and the Math Motion UI are translated (Arabic, French, Spanish).
+
+## Media pack (about 190 MB)
 
 The app now ships a large offline media pack, so the download is roughly **190 MB** instead of about 2.7 MB. That stays under Google Play's 200 MB limit for the base download, so a normal App Bundle upload works without asset packs.
 
-All of it is original: every film and loop is rendered from math by the scripts in `tools/media` (no stock footage, no downloaded images or icon packs), and the SVGs are Matix's own artwork taken out of `app.html`.
+All of it is original: every video and loop is rendered from code by the scripts in `tools/media` (no stock footage, no downloaded images or icon packs), and the SVGs are Matix's own artwork taken out of `app.html`.
 
 | Folder (`app/src/main/assets/…`) | What it is | Where it shows |
 | --- | --- | --- |
@@ -35,15 +39,15 @@ All of it is original: every film and loop is rendered from math by the scripts 
 | `media/brand` | intro film + ambient welcome loop, portrait and landscape | boot screen (with **Skip intro**), sign-in / welcome screen |
 | `media/hero` | 16 looping math animations | behind the coloured header card of each section |
 | `media/fx` | 4 celebration effects × 2 orientations | layered over the confetti when you finish something |
-| `media/gallery`, `media/posters` | **Math Motion**: 19 math films (Mandelbrot deep zoom, Julia morph, Newton fractal, Fourier epicycles, Lorenz attractor, Galton board, Ulam spiral, Game of Life, …) + highlight reel and posters | new **Math Motion** section (menu, Home, search) with player |
+| `media/gallery`, `media/posters` | **Math Motion**: 19 animated lessons (fractions, percents & decimals, numbers, algebra, geometry) + highlight reel and posters | new **Math Motion** section (menu, Home, search) with player |
 
 How it works:
 
 - `js/matix-media.js` + `css/matix-media.css` add the videos without changing the existing pages. Videos are muted, play inline, pause when off-screen or when the app is in the background, and at most 3 background loops play at once.
 - **Reduce motion / No motion** (app setting or Android "Remove animations") turns off the intro film, background loops and FX. **Math Motion → Animated backgrounds** turns off just the background loops. The full intro plays on first launch only; later launches cap it at 3 seconds.
-- `MainActivity` serves `assets/media/*` with HTTP Range (206 Partial Content) so films seek and loop smoothly, and `build.gradle.kts` keeps `.mp4` files uncompressed in the APK (`androidResources.noCompress`).
+- `MainActivity` serves `assets/media/*` with HTTP Range (206 Partial Content) so videos seek and loop smoothly, and `build.gradle.kts` keeps `.mp4` files uncompressed in the APK (`androidResources.noCompress`).
 - Android Back closes the Math Motion player first.
-- `media/manifest.json` lists every file. All films were generated from real equations by the scripts in `tools/media` (Python 3 + pycairo + numpy + ffmpeg/x264, and a small C fractal renderer). To regenerate or resize the pack, see `tools/media/README.md`.
+- `media/manifest.json` lists every file. Hero loops, FX and the intro were generated from math by the scripts in `tools/media`; the lessons come from `tools/media/lessons` (Python 3 + pycairo + ffmpeg/x264). To regenerate or resize the pack, see `tools/media/README.md`.
 
 ## Android shell support
 

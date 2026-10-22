@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Matix wordmark (white letters, brown × and dots) centred inside the adaptive-icon safe zone -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <group android:translateX="29" android:translateY="48.65" android:scaleX="0.15291" android:scaleY="0.15291">
+        <path android:fillColor="#FFFFFF" android:pathData="M0,70V0h13l19,43 19,-43h13v70H51V26L37,58H27L13,26v44z"/>
+        <path android:fillColor="#FFFFFF" android:fillType="evenOdd" android:pathData="M72,70 L97,0h12l25,70h-14l-5.4,-15H91.4L86,70zM95.3,44h15.4L103,22.4z"/>
+        <path android:fillColor="#FFFFFF" android:pathData="M142,0h62v13h-24.5v57h-13V13H142z"/>
+        <path android:fillColor="#FFFFFF" android:pathData="M221,28h6a4,4 0,0 1,4 4v32a4,4 0,0 1,-4 4h-6a4,4 0,0 1,-4 -4v-32a4,4 0,0 1,4 -4z"/>
+        <path android:strokeColor="#7C2D12" android:strokeWidth="7" android:strokeLineCap="round" android:pathData="M217,6l14,14M231,6L217,20"/>
+        <path android:strokeColor="#FFFFFF" android:strokeWidth="11" android:strokeLineCap="round" android:pathData="M275.3,64.1L304.7,5.9"/>
+        <path android:fillColor="#7C2D12" android:pathData="M253,12a12,12 0,1 0,24 0a12,12 0,1 0,-24 0z"/>
+        <path android:fillColor="#7C2D12" android:pathData="M303,58a12,12 0,1 0,24 0a12,12 0,1 0,-24 0z"/>
+    </group>
+</vector>

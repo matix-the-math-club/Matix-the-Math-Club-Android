@@ -138,11 +138,11 @@ body:not(.dark) #mxFxLayer .mxm-fx{mix-blend-mode:multiply;filter:invert(1) hue-
 .mxm-meta{display:flex;flex-direction:column;gap:5px;padding:13px 15px 16px}
 .mxm-meta b{font-size:1rem;font-weight:800;letter-spacing:-.01em}
 .mxm-meta span{font-size:.82rem;line-height:1.4;color:var(--muted,#6b6b76);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.mxm-cat.c-fractals{background:rgba(139,92,246,.75)}
-.mxm-cat.c-waves{background:rgba(56,189,248,.75)}
-.mxm-cat.c-geometry{background:rgba(251,146,60,.8)}
-.mxm-cat.c-numbers{background:rgba(70,161,113,.8)}
-.mxm-cat.c-chaos{background:rgba(255,79,163,.78)}
+.mxm-cat.c-fractions{background:rgba(255,79,163,.8)}
+.mxm-cat.c-percent{background:rgba(46,170,105,.85)}
+.mxm-cat.c-numbers{background:rgba(56,160,230,.85)}
+.mxm-cat.c-algebra{background:rgba(249,115,22,.85)}
+.mxm-cat.c-geometry{background:rgba(139,92,246,.8)}
 .mxm-foot{margin-top:28px;text-align:center;font-size:.8rem;color:var(--muted,#6b6b76)}
 
 /* ---------- player overlay ---------- */

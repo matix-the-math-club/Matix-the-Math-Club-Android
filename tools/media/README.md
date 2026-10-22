@@ -11,10 +11,11 @@ Noto Sans / Noto Sans Arabic / Arial fonts (used for symbols in the animations).
 | `scenes_brand.py intro` / `scenes_brand.py welcome` | boot intro film and the welcome-screen loop (portrait + landscape) |
 | `scenes_hero.py <kind>` (or no argument for all) | 1920×480 looping header animations, one per section |
 | `scenes_fx.py` | confetti / stars / rings / badge celebration effects (portrait + landscape) |
-| `math1.py <name>` | fourier, lissajous, unit_circle, pythagoras, phyllotaxis, cardioid, tesseract, koch_hilbert |
+| `lessons/` (see below) | **the 19 animated lessons shipped in Math Motion (1.0.2)** |
+| `math1.py <name>` | *legacy 1.1.0 math films, no longer shipped:* | fourier, lissajous, unit_circle, pythagoras, phyllotaxis, cardioid, tesseract, koch_hilbert |
 | `math2.py <name>` | chaos_game, galton, primes, monte_carlo, life, cellular, double_pendulum, lorenz |
 | `render_fractals.sh` + `c/fractal.c` | Mandelbrot deep zoom (mode 0), Julia morph (1), Newton z³−1 (2) |
-| `build_media.py` | copies/encodes masters into the app within a size budget, makes posters + highlight reel, writes `media/manifest.json` and the gallery list inside `js/matix-media.js` |
+| `build_media.py` | brand / hero / FX: copies/encodes masters into the app within a size budget, makes posters + highlight reel, writes `media/manifest.json` and the gallery list inside `js/matix-media.js` |
 
 Fractals:
 
@@ -29,3 +30,20 @@ Size budget: `TARGET_MEDIA=188e6 CAP_KBPS=3600 python3 build_media.py` fills abo
 biggest fractal films is tuned so the total hits the target. Keep the whole APK/AAB base under Google Play's
 200 MB limit (the app code + SVGs add about 3 MB), or move `media/gallery` into a Play Asset Delivery pack
 if you want to go bigger.
+
+## Animated lessons (`lessons/`)
+
+Silent kinetic-text lessons, 1920×1080, 30 fps, H.264. All drawing is code: `lkit.py` (text that flies in, stacked
+fractions, pies, bars, grids, arrows, ticks, the frame/title card) and `lessons.py` (one function per lesson plus the
+`LESSONS` list with id, category, title, subtitle, length and accent colour). `wordmark.png` is rendered from `logo-orange.svg`.
+
+```sh
+cd tools/media/lessons
+STILLS=4,10,18 python3 lessons.py out fraction_intro   # preview PNG stills of one lesson
+python3 render_all.py 2300                               # render all 19 to ./out at ~2.3 Mbps (2 workers)
+python3 build_lessons.py ../../..                       # install into the app: gallery + posters + reel + manifest + js
+```
+
+`build_lessons.py` removes gallery videos/posters that are not in `LESSONS`, so run it after `build_media.py` if you
+rebuild everything. To add a lesson: write a `draw(c, t)` function in `lessons.py`, add a row to `LESSONS`, add its
+translated title/subtitle to the `films:{}` tables in `js/matix-media.js`, then render and rebuild.
