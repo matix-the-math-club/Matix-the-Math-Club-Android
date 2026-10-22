@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.matixmathclubappandroid.app"
-    compileSdk = 34
+    compileSdk = 36
     buildFeatures { buildConfig = true }
 
     defaultConfig {
