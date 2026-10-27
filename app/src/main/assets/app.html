@@ -2324,6 +2324,7 @@ body.dark{--mxa-dot:rgba(255,255,255,.075)}
 </style>
 <!-- Matix v1.1: bundled SVG files + emoji, and the media layer (videos live in assets/media) -->
 <link rel="stylesheet" href="css/matix-media.css">
+<link rel="stylesheet" href="css/matix-account.css">
 <script src="js/matix-svg.js"></script>
 </head>
 <body>
@@ -2477,7 +2478,7 @@ body.dark{--mxa-dot:rgba(255,255,255,.075)}
 <div class="tb-panel" id="tbPanel">
   <h4>Account</h4>
   <div class="tb-acct" id="tbAcct"><div class="tb-avatar" id="tbAv">?</div><div class="u"><b id="tbName">Not signed in</b><span id="tbRole"></span></div></div>
-  <button class="set-item" id="profileBtn"><span class="ic">🎨</span><span class="nm">My profile</span><span class="go">›</span></button>
+  <button class="set-item" id="profileBtn"><span class="ic">👤</span><span class="nm">My User</span><span class="go">›</span></button>
   <button class="set-item" id="tbSignOut"><span class="ic">⏻</span><span class="nm">Sign out</span><span class="go">›</span></button>
   <button class="set-item" id="tbSignOutAll"><span class="ic">⏻</span><span class="nm">Sign out of all devices</span><span class="go">›</span></button> 
   <h4>Appearance</h4>
@@ -2908,7 +2909,7 @@ function loadAvatar(){
   });
 }
 $('signOut').onclick=function(){clearUser();lsDel(KEEP_KEY);location.reload();};
-if($('profileBtn'))$('profileBtn').onclick=function(){if(!window.ME){toast('Sign in first to edit your profile','err');return;}openProfileModal();};
+if($('profileBtn'))$('profileBtn').onclick=function(){if(!window.ME){toast('Sign in first to edit your profile','err');return;}openTab({kind:'myuser'});};
 
 /* =====================================================================
    SIDEBAR NAV + custom pages
@@ -2922,6 +2923,7 @@ var STATIC=[
   {kind:'points',icon:'⭐',name:'Points'},
   {kind:'ai',icon:'✨',name:'Matix AI'},
   {kind:'theme',icon:'🎨',name:'Theme'},
+  {kind:'myuser',icon:'👤',name:'My User'},
   {kind:'translate',icon:'🌐',name:'Translator'},
   {kind:'discussions',icon:'💬',name:'Discussions'},
   {kind:'chat',icon:'🧮',name:'Math Chat'},
@@ -2983,7 +2985,7 @@ function renderNav(){
   homeHead.appendChild(chevBtn('home'));
   homeGrp.appendChild(homeHead);
   var homeBody=bodyWrap('home');
-  ['games','ideas','translate','theme','messages','bugs'].forEach(function(k){var s=findSection(k);if(s)homeBody.appendChild(plainItem(s));});
+  ['myuser','games','ideas','translate','theme','messages','bugs'].forEach(function(k){var s=findSection(k);if(s)homeBody.appendChild(plainItem(s));});
   homeGrp.appendChild(homeBody);
   nav.appendChild(homeGrp);
 
@@ -3187,6 +3189,7 @@ function renderContent(){
   if(t.kind==='points')return renderPoints(c);
   if(t.kind==='ai')return renderAI(c,t.refId);
   if(t.kind==='theme')return renderTheme(c);
+  if(t.kind==='myuser')return (window.renderMyUser?renderMyUser(c):(c.innerHTML='<div class="wrap">Loading…</div>'));
   if(t.kind==='translate')return renderTranslate(c);
   if(t.kind==='discussions')return renderDiscussions(c);
   if(t.kind==='chat')return renderChat(c,t.refId);
@@ -6276,7 +6279,7 @@ function loadUsersData(){
 }
 function renderUsers(c){
   if(usersView.name==='user')return usersDetail(c,usersView.u);
-  c.innerHTML='<div class="wrap"><div class="page-title"><span class="emoji">👥</span>Users</div><div class="page-sub">Browse everyone in the Matix club'+(isOwner()?' — passwords are only visible to you, the owner.':'.')+'</div><div id="usStats" class="u-stats"></div><div class="u-toolbar"><input id="usSearch" placeholder="🔍 Search users…"><div class="seg" id="usSort"><button data-s="az" class="active">A–Z</button><button data-s="games">Most games</button><button data-s="points">Top points</button></div></div><div id="usBody" class="u-loading">Loading users…</div></div>';
+  c.innerHTML='<div class="wrap"><div class="page-title"><span class="emoji">👥</span>Users</div><div class="page-sub">Browse everyone in the Matix club'+(isOwner()?' — passwords stay hidden until you confirm your owner password.':'.')+'</div><div id="usStats" class="u-stats"></div><div class="u-toolbar"><input id="usSearch" placeholder="🔍 Search users…"><div class="seg" id="usSort"><button data-s="az" class="active">A–Z</button><button data-s="games">Most games</button><button data-s="points">Top points</button></div></div><div id="usBody" class="u-loading">Loading users…</div></div>';
   var userTarget=$('usBody');
   loadUsersData().then(function(d){
     if(!userTarget||$('usBody')!==userTarget)return;
@@ -6300,7 +6303,7 @@ function renderUsers(c){
            '<span class="rolechip'+(own?" own":"")+'">'+esc(own?'owner':i.role)+'</span>'+
            (i.bio?'<div class="u-bio">'+esc(i.bio)+'</div>':'')+
            '<div class="u-mini"><span title="Games">🎮 '+i.games.length+'</span><span title="Points">⭐ '+i.points+'</span><span title="Followers">👥 '+i.followers+'</span></div>';
-        if(isOwner()){var pw=(i.testUser&&i.password)?('🔑 '+i.password):(!i.testUser?'🔒 opted out':'🔒 none');h+='<div class="u-pw">'+esc(pw)+'</div>';}
+        if(isOwner()&&window.mxaPwHtml){h+=mxaPwHtml(u,i);}
         if(isOwner()&&u!==ME&&OWNERS.indexOf(u)<0)h+='<button class="u-ban'+(BANS[u]?' on':'')+'" data-ban="'+esc(u)+'">'+(BANS[u]?'✅ Unban':'🚫 Ban')+'</button>';
         h+='<div class="u-view">View profile →</div></div>';
       });
@@ -6326,7 +6329,7 @@ function usersDetail(c,u){
     var h='<div class="u-hero'+(own?' owner':'')+'">'+avatarHtml(u,i,'u-hero-av')+'<div><div class="u-hero-name">@'+esc(u)+'</div><span class="rolechip'+(own?' own':'')+'">'+esc(own?'owner':i.role)+'</span>'+(i.joinedAt?'<div class="u-hero-sub">Joined '+timeAgo(i.joinedAt)+'</div>':'')+'</div></div>';
     if(i.bio)h+='<div class="card" style="margin-top:14px"><b style="font-size:.8rem;color:var(--muted)">ABOUT</b><p style="margin:6px 0 0">'+esc(i.bio)+'</p></div>';
     h+='<div class="u-stats" style="margin-top:14px"><div class="u-stat"><b>'+i.games.length+'</b><span>games</span></div><div class="u-stat"><b>'+(i.lessons||[]).length+'</b><span>lessons</span></div><div class="u-stat"><b>'+(i.ideas||[]).length+'</b><span>ideas</span></div><div class="u-stat"><b>'+i.points+'</b><span>points</span></div><div class="u-stat"><b>'+i.followers+'</b><span>followers</span></div><div class="u-stat"><b>'+i.following+'</b><span>following</span></div></div>';
-    if(isOwner()){var pw=(i.testUser&&i.password)?i.password:(!i.testUser?'opted out of saving':'none saved');h+='<div class="card owner-note" style="margin-top:14px"><b style="font-size:.8rem;color:var(--muted)">🔑 PASSWORD (OWNER ONLY)</b><div class="u-pw" style="margin-top:6px;display:inline-block">'+esc(pw)+'</div></div>';}
+    if(isOwner()&&window.mxaPwHtml){h+=mxaPwHtml(u,i,true);}
     h+='<h3 style="margin:22px 0 10px;font-weight:800">🎮 Games by @'+esc(u)+'</h3>';
     if(!i.games.length)h+='<div class="empty" style="padding:26px">No games yet.</div>';
     else{h+='<div class="u-games">';i.games.forEach(function(g){h+='<div class="u-game" data-g="'+esc(g.id)+'"><span>🎮</span><div style="flex:1;min-width:0"><div class="u-game-n">'+esc(g.name)+'</div><div class="sub">❤ '+g.loves+(g.published?'':' · draft')+'</div></div><span class="u-view">Open →</span></div>';});h+='</div>';}
@@ -8435,7 +8438,7 @@ function applyLang(){
   var hs=document.querySelectorAll('#tbPanel h4');
   var order=['Account','Appearance','Brightness','More settings','Language','About'];
   for(var j=0;j<hs.length&&j<order.length;j++)hs[j].textContent=tr(order[j]);
-  var map={profileBtn:'My profile',tbSignOut:'Sign out',darkToggle:'Dark mode',tbThemeBtn:'Colour theme',tbMotionBtn:'Reduce motion',tbQuietBtn:'Quiet mode (fewer pop-ups)'};
+  var map={profileBtn:'My User',tbSignOut:'Sign out',darkToggle:'Dark mode',tbThemeBtn:'Colour theme',tbMotionBtn:'Reduce motion',tbQuietBtn:'Quiet mode (fewer pop-ups)'};
   Object.keys(map).forEach(function(id){var b=$(id);if(!b)return;var nm=b.querySelector('.nm');if(nm)nm.textContent=tr(map[id]);});
   var br=$('tbBrightReset');if(br)br.textContent=tr('Reset to 100%');
   var lb=$('tbLight');if(lb&&lb.lastElementChild)lb.lastElementChild.textContent=tr('Light');
@@ -16795,5 +16798,6 @@ var MXML5=(function(){
 </script>
 <!-- MXV5:END -->
 <script src="js/matix-media.js"></script>
+<script src="js/matix-account.js"></script>
 </body>
 </html>

@@ -18,10 +18,33 @@ The Android app is restored to a **WebView host of the original supplied HTML**,
 | minSdk | 26 |
 | targetSdk | 36 |
 | compileSdk | 34 |
-| versionName | `1.0.2` |
-| versionCode | 13 |
+| versionName | `1.0.3` |
+| versionCode | 15 |
 
-**Play Console note:** an update must use a versionCode higher than the one already on Play (this release uses 13; versionName 1.0.2 is only the label users see). The lint rule `ExpiredTargetSdkVersion` remains suppressed from the earlier legacy configuration; it is not a Play-policy exemption.
+**Play Console note:** an update must use a versionCode higher than the one already on Play (this release uses 15; versionName 1.0.3 is only the label users see). The lint rule `ExpiredTargetSdkVersion` remains suppressed from the earlier legacy configuration; it is not a Play-policy exemption.
+
+## Version 1.0.3 — accounts & email
+
+- **Email on every account.** Creating an account now asks for an email; a 6-digit code is emailed and must be typed before the app opens. Members who signed up before 1.0.3 are asked once to connect an email and verify it.
+- **Sign in with username or email.**
+- **Forgot password?** on the sign-in screen: type your username + email, get a reset code, choose a new password (other devices are signed out).
+- **My User** tab (menu → My User, and the settings button): profile (name, bio, emoji, picture, colour), your email (masked, only visible to you), Change email (password + code to the new address), Change password, Forgot password, sign out / sign out everywhere.
+- **Owner:** member passwords on the Users page are masked; tap **Show** and re-type your owner password to see them for 10 minutes. Emails are never shown on profiles.
+- Code lives in `app/src/main/assets/js/matix-account.js` and `css/matix-account.css`; Arabic, French and Spanish texts included.
+
+### Turning on email codes (EmailJS, free)
+
+Apps can't send email by themselves, so codes go through [EmailJS](https://www.emailjs.com) (free tier: 200 emails/month). **Until this is set up, nobody is blocked** — sign-up and sign-in work as before and the owner sees a reminder.
+
+1. Create a free EmailJS account → **Email Services** → add a service (e.g. Gmail) → copy the **Service ID**.
+2. **Email Templates** → create a template: *To Email* = `{{to_email}}`, *Subject* = `{{subject}}`, body e.g.
+   `Hi {{to_name}}, {{message}} Your code: {{code}} (expires in {{expires}}). — {{app_name}}` → copy the **Template ID**.
+3. **Account → General** → copy the **Public key**.
+4. In the app, sign in as the owner → **My User → Email sending (owner)** → paste the three values → **Save** → **Send me a test email**.
+
+The values are stored at `/config/emailjs` in the Firebase database (they are public keys, not secrets). Codes are stored only as SHA-256 hashes at `/authCodes/{user}` (15-minute expiry, 5 tries); emails map to users through hashed keys at `/emailIndex`.
+
+**Security note:** the club database is read/written directly by the app, and passwords are still stored as plain text in `/members`. For real protection, add Firebase security rules (or move to Firebase Authentication) and hash passwords; the 1.0.3 changes hide data in the UI but can't stop someone who reads the database directly.
 
 ## Version 1.0.2 — animated lessons
 

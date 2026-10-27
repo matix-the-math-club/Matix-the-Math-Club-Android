@@ -5,15 +5,15 @@ plugins {
 
 android {
     namespace = "com.matixmathclubappandroid.app"
-    compileSdk = 36
+    compileSdk = 37
     buildFeatures { buildConfig = true }
 
     defaultConfig {
         applicationId = "com.matixmathclubappandroid.app"
         minSdk = 26
-        targetSdk = 36 // Retained as explicitly requested; raise for a new Play submission.
-        versionCode = 13
-        versionName = "1.0.2"
+        targetSdk = 37 // Retained as explicitly requested; raise for a new Play submission.
+        versionCode = 15
+        versionName = "1.0.3"
     }
 
     // Release signing stays in Android Studio or your own CI environment.
