@@ -25,7 +25,8 @@ function base(){return W.FB||'https://matix-1d538-default-rtdb.firebaseio.com';}
 function fb(path,method,data){
   var o={method:method||'GET'};
   if(data!==undefined){o.headers={'Content-Type':'application/json'};o.body=JSON.stringify(data);}
-  return fetch(base()+path+'.json',o).then(function(r){if(!r.ok)throw new Error('db '+r.status);return r.json();});
+  if(data!==undefined&&typeof W.mxCryptXform==='function'){data=W.mxCryptXform(base(),path,data,'enc');o.body=JSON.stringify(data);}
+  return fetch(base()+path+'.json',o).then(function(r){if(!r.ok)throw new Error('db '+r.status);return r.json();}).then(function(d){return typeof W.mxCryptXform==='function'?W.mxCryptXform(base(),path,d,'dec'):d;});
 }
 var get=function(p){return fb(p);},put=function(p,d){return fb(p,'PUT',d);},patch=function(p,d){return fb(p,'PATCH',d);},del=function(p){return fb(p,'DELETE');};
 function normU(u){return typeof W.normUser==='function'?W.normUser(u):String(u||'').toLowerCase().replace(/[^a-z0-9_]/g,'');}

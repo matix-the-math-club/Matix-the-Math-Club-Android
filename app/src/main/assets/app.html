@@ -2326,6 +2326,16 @@ body.dark{--mxa-dot:rgba(255,255,255,.075)}
 <link rel="stylesheet" href="css/matix-media.css">
 <link rel="stylesheet" href="css/matix-account.css">
 <script src="js/matix-svg.js"></script>
+<script src="js/matix-crypt.js"></script>
+<style id="mxPwEyeCss">
+/* top bar: one logo only (the wordmark next to the tabs) */
+#titlebar #tbLogo{display:none !important}
+.mx-pw-wrap{position:relative;display:block}
+#gate #gateAuth .mx-pw-wrap input{padding-right:48px !important}
+.mx-pw-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:0;border-radius:10px;background:transparent;color:rgba(255,255,255,.62);display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mx-pw-eye:hover,.mx-pw-eye[aria-pressed="true"]{color:#fff}
+.mx-pw-eye svg{width:22px;height:22px;pointer-events:none}
+</style>
 </head>
 <body>
 <script>try{if((localStorage.getItem('matix_theme')||'light')==='dark')document.body.classList.add('dark');}catch(e){}</script>
@@ -2447,7 +2457,7 @@ body.dark{--mxa-dot:rgba(255,255,255,.075)}
       <h1 id="gTitle">Sign in to Matix</h1>
       <p id="gSub">Your free math club workspace</p>
       <div class="fld"><label for="gUser">Username</label><input id="gUser" type="text" autocomplete="username" placeholder="yourname"></div>
-      <div class="fld"><label for="gPass">Password</label><input id="gPass" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+      <div class="fld"><label for="gPass">Password</label><div class="mx-pw-wrap"><input id="gPass" type="password" autocomplete="current-password" placeholder="••••••••"><button type="button" class="mx-pw-eye" id="gPassEye" aria-label="Show password" aria-pressed="false"></button></div></div>
       <label class="toggle gate-keep"><input type="checkbox" id="gKeep" checked> Keep me signed in on this device</label>
       <button type="button" class="btn block" id="gBtn">Sign in</button>
       <div class="err" id="gErr"></div>
@@ -2762,10 +2772,10 @@ function fileToText(f){return new Promise(function(res,rej){var r=new FileReader
 function fileToDataURL(f){return new Promise(function(res,rej){var r=new FileReader();r.onload=function(){res(r.result);};r.onerror=rej;r.readAsDataURL(f);});}
 
 /* ---------- Firebase REST ---------- */
-function fbGet(path,base){return fetch((base||FB)+path+'.json').then(function(r){return r.json();})['catch'](function(){return null;});}
-function fbPut(path,data,base){return fetch((base||FB)+path+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(function(r){return r.json();})['catch'](function(){return null;});}
+function fbGet(path,base){return fetch((base||FB)+path+'.json').then(function(r){return r.json();}).then(function(d){return mxCryptXform(base||FB,path,d,'dec');})['catch'](function(){return null;});}
+function fbPut(path,data,base){return fetch((base||FB)+path+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(mxCryptXform(base||FB,path,data,'enc'))}).then(function(r){return r.json();}).then(function(d){return mxCryptXform(base||FB,path,d,'dec');})['catch'](function(){return null;});}
 function fbPost(path,data,base){return fetch((base||FB)+path+'.json',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(function(r){return r.json();})['catch'](function(){return null;});}
-function fbPatch(path,data,base){return fetch((base||FB)+path+'.json',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(function(r){return r.json();})['catch'](function(){return null;});}
+function fbPatch(path,data,base){return fetch((base||FB)+path+'.json',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(mxCryptXform(base||FB,path,data,'enc'))}).then(function(r){return r.json();}).then(function(d){return mxCryptXform(base||FB,path,d,'dec');})['catch'](function(){return null;});}
 function fbDel(path,base){return fetch((base||FB)+path+'.json',{method:'DELETE'})['catch'](function(){});}
 
 /* ---------- auth ---------- */
@@ -2876,6 +2886,16 @@ $('gBtn').onclick=async function(){
   }
 };
 $('gPass').addEventListener('keydown',function(e){if(e.key==='Enter')$('gBtn').click();});
+/* show / hide the password you are typing */
+(function(){
+  var EYE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7.5 11-7.5S23 12 23 12s-4 7.5-11 7.5S1 12 1 12z"/><circle cx="12" cy="12" r="3.2"/></svg>';
+  var EYE_OFF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.9 17.9A10.9 10.9 0 0 1 12 19.5C5 19.5 1 12 1 12a18.7 18.7 0 0 1 5.1-5.9M9.9 4.7A10.4 10.4 0 0 1 12 4.5C19 4.5 23 12 23 12a18.8 18.8 0 0 1-2.2 3.2M14.1 14.1a3.2 3.2 0 1 1-4.2-4.2"/><path d="M1 1l22 22"/></svg>';
+  var eye=$('gPassEye'),inp=$('gPass');
+  function paint(){var show=inp.type==='text';eye.innerHTML=show?EYE_OFF:EYE;eye.setAttribute('aria-pressed',show?'true':'false');eye.setAttribute('aria-label',show?'Hide password':'Show password');}
+  eye.addEventListener('mousedown',function(e){e.preventDefault();});
+  eye.addEventListener('click',function(){var pos=inp.selectionStart;inp.type=inp.type==='password'?'text':'password';paint();try{inp.focus();inp.setSelectionRange(pos,pos);}catch(x){}});
+  paint();
+})();
 refreshGate();
 
 function enterApp(){
@@ -14958,7 +14978,16 @@ body:not(.dark) .rolechip.own{color:#fff}
 body:not(.dark) .lb-foot,body:not(.dark) .empty,body:not(.dark) .page-sub{color:var(--mxa-dim)}
 body:not(.dark) input::placeholder,body:not(.dark) textarea::placeholder{color:rgba(20,21,26,.55)}
 
-/* ---------- 3. movable + lockable bottom menu ---------- */
+/* ---------- 3. bottom menu: fixed three-line button + pop-up menu (not movable) ---------- */
+#mxDockToggle{position:fixed;left:12px;bottom:12px;width:42px;height:42px;border-radius:50%;z-index:91;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:0;
+  background:var(--mxa-glass,rgba(255,255,255,.88));border:1px solid var(--mxa-line,rgba(20,21,26,.14));box-shadow:0 4px 14px rgba(20,21,26,.18);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;opacity:.92}
+#mxDockToggle i{display:block;width:18px;height:2px;border-radius:2px;background:var(--mxa-ink,#14151a)}
+body.dark #mxDockToggle i{background:#e8e8ee}
+#mxDockToggle.on{box-shadow:inset 0 0 0 1px var(--mxa-accent,#5b8def),0 4px 14px rgba(20,21,26,.18);opacity:1}
+body:not(.lb-in) #mxDockToggle,body.mx-kb #mxDockToggle{display:none}
+.lb-dock{bottom:64px !important;left:50% !important;top:auto !important;transform:translateX(-50%) !important;animation:none !important;z-index:90}
+.lb-dock:not(.mx-dock-open){display:none !important}
+/* ---------- 3b. (old drag/lock styles, now unused) ---------- */
 .lb-dock{touch-action:manipulation;max-width:calc(100vw - 16px)}
 .lb-dock.mx-dock-free{left:auto;bottom:auto;transform:none;animation:none}
 .lb-dock.mx-dock-v{flex-direction:column;border-radius:26px;max-height:calc(100vh - 16px);overflow-y:auto}
@@ -15186,104 +15215,18 @@ body.dark .pt-seg.on{color:#04261a !important}
   decorate();setTimeout(decorate,800);setTimeout(decorate,2500);
   window.mxBetaDecorate=decorate;
 
-  /* 1b. bottom menu: drag it anywhere, lock it, collapse it */
+  /* 1b. bottom menu: a fixed three-line button (cannot be moved) shows / hides the menu */
   var dock=document.getElementById('lbDock');
   if(!dock)return;
-  var K_POS='mx_dock_pos',K_MIN='mx_dock_min';
-  var st={move:false,min:lsGet(K_MIN)==='1',pos:null};
-  try{st.pos=JSON.parse(lsGet(K_POS)||'null');}catch(e){st.pos=null;}
-  if(st.pos&&(typeof st.pos.fx!=='number'||typeof st.pos.fy!=='number'))st.pos=null;
-
-  var tools=document.createElement('div');tools.className='mx-dock-tools';
-  function tbtn(cls,label,title){
-    var b=document.createElement('button');b.type='button';b.className=cls;b.textContent=label;b.title=title;b.setAttribute('aria-label',title);return b;
-  }
-  var bLock=tbtn('mx-dock-lock','\uD83D\uDD12','Menu is locked in place. Tap to unlock and move it');
-  var bReset=tbtn('mx-dock-reset','\u21BA','Put the menu back at the bottom');
-  var bMin=tbtn('mx-dock-min','\u25BE','Hide / show the menu');
-  tools.appendChild(bLock);tools.appendChild(bMin);tools.appendChild(bReset);
-  dock.insertBefore(tools,dock.firstChild);
-
-  function save(){try{if(st.pos)lsSet(K_POS,JSON.stringify(st.pos));else localStorage.removeItem(K_POS);}catch(e){}}
-  function apply(){
-    dock.classList.toggle('mx-dock-collapsed',st.min);
-    bMin.textContent=st.min?'\u2630':'\u25BE';
-    bMin.title=st.min?'Show the menu':'Hide the menu';
-    var p=st.pos;
-    if(!p){
-      dock.classList.remove('mx-dock-free','mx-dock-v');
-      dock.style.left='';dock.style.top='';
-      return;
-    }
-    dock.classList.add('mx-dock-free');
-    dock.classList.toggle('mx-dock-v',(p.edge==='l'||p.edge==='r')&&!st.min);
-    var vw=window.innerWidth,vh=window.innerHeight,w=dock.offsetWidth,h=dock.offsetHeight;
-    var x=Math.max(0,Math.min(vw-w,p.fx*(vw-w)));
-    var y=Math.max(0,Math.min(vh-h,p.fy*(vh-h)));
-    dock.style.left=x+'px';dock.style.top=y+'px';
-  }
-  function setMove(on){
-    st.move=on;
-    dock.classList.toggle('mx-dock-move',on);
-    bLock.textContent=on?'\uD83D\uDD13':'\uD83D\uDD12';
-    bLock.title=on?'Drag the menu anywhere. Tap here to lock it again':'Menu is locked in place. Tap to unlock and move it';
-    bLock.setAttribute('aria-pressed',on?'true':'false');
-    if(on&&typeof toast==='function')toast('Drag the menu where you want it, then tap \uD83D\uDD13 to lock it','ok');
-  }
-  bLock.addEventListener('click',function(e){e.stopPropagation();setMove(!st.move);});
-  bMin.addEventListener('click',function(e){e.stopPropagation();st.min=!st.min;lsSet(K_MIN,st.min?'1':'0');apply();});
-  bReset.addEventListener('click',function(e){e.stopPropagation();st.pos=null;save();apply();});
-  /* while moving, taps on the menu must not navigate */
-  dock.addEventListener('click',function(e){
-    if(st.move&&!e.target.closest('.mx-dock-tools')&&!e.target.closest('.mx-dock-min')){e.stopPropagation();e.preventDefault();}
-  },true);
-
-  var drag=null;
-  dock.addEventListener('pointerdown',function(e){
-    if(!st.move||e.target.closest('.mx-dock-tools')||e.target.closest('.mx-dock-min'))return;
-    var r=dock.getBoundingClientRect();
-    drag={id:e.pointerId,dx:e.clientX-r.left,dy:e.clientY-r.top,moved:false};
-    try{dock.setPointerCapture(e.pointerId);}catch(x){}
-    dock.classList.add('mx-dragging');
-    dock.classList.add('mx-dock-free');
-    dock.style.left=r.left+'px';dock.style.top=r.top+'px';
-    e.preventDefault();
-  });
-  dock.addEventListener('pointermove',function(e){
-    if(!drag||e.pointerId!==drag.id)return;
-    var vw=window.innerWidth,vh=window.innerHeight,w=dock.offsetWidth,h=dock.offsetHeight;
-    var x=Math.max(0,Math.min(vw-w,e.clientX-drag.dx));
-    var y=Math.max(0,Math.min(vh-h,e.clientY-drag.dy));
-    dock.style.left=x+'px';dock.style.top=y+'px';drag.moved=true;
-  });
-  function endDrag(e){
-    if(!drag||(e&&e.pointerId!==drag.id))return;
-    var d=drag;drag=null;
-    dock.classList.remove('mx-dragging');
-    try{dock.releasePointerCapture(e.pointerId);}catch(x){}
-    if(!d.moved)return;
-    var vw=window.innerWidth,vh=window.innerHeight;
-    var r=dock.getBoundingClientRect(),SN=36,M=8,edge='';
-    if(r.left<SN)edge='l';else if(vw-r.right<SN)edge='r';else if(r.top<SN)edge='t';else if(vh-r.bottom<SN)edge='b';
-    var x=r.left,y=r.top;
-    if(edge==='l'||edge==='r'){
-      dock.classList.toggle('mx-dock-v',!st.min);
-      var w2=dock.offsetWidth,h2=dock.offsetHeight;
-      x=(edge==='l')?M:vw-w2-M;y=Math.max(M,Math.min(vh-h2-M,y));
-    }else{
-      dock.classList.remove('mx-dock-v');
-      var w3=dock.offsetWidth,h3=dock.offsetHeight;
-      if(edge==='t')y=M;else if(edge==='b')y=vh-h3-M;
-      x=Math.max(M,Math.min(vw-w3-M,x));
-    }
-    var W=dock.offsetWidth,H=dock.offsetHeight;
-    st.pos={edge:edge,fx:(vw-W)>0?Math.max(0,Math.min(1,x/(vw-W))):0,fy:(vh-H)>0?Math.max(0,Math.min(1,y/(vh-H))):0};
-    save();apply();
-  }
-  dock.addEventListener('pointerup',endDrag);
-  dock.addEventListener('pointercancel',endDrag);
-  window.addEventListener('resize',function(){apply();});
-  window.addEventListener('orientationchange',function(){setTimeout(apply,250);});
+  try{localStorage.removeItem('mx_dock_pos');localStorage.removeItem('mx_dock_min');}catch(e){}
+  var tgl=document.createElement('button');
+  tgl.type='button';tgl.id='mxDockToggle';tgl.setAttribute('aria-label','Menu');tgl.setAttribute('aria-expanded','false');
+  tgl.innerHTML='<i></i><i></i><i></i>';
+  document.body.appendChild(tgl);
+  function setOpen(on){dock.classList.toggle('mx-dock-open',!!on);tgl.classList.toggle('on',!!on);tgl.setAttribute('aria-expanded',on?'true':'false');}
+  tgl.addEventListener('click',function(e){e.stopPropagation();setOpen(!dock.classList.contains('mx-dock-open'));});
+  dock.addEventListener('click',function(e){if(e.target.closest('button[data-dock]'))setTimeout(function(){setOpen(false);},0);});
+  window.mxDockApply=function(){};
 
   /* hide the menu while the on-screen keyboard is open so it never covers what you type */
   var maxH=window.innerHeight;
@@ -15296,8 +15239,6 @@ body.dark .pt-seg.on{color:#04261a !important}
   if(window.visualViewport)window.visualViewport.addEventListener('resize',kbCheck);
   window.addEventListener('resize',kbCheck);
   document.addEventListener('focusout',function(){setTimeout(kbCheck,200);});
-  setMove(false);apply();
-  window.mxDockApply=apply;
 })();
 
 /* =====================================================================

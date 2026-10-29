@@ -12,7 +12,7 @@ android {
         applicationId = "com.matixmathclubappandroid.app"
         minSdk = 26
         targetSdk = 37 // Retained as explicitly requested; raise for a new Play submission.
-        versionCode = 15
+        versionCode = 16
         versionName = "1.0.3"
     }
 
