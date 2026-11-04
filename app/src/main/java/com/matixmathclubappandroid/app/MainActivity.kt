@@ -94,7 +94,8 @@ class MainActivity : ComponentActivity() {
         // Edge-to-edge is enforced on new Android versions: keep the web page (and its top bar)
         // below the status bar (clock / notification icons) and above the nav bar / keyboard.
         ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            // systemBars + display cutout: keeps content clear of the Z Fold's punch-hole camera too
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
             v.setPadding(bars.left, bars.top, bars.right, maxOf(bars.bottom, ime.bottom))
             WindowInsetsCompat.CONSUMED
@@ -541,6 +542,18 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun toast(message: String) = Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+
+    // Foldables: unfolding / folding / split-screen changes the window size without recreating the
+    // activity (see configChanges in the manifest). Re-apply the insets and re-layout the page.
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        ViewCompat.requestApplyInsets(root)
+        root.post {
+            root.requestLayout()
+            webView.requestLayout()
+            webView.evaluateJavascript("try{window.dispatchEvent(new Event('resize'));}catch(e){}", null)
+        }
+    }
 
     override fun onSaveInstanceState(outState: Bundle) {
         val webState = Bundle()

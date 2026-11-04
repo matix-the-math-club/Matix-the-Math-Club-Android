@@ -18,10 +18,10 @@ The Android app is restored to a **WebView host of the original supplied HTML**,
 | minSdk | 26 |
 | targetSdk | 36 |
 | compileSdk | 34 |
-| versionName | `1.0.3` |
-| versionCode | 15 |
+| versionName | `1.0.6` |
+| versionCode | 18 |
 
-**Play Console note:** an update must use a versionCode higher than the one already on Play (this release uses 15; versionName 1.0.3 is only the label users see). The lint rule `ExpiredTargetSdkVersion` remains suppressed from the earlier legacy configuration; it is not a Play-policy exemption.
+**Play Console note:** an update must use a versionCode higher than the one already on Play (this release uses 18; versionName 1.0.6 is only the label users see). The lint rule `ExpiredTargetSdkVersion` remains suppressed from the earlier legacy configuration; it is not a Play-policy exemption.
 
 ## Version 1.0.3 — accounts & email
 

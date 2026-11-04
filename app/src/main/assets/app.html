@@ -2774,7 +2774,7 @@ function fileToDataURL(f){return new Promise(function(res,rej){var r=new FileRea
 /* ---------- Firebase REST ---------- */
 function fbGet(path,base){return fetch((base||FB)+path+'.json').then(function(r){return r.json();}).then(function(d){return mxCryptXform(base||FB,path,d,'dec');})['catch'](function(){return null;});}
 function fbPut(path,data,base){return fetch((base||FB)+path+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(mxCryptXform(base||FB,path,data,'enc'))}).then(function(r){return r.json();}).then(function(d){return mxCryptXform(base||FB,path,d,'dec');})['catch'](function(){return null;});}
-function fbPost(path,data,base){return fetch((base||FB)+path+'.json',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(function(r){return r.json();})['catch'](function(){return null;});}
+function fbPost(path,data,base){return fetch((base||FB)+path+'.json',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(mxCryptXform(base||FB,path,data,'enc',true))}).then(function(r){return r.json();})['catch'](function(){return null;});}
 function fbPatch(path,data,base){return fetch((base||FB)+path+'.json',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(mxCryptXform(base||FB,path,data,'enc'))}).then(function(r){return r.json();}).then(function(d){return mxCryptXform(base||FB,path,d,'dec');})['catch'](function(){return null;});}
 function fbDel(path,base){return fetch((base||FB)+path+'.json',{method:'DELETE'})['catch'](function(){});}
 
