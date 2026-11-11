@@ -61,7 +61,7 @@ module download at 200 MB, so for a Play upload move `media/basics` into an inst
 python3 -m venv venv && ./venv/bin/pip install pillow imageio-ffmpeg   # imageio-ffmpeg bundles an ffmpeg with x264
 cd tools/media/basics
 ../../../venv/bin/python lessons.py stills add_intro 3,9,15          # preview PNGs in ./out
-../../../venv/bin/python render_all.py ./out 1250 5                  # render all (1250 kbps ≈ 320 MB, 5 workers)
+../../../venv/bin/python render_all.py ./out 1240 5                  # render all (constant 1240 kbps ≈ 320 MB, 5 workers)
 ../../../venv/bin/python build_basics.py ../../.. ./out               # copy into app assets + update matix-media.js
 ```
 
