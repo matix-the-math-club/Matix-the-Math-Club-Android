@@ -47,3 +47,22 @@ python3 build_lessons.py ../../..                       # install into the app: 
 `build_lessons.py` removes gallery videos/posters that are not in `LESSONS`, so run it after `build_media.py` if you
 rebuild everything. To add a lesson: write a `draw(c, t)` function in `lessons.py`, add a row to `LESSONS`, add its
 translated title/subtitle to the `films:{}` tables in `js/matix-media.js`, then render and rebuild.
+
+## Math Basics lessons (`basics/`, 1.0.7)
+
+46 lessons on counting, place value, adding, subtracting, times tables, dividing, time and shapes. They are drawn
+with **Pillow** (no pycairo needed) at 2x and box-filtered to 1920×1080, then piped into x264. `pkit.py` is the
+drawing kit, `lessons.py` holds one scene function per idea plus the `LESSONS` list.
+
+They are installed into `app/src/main/assets/media/basics` (base module, ~320 MB). Note: Google Play caps the base
+module download at 200 MB, so for a Play upload move `media/basics` into an install-time asset pack.
+
+```sh
+python3 -m venv venv && ./venv/bin/pip install pillow imageio-ffmpeg   # imageio-ffmpeg bundles an ffmpeg with x264
+cd tools/media/basics
+../../../venv/bin/python lessons.py stills add_intro 3,9,15          # preview PNGs in ./out
+../../../venv/bin/python render_all.py ./out 1250 5                  # render all (1250 kbps ≈ 320 MB, 5 workers)
+../../../venv/bin/python build_basics.py ../../.. ./out               # copy into app assets + update matix-media.js
+```
+
+Change the kbps to move the total size (it scales linearly). To add a lesson, add a row to `LESSONS`, re-render, rebuild.

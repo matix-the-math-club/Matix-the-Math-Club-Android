@@ -143,6 +143,10 @@ body:not(.dark) #mxFxLayer .mxm-fx{mix-blend-mode:multiply;filter:invert(1) hue-
 .mxm-cat.c-numbers{background:rgba(56,160,230,.85)}
 .mxm-cat.c-algebra{background:rgba(249,115,22,.85)}
 .mxm-cat.c-geometry{background:rgba(139,92,246,.8)}
+.mxm-cat.c-basics{background:rgba(52,170,120,.85)}
+.mxm-cat.c-addsub{background:rgba(236,72,153,.85)}
+.mxm-cat.c-muldiv{background:rgba(37,140,210,.85)}
+.mxm-cat.c-shapes{background:rgba(234,108,20,.85)}
 .mxm-foot{margin-top:28px;text-align:center;font-size:.8rem;color:var(--muted,#6b6b76)}
 
 /* ---------- player overlay ---------- */

@@ -12,8 +12,8 @@ android {
         applicationId = "com.matixmathclubappandroid.app"
         minSdk = 26
         targetSdk = 37 // Retained as explicitly requested; raise for a new Play submission.
-        versionCode = 18
-        versionName = "1.0.6"
+        versionCode = 19
+        versionName = "1.0.7"
     }
 
     // Release signing stays in Android Studio or your own CI environment.
@@ -39,7 +39,7 @@ android {
             }
         }
     }
-    // v1.1 bundles ~170 MB of local videos in assets/media. Keep them stored (not deflated) so the
+    // Bundles ~500 MB of local videos in assets/media (1.0.7 added the Math Basics lessons). Keep them stored (not deflated) so the
     // app can stream them with byte ranges via AssetManager.openFd() and they install faster.
     androidResources {
         noCompress += listOf("mp4", "m4v", "webm")
