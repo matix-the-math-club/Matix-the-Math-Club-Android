@@ -393,8 +393,8 @@ var DOCK_ALL=[
   {k:'discussions',i:'💬',l:'Discussions'},{k:'users',i:'👥',l:'Users'},{k:'theme',i:'🎨',l:'Theme'},
   {k:'bugs',i:'🐞',l:'Bugs'}
 ];
-var DOCK_DEFAULT=['home','learn','ai','search','messages','myuser'];
-var DOCK_MAX=7;
+var DOCK_DEFAULT=['home','learn','games','messages','myuser'];
+var DOCK_MAX=6;
 function dockItems(){
   var v=null;try{v=JSON.parse(lsG(DOCK_KEY)||'null');}catch(e){}
   if(!Array.isArray(v)||!v.length)v=DOCK_DEFAULT.slice();
@@ -434,8 +434,9 @@ function drawDockCard(){
       return '<div class="mxs-dk'+(sel?' on':'')+'"><label><input type="checkbox" data-k="'+k+'"'+(sel?' checked':'')+'> <span>'+a.i+'</span> '+esc(T(a.l))+'</label>'
         +(sel?'<span class="mxs-arr"><button type="button" data-up="'+k+'"'+(i===0?' disabled':'')+'>▲</button><button type="button" data-dn="'+k+'"'+(i===on.length-1?' disabled':'')+'>▼</button></span>':'')+'</div>';
     }).join('')+'</div>'
+    +'<label class="mxs-dk on" style="margin-top:10px"><span><input type="checkbox" id="muDockAlways"'+((W.mxMenu&&W.mxMenu.always())?' checked':'')+'> 📌 '+esc(T('Always show the bottom menu'))+'</span></label>'
     +'<div class="mxa-btns" style="margin-top:12px"><button class="btn ghost sm" id="muDockReset">'+esc(T('Reset to default'))+'</button></div>';
-  function save(v){lsS(DOCK_KEY,JSON.stringify(v));dockBuild();drawDockCard();}
+  function save(v){lsS(DOCK_KEY,JSON.stringify(v));W.mxDockBuild();drawDockCard();}
   box.querySelectorAll('input[data-k]').forEach(function(cb){
     cb.onchange=function(){
       var v=dockItems(),k=cb.dataset.k;
@@ -451,6 +452,7 @@ function drawDockCard(){
     };
   });
   $('muDockReset').onclick=function(){save(DOCK_DEFAULT.slice());toast(T('Bottom menu reset'),'ok');};
+  $('muDockAlways').onchange=function(){if(W.mxMenu)W.mxMenu.setAlways(this.checked);};
 }
 function drawE2ECard(){
   var box=$('muE2E');if(!box)return;var u=me();
@@ -508,7 +510,7 @@ D.head.appendChild(css);
 
 /* ---------- start ---------- */
 function boot(){
-  hookChat();hookAuth();hookTabs();dockBuild();
+  hookChat();hookAuth();hookTabs();W.mxDockBuild();
   if(me())loadKeys(me());
   /* friend requests show up as a red count on the Friends button */
   setInterval(function(){

@@ -2323,7 +2323,9 @@ body.dark{--mxa-dot:rgba(255,255,255,.075)}
   color:inherit !important;padding:0}
 </style>
 <!-- Matix v1.1: bundled SVG files + emoji, and the media layer (videos live in assets/media) -->
-<link rel="stylesheet" href="css/matix-media.css">
+<link rel="stylesheet" href="css/matix-course.css">
+<link rel="stylesheet" href="css/matix-games.css">
+<link rel="stylesheet" href="css/matix-menu.css">
 <link rel="stylesheet" href="css/matix-account.css">
 <script src="js/matix-svg.js"></script>
 <script src="js/matix-crypt.js"></script>
@@ -2340,46 +2342,6 @@ body.dark{--mxa-dot:rgba(255,255,255,.075)}
 <body>
 <script>try{if((localStorage.getItem('matix_theme')||'light')==='dark')document.body.classList.add('dark');}catch(e){}</script>
 <div id="mxBoot" role="status" aria-live="polite" aria-label="Loading Matix">
-  <video id="mxBootVid" class="mxb-vid" muted playsinline webkit-playsinline preload="auto" disablepictureinpicture disableremoteplayback aria-hidden="true" tabindex="-1"></video>
-  <button class="mxb-skip" id="mxBootSkip" type="button">Skip intro</button>
-  <script>
-  /* Matix intro film (assets/media/brand/intro_*.mp4): plays over the boot screen.
-     First launch shows the whole film; later launches cap it at 3 s. Tap "Skip intro" to go straight in. */
-  (function(){
-    var boot=document.getElementById('mxBoot'),v=document.getElementById('mxBootVid'),skip=document.getElementById('mxBootSkip');
-    var t0=Date.now(),held=null,done=false,seen=false;
-    function reduced(){
-      try{if(localStorage.getItem('matix_reduce_motion')==='1')return true;}catch(e){}
-      try{return !!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);}catch(e){return false;}
-    }
-    if(!boot||!v||reduced()){if(v&&v.parentNode)v.parentNode.removeChild(v);if(skip&&skip.parentNode)skip.parentNode.removeChild(skip);return;}
-    try{seen=localStorage.getItem('mx_intro_seen')==='1';}catch(e){}
-    var cap=seen?3000:5300;
-    try{var sl={ar:'تخطي المقدمة',fr:"Passer l'intro",es:'Saltar intro'}[localStorage.getItem('matix_lang')];if(sl)skip.textContent=sl;}catch(e){}
-    function release(){
-      if(done)return;done=true;
-      try{localStorage.setItem('mx_intro_seen','1');}catch(e){}
-      if(held){var f=held;held=null;f();}
-      setTimeout(function(){try{v.pause();v.removeAttribute('src');v.load();}catch(e){}},900);
-    }
-    v.muted=true;
-    v.addEventListener('playing',function(){boot.classList.add('mx-vid-on');});
-    v.addEventListener('ended',release);
-    v.addEventListener('error',function(){boot.classList.remove('mx-vid-on');release();});
-    v.src='media/brand/intro_'+((window.innerHeight||1)>=(window.innerWidth||1)?'portrait':'landscape')+'.mp4';
-    var p=null;try{p=v.play();}catch(e){}
-    if(p&&p.catch)p.catch(function(){boot.classList.remove('mx-vid-on');release();});
-    skip.onclick=function(e){e.stopPropagation();release();};
-    /* afterBoot() asks this before hiding the boot screen */
-    window.mxBootHold=function(fn){
-      if(done)return false;
-      var left=cap-(Date.now()-t0);
-      if(left<=0||v.error){release();return false;}
-      held=fn;setTimeout(release,left);
-      return true;
-    };
-  })();
-  </script>
   <div class="mxb-blob" aria-hidden="true"></div>
   <div class="mxb-collage" aria-hidden="true">
     <span class="mxb-tile b1"></span><span class="mxb-tile b2"></span><span class="mxb-tile b3"></span>
@@ -16738,8 +16700,10 @@ var MXML5=(function(){
 
 </script>
 <!-- MXV5:END -->
-<script src="js/matix-media.js"></script>
+<script src="js/matix-course.js"></script>
+<script src="js/matix-games.js"></script>
 <script src="js/matix-account.js"></script>
 <script src="js/matix-social.js"></script>
+<script src="js/matix-menu.js"></script>
 </body>
 </html>

@@ -1,68 +1,28 @@
-# Matix media generator
+# Matix video course generator
 
-Every video in `app/src/main/assets/media` is generated from math by these scripts — no stock footage, no downloaded images.
-Run everything from this folder (`cd tools/media`). Rendered masters go to `./out/`, which is not part of the app.
+Every video in the app is a Math Learn lesson in `app/src/main/assets/media/lessons`, drawn frame by frame
+in code — no stock footage, no downloaded images. 103 lessons, about one minute each, Grade 1 to college.
 
-Requirements: Python 3.10+, `pycairo`, `numpy`, `fonttools`, `ffmpeg` with libx264, a C compiler, and the
-Noto Sans / Noto Sans Arabic / Arial fonts (used for symbols in the animations).
+Requirements: Python 3.9+, Pillow, and an ffmpeg with libx264 (`pip install pillow imageio-ffmpeg` gives you both).
+Fonts come from macOS (Arial Rounded Bold, Arial Bold, Arial Unicode); set `MX_FONT_DIR` elsewhere.
 
-| Script | Renders |
+| File | What it is |
 | --- | --- |
-| `scenes_brand.py intro` / `scenes_brand.py welcome` | boot intro film and the welcome-screen loop (portrait + landscape) |
-| `scenes_hero.py <kind>` (or no argument for all) | 1920×480 looping header animations, one per section |
-| `scenes_fx.py` | confetti / stars / rings / badge celebration effects (portrait + landscape) |
-| `lessons/` (see below) | **the 19 animated lessons shipped in Math Motion (1.0.2)** |
-| `math1.py <name>` | *legacy 1.1.0 math films, no longer shipped:* | fourier, lissajous, unit_circle, pythagoras, phyllotaxis, cardioid, tesseract, koch_hilbert |
-| `math2.py <name>` | chaos_game, galton, primes, monte_carlo, life, cellular, double_pendulum, lorenz |
-| `render_fractals.sh` + `c/fractal.c` | Mandelbrot deep zoom (mode 0), Julia morph (1), Newton z³−1 (2) |
-| `build_media.py` | brand / hero / FX: copies/encodes masters into the app within a size budget, makes posters + highlight reel, writes `media/manifest.json` and the gallery list inside `js/matix-media.js` |
-
-Fractals:
+| `course/pkit.py` | drawing kit: 2x supersampled frames, kinetic text with font fallback for math symbols, shapes, x264 pipe |
+| `course/lessons.py` | early-grade scenes: counting, adding, column maths, times tables, sharing, clocks, shapes |
+| `course/scenes2.py` | later scenes: worked steps, graphs, tangents, Riemann sums, Pythagoras, trig, circles, probability, matrices, vectors, "Your turn" practice |
+| `course/curriculum.py` | the course: every lesson by grade, with its scenes, recap and quiz |
+| `course/render_course.py` | renders all lessons in parallel |
+| `course/build_course.py` | copies them into the app, makes posters and writes the course data into `js/matix-course.js` |
 
 ```sh
-cc -O3 -o c/fractal c/fractal.c -lm -lpthread
-./render_fractals.sh 0 1280 720 720 16 math_mandelbrot.mp4
-./render_fractals.sh 1 1920 1080 600 17 math_julia.mp4
-./render_fractals.sh 2 1920 1080 450 17 math_newton.mp4
+python3 -m venv venv && ./venv/bin/pip install pillow imageio-ffmpeg
+cd tools/media/course
+../../../venv/bin/python curriculum.py list                         # lessons and lengths
+../../../venv/bin/python curriculum.py stills slope 10,25,40         # preview PNGs in ./out
+../../../venv/bin/python render_course.py ./out 620 5                # render (constant 620 kbps ≈ 480 MB, 5 workers)
+../../../venv/bin/python build_course.py ../../.. ./out              # install into the app
 ```
 
-Size budget: `TARGET_MEDIA=188e6 CAP_KBPS=3600 python3 build_media.py` fills about 188 MB of media; the bitrate of the
-biggest fractal films is tuned so the total hits the target. Keep the whole APK/AAB base under Google Play's
-200 MB limit (the app code + SVGs add about 3 MB), or move `media/gallery` into a Play Asset Delivery pack
-if you want to go bigger.
-
-## Animated lessons (`lessons/`)
-
-Silent kinetic-text lessons, 1920×1080, 30 fps, H.264. All drawing is code: `lkit.py` (text that flies in, stacked
-fractions, pies, bars, grids, arrows, ticks, the frame/title card) and `lessons.py` (one function per lesson plus the
-`LESSONS` list with id, category, title, subtitle, length and accent colour). `wordmark.png` is rendered from `logo-orange.svg`.
-
-```sh
-cd tools/media/lessons
-STILLS=4,10,18 python3 lessons.py out fraction_intro   # preview PNG stills of one lesson
-python3 render_all.py 2300                               # render all 19 to ./out at ~2.3 Mbps (2 workers)
-python3 build_lessons.py ../../..                       # install into the app: gallery + posters + reel + manifest + js
-```
-
-`build_lessons.py` removes gallery videos/posters that are not in `LESSONS`, so run it after `build_media.py` if you
-rebuild everything. To add a lesson: write a `draw(c, t)` function in `lessons.py`, add a row to `LESSONS`, add its
-translated title/subtitle to the `films:{}` tables in `js/matix-media.js`, then render and rebuild.
-
-## Math Basics lessons (`basics/`, 1.0.7)
-
-46 lessons on counting, place value, adding, subtracting, times tables, dividing, time and shapes. They are drawn
-with **Pillow** (no pycairo needed) at 2x and box-filtered to 1920×1080, then piped into x264. `pkit.py` is the
-drawing kit, `lessons.py` holds one scene function per idea plus the `LESSONS` list.
-
-They are installed into `app/src/main/assets/media/basics` (base module, ~320 MB). Note: Google Play caps the base
-module download at 200 MB, so for a Play upload move `media/basics` into an install-time asset pack.
-
-```sh
-python3 -m venv venv && ./venv/bin/pip install pillow imageio-ffmpeg   # imageio-ffmpeg bundles an ffmpeg with x264
-cd tools/media/basics
-../../../venv/bin/python lessons.py stills add_intro 3,9,15          # preview PNGs in ./out
-../../../venv/bin/python render_all.py ./out 1240 5                  # render all (constant 1240 kbps ≈ 320 MB, 5 workers)
-../../../venv/bin/python build_basics.py ../../.. ./out               # copy into app assets + update matix-media.js
-```
-
-Change the kbps to move the total size (it scales linearly). To add a lesson, add a row to `LESSONS`, re-render, rebuild.
+Each lesson is padded to about a minute with "Your turn!" practice scenes taken from its quiz.
+To add a lesson, add an `L(...)` entry in `curriculum.py`, render it, and rebuild.

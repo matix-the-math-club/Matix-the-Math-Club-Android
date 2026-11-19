@@ -12,8 +12,8 @@ android {
         applicationId = "com.matixmathclubappandroid.app"
         minSdk = 26
         targetSdk = 37 // Retained as explicitly requested; raise for a new Play submission.
-        versionCode = 19
-        versionName = "1.0.7"
+        versionCode = 20
+        versionName = "1.0.8"
     }
 
     // Release signing stays in Android Studio or your own CI environment.
