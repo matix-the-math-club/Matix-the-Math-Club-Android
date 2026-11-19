@@ -321,6 +321,92 @@ def heart():
     save(im, 'heart.png', w, h)
 
 
+
+
+# ------------------------------------------------------------------ 1.0.10 sprites
+def bomb():
+    w = h = 200; im = canvas(w, h); d = ImageDraw.Draw(im); s = K
+    for i in range(50):
+        t = i / 50; r = 78 * (1 - t * 0.85)
+        d.ellipse([(96 - 26 * t - r) * s, (112 - 26 * t - r) * s, (96 - 26 * t + r) * s, (112 - 26 * t + r) * s], fill=mix((12, 12, 20), (90, 95, 120), t ** 1.6))
+    d.rounded_rectangle([118 * s, 28 * s, 152 * s, 52 * s], radius=6 * s, fill=(70, 72, 90))
+    save(im, 'bomb.png', w, h)
+
+
+def castle():
+    w, h = 240, 260; im = canvas(w, h); d = ImageDraw.Draw(im); s = K
+    stone, dark = (148, 156, 172), (100, 108, 124)
+    d.rectangle([20 * s, 90 * s, 220 * s, 260 * s], fill=stone)
+    for x in (0, 160):
+        d.rectangle([x * s, 50 * s, (x + 80) * s, 260 * s], fill=mix(stone, (255, 255, 255), 0.08))
+        for bx in range(x, x + 80, 22): d.rectangle([bx * s, 30 * s, (bx + 14) * s, 52 * s], fill=mix(stone, (255, 255, 255), 0.08))
+    for bx in range(80, 160, 22): d.rectangle([bx * s, 72 * s, (bx + 14) * s, 92 * s], fill=stone)
+    for y in range(110, 260, 24):
+        for x in range(20 if (y // 24) % 2 else 32, 220, 48): d.rectangle([x * s, y * s, (x + 40) * s, (y + 2) * s], fill=dark)
+    d.pieslice([90 * s, 160 * s, 150 * s, 220 * s], 180, 360, fill=(60, 40, 30)); d.rectangle([90 * s, 190 * s, 150 * s, 260 * s], fill=(60, 40, 30))
+    for x in (30, 190): d.rounded_rectangle([x * s, 100 * s, (x + 20) * s, 130 * s], radius=10 * s, fill=(40, 40, 60))
+    d.line([(40 * s, 50 * s), (40 * s, 4 * s)], fill=(90, 60, 30), width=4 * s); d.polygon([(42 * s, 4 * s), (78 * s, 14 * s), (42 * s, 26 * s)], fill=(249, 115, 22))
+    save(im, 'castle.png', w, h)
+
+
+def monster(n, col):
+    w, h = 140, 150; im = canvas(w, h); d = ImageDraw.Draw(im); s = K
+    for i in range(40):
+        t = i / 40
+        d.ellipse([(14 + 10 * t) * s, (20 + 8 * t) * s, (126 - 14 * t) * s, (140 - 12 * t) * s], fill=mix(mix(col, (0, 0, 0), 0.3), mix(col, (255, 255, 255), 0.35), t))
+    for x in (34, 92): d.polygon([(x * s, 34 * s), ((x + 8) * s, 4 * s), ((x + 18) * s, 32 * s)], fill=mix(col, (0, 0, 0), 0.25))
+    for x in (50, 90):
+        d.ellipse([(x - 16) * s, 46 * s, (x + 16) * s, 78 * s], fill=(255, 255, 255)); d.ellipse([(x - 7) * s, 56 * s, (x + 7) * s, 70 * s], fill=(20, 20, 30))
+    d.chord([40 * s, 80 * s, 100 * s, 118 * s], 0, 180, fill=(40, 10, 20))
+    for x in (52, 72): d.polygon([(x * s, 82 * s), ((x + 8) * s, 82 * s), ((x + 4) * s, 92 * s)], fill=(255, 255, 255))
+    for x in (34, 92): d.rounded_rectangle([(x - 2) * s, 126 * s, (x + 18) * s, 148 * s], radius=6 * s, fill=mix(col, (0, 0, 0), 0.35))
+    save(im, f'monster{n}.png', w, h)
+
+
+def car(name, col):
+    w, h = 220, 110; im = canvas(w, h); d = ImageDraw.Draw(im); s = K
+    for x in (40, 150):
+        for y in (8, 82): d.rounded_rectangle([x * s, y * s, (x + 36) * s, (y + 20) * s], radius=6 * s, fill=(20, 20, 26))
+    d.rounded_rectangle([14 * s, 18 * s, 206 * s, 92 * s], radius=26 * s, fill=col)
+    d.rounded_rectangle([24 * s, 28 * s, 196 * s, 82 * s], radius=20 * s, fill=mix(col, (255, 255, 255), 0.18))
+    d.rounded_rectangle([110 * s, 34 * s, 150 * s, 76 * s], radius=10 * s, fill=(40, 60, 90))
+    d.rounded_rectangle([60 * s, 34 * s, 92 * s, 76 * s], radius=10 * s, fill=(40, 60, 90))
+    d.rectangle([4 * s, 30 * s, 16 * s, 80 * s], fill=mix(col, (0, 0, 0), 0.4))
+    for y in (26, 74): d.ellipse([196 * s, y * s, 210 * s, (y + 10) * s], fill=(255, 240, 160))
+    d.rectangle([150 * s, 52 * s, 206 * s, 58 * s], fill=(255, 255, 255))
+    save(im, f'car_{name}.png', w, h)
+
+
+def stone():
+    w, h = 200, 110; im = canvas(w, h); d = ImageDraw.Draw(im); s = K
+    for i in range(40):
+        t = i / 40
+        d.ellipse([(8 + 20 * t) * s, (10 + 10 * t) * s, (192 - 26 * t) * s, (100 - 14 * t) * s], fill=mix((70, 75, 85), (190, 195, 205), t ** 1.4))
+    for (x, y, r) in [(60, 40, 6), (130, 60, 5), (100, 30, 4)]: d.ellipse([(x - r) * s, (y - r) * s, (x + r) * s, (y + r) * s], fill=(120, 126, 138))
+    save(im, 'stone.png', w, h)
+
+
+def snake_icon():
+    w, h = 200, 160; im = canvas(w, h); d = ImageDraw.Draw(im); s = K
+    pts = [(20, 120), (50, 120), (80, 120), (80, 90), (80, 60), (110, 60), (140, 60), (140, 90)]
+    for i, (x, y) in enumerate(pts):
+        c = (34, 197, 94) if i % 2 else (22, 163, 74)
+        d.rounded_rectangle([(x - 14) * s, (y - 14) * s, (x + 14) * s, (y + 14) * s], radius=9 * s, fill=c)
+    hx, hy = 140, 100
+    d.rounded_rectangle([(hx - 18) * s, (hy - 16) * s, (hx + 18) * s, (hy + 20) * s], radius=12 * s, fill=(134, 239, 172))
+    for ex in (-7, 7): d.ellipse([(hx + ex - 4) * s, (hy + 2) * s, (hx + ex + 4) * s, (hy + 10) * s], fill=(17, 17, 17))
+    d.line([(hx * s, (hy + 20) * s), (hx * s, (hy + 32) * s)], fill=(239, 68, 68), width=3 * s)
+    save(im, 'snake.png', w, h)
+
+
+def bolt():
+    w, h = 160, 200; im = canvas(w, h); d = ImageDraw.Draw(im); s = K
+    pts = [(96, 6), (24, 112), (74, 112), (56, 194), (138, 78), (86, 78), (112, 6)]
+    d.polygon([(x * s, y * s) for x, y in pts], fill=(250, 204, 21))
+    d.polygon([((x + 6) * s, (y + 4) * s) for x, y in pts[:3]], fill=(253, 230, 138))
+    save(im, 'bolt.png', w, h)
+
+
 if __name__ == '__main__':
     space_bg(); ship(); [asteroid(i) for i in range(3)]
     sky_bg(); [balloon(n, c) for n, c in [('red', (239, 68, 68)), ('blue', (59, 130, 246)), ('green', (34, 197, 94)), ('yellow', (250, 204, 21)), ('purple', (168, 85, 247)), ('pink', (236, 72, 153))]]
@@ -328,5 +414,7 @@ if __name__ == '__main__':
     pizza(); table_bg()
     owl(0); owl(1); road_bg(); gate(); coin()
     card_back(); card_front(); heart()
+    bomb(); castle(); [monster(i, c) for i, c in enumerate([(168, 85, 247), (34, 197, 94), (239, 68, 68)])]
+    car('orange', (249, 115, 22)); car('purple', (139, 92, 246)); stone(); snake_icon(); bolt()
     tot = sum(os.path.getsize(f'{OUT}/{f}') for f in os.listdir(OUT))
     print(len(os.listdir(OUT)), 'images', round(tot / 1024), 'KB')
