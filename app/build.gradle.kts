@@ -12,8 +12,15 @@ android {
         applicationId = "com.matixmathclubappandroid.app"
         minSdk = 26
         targetSdk = 37 // Retained as explicitly requested; raise for a new Play submission.
-        versionCode = 22
-        versionName = "1.1.0"
+        // Two Play builds from the same code:
+        //   production (default)          -> versionCode 23, "1.1.1"
+        //   open testing  -PmatixTrack=beta -> versionCode 24, "1.1.1-beta"
+        // The beta needs the higher code so open testers get it instead of the production build.
+        val matixTrack = (project.findProperty("matixTrack") as String?) ?: "production"
+        val baseCode = 23
+        versionCode = if (matixTrack == "beta") baseCode + 1 else baseCode
+        versionName = if (matixTrack == "beta") "1.1.1-beta" else "1.1.1"
+        buildConfigField("String", "MATIX_TRACK", "\"$matixTrack\"")
     }
 
     // Release signing stays in Android Studio or your own CI environment.

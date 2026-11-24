@@ -1,4 +1,6 @@
-"""Draws the art for the Matix arcade games (1.0.8) with Pillow: shaded sprites + backgrounds.
+"""LEGACY (1.0.8-1.1.0): the arcade art now lives on the website (Gha15.github.io, arcade/img) and is
+copied into the app by tools/sync-arcade.sh. Kept for reference.
+Draws the art for the Matix arcade games with Pillow: shaded sprites + backgrounds.
 usage: python3 make_sprites.py <project root>   -> app/src/main/assets/games/img/*.png|jpg
 Everything is drawn at 4x and downsampled, so edges stay smooth."""
 import math, os, random, sys

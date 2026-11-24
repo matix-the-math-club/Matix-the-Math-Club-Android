@@ -83,12 +83,43 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
+      - name: Sync the Matix Arcade from the website
+        run: |
+          git clone --depth 1 https://github.com/Gha15/Gha15.github.io.git "$RUNNER_TEMP/site"
+          sh tools/sync-arcade.sh "$RUNNER_TEMP/site"
+
       - name: Build APKs and AABs (debug + release)
         run: >
           ./gradlew
           :app:assembleDebug :app:assembleRelease
           :app:bundleDebug :app:bundleRelease
           --stacktrace --no-daemon
+
+      - name: Build the production and open testing AABs
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/bundle/release/app-release.aab dist/matix-production.aab
+          ./gradlew :app:bundleRelease -PmatixTrack=beta --stacktrace --no-daemon
+          cp app/build/outputs/bundle/release/app-release.aab dist/matix-open-testing.aab
+          # keep the normal release artifacts = production
+          cp dist/matix-production.aab app/build/outputs/bundle/release/app-release.aab
+          ls -l dist
+
+      - name: Upload production AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: matix-production-aab
+          path: dist/matix-production.aab
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload open testing AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: matix-open-testing-aab
+          path: dist/matix-open-testing.aab
+          if-no-files-found: error
+          retention-days: 30
 
       - name: List build outputs
         if: always()

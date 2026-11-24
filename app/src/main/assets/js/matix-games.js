@@ -1,5 +1,5 @@
 /* =====================================================================
-   Matix Arcade (1.0.8) — replaces the old Games hub with real built-in
+   Matix Arcade (1.5, ARCADE_VERSION 15) — replaces the old Games hub with real built-in
    math games that use drawn art from assets/games/img:
      🚀 Asteroid Answers   🎈 Balloon Pop     🍎 Fruit Market Sums
      🍕 Pizza Fractions    🦉 Owl Runner      🃏 Memory Match
@@ -17,19 +17,34 @@ function rnd(a,b){return a+Math.floor(Math.random()*(b-a+1));}
 function pick(a){return a[Math.floor(Math.random()*a.length)];}
 function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
 function clamp(x,a,b){return x<a?a:(x>b?b:x);}
-var IMG_DIR='games/img/';
+/* ARCADE_VERSION: bump it whenever games change. The app compares it with the website's
+   /arcade/version.json and loads the newer arcade straight from the website. */
+var ARCADE_VERSION=15;
+var IMG_DIR=(function(){try{var s=(D.currentScript&&D.currentScript.src)||'',m=s.match(/^(https?:\/\/[^\/]*matixthemathclub\.com)\//);if(m)return m[1]+'/arcade/img/';}catch(e){}
+  return W.MX_ARCADE_IMG||'/arcade/img/';})();
 
 /* ---------- images ---------- */
 var IMG={},IMG_LIST=['bg_space.jpg','ship.png','asteroid0.png','asteroid1.png','asteroid2.png','bg_sky.jpg','balloon_red.png','balloon_blue.png','balloon_green.png','balloon_yellow.png','balloon_purple.png','balloon_pink.png',
-  'bg_market.jpg','basket.png','fruit_apple.png','fruit_orange.png','fruit_watermelon.png','fruit_lemon.png','fruit_grapes.png','pizza.png','bg_table.jpg','owl0.png','owl1.png','bg_road.jpg','gate.png','coin.png','card_back.png','card_front.png','heart.png','bomb.png','castle.png','monster0.png','monster1.png','monster2.png','car_orange.png','car_purple.png','stone.png','snake.png','bolt.png'];
-function loadImages(cb){
-  var left=0;
-  IMG_LIST.forEach(function(n){
+  'bg_market.jpg','basket.png','fruit_apple.png','fruit_orange.png','fruit_watermelon.png','fruit_lemon.png','fruit_grapes.png','pizza.png','bg_table.jpg','owl0.png','owl1.png','bg_road.jpg','gate.png','coin.png','card_back.png','card_front.png','heart.png','bomb.png','castle.png','monster0.png','monster1.png','monster2.png','car_orange.png','car_purple.png','stone.png','snake.png','bolt.png','bg_ocean.jpg','bg_forest.jpg','fish_orange.png','fish_blue.png','star.png','gem.png'];
+/* Backgrounds come in five screen shapes (p 9:16, t 3:4, s 1:1, w 16:9, u 21:9: see tools/make-backgrounds.py).
+   The one closest to the game's screen is used, and it is swapped if you rotate the device or resize the window. */
+var SHAPES=[['p',9/16],['t',3/4],['s',1],['w',16/9],['u',21/9]],BGK='';
+function shapeKey(){var w=W.innerWidth||1280,h=Math.max(200,(W.innerHeight||720)-130),r=Math.log(w/h),best='w',bd=9;
+  SHAPES.forEach(function(s){var d=Math.abs(r-Math.log(s[1]));if(d<bd){bd=d;best=s[0];}});return best;}
+function bgFile(n,k){return /^bg_/.test(n)?n.replace(/\.jpg$/,'_'+k+'.jpg'):n;}
+function loadOne(n,k,done){var im=new Image();im.onload=function(){IMG[n]=im;done();};
+  im.onerror=function(){if(bgFile(n,k)!==n){var fb=new Image();fb.onload=fb.onerror=function(){IMG[n]=fb;done();};fb.src=IMG_DIR+n;}else{IMG[n]=im;done();}};
+  im.src=IMG_DIR+bgFile(n,k);}
+function loadImages(cb,def){
+  var left=0,k=BGK=shapeKey(),names=def&&def.themed?def.assets.concat(['heart.png']):IMG_LIST;
+  names.forEach(function(n){
     if(IMG[n])return;left++;
-    var im=new Image();im.onload=im.onerror=function(){left--;if(!left)cb();};im.src=IMG_DIR+n;IMG[n]=im;
+    loadOne(n,k,function(){left--;if(!left)cb();});
   });
   if(!left)cb();
 }
+function swapBackgrounds(){var k=shapeKey();if(k===BGK)return;BGK=k;
+  Object.keys(IMG).forEach(function(n){if(/^bg_/.test(n)){var im=new Image();im.onload=function(){IMG[n]=im;};im.src=IMG_DIR+bgFile(n,k);}});}
 function ok(im){return im&&im.complete&&im.naturalWidth>0;}
 function cover(ctx,im,w,h,oy){
   if(!ok(im)){ctx.fillStyle='#14152a';ctx.fillRect(0,0,w,h);return;}
@@ -42,23 +57,94 @@ var LEVELS=[['1','Grade 1'],['2','Grade 2'],['3','Grade 3'],['4','Grade 4'],['5'
 function level(){var v=parseInt(ls('mx_arcade_level')||'0',10);if(v>=1&&v<=13)return v;
   try{var g=(W.mxCourse&&W.mxCourse.progress&&W.mxCourse.progress.grade)||'';var n=g==='college'?13:parseInt(String(g).replace('g',''),10);if(n>=1&&n<=13)return n;}catch(e){}return 3;}
 function makeQ(L){
-  var a,b,c,x;
-  switch(L){
-    case 1:a=rnd(1,9);b=rnd(1,10-a);return {q:a+' + '+b,a:a+b};
-    case 2:if(Math.random()<.5){a=rnd(2,12);b=rnd(2,9);return {q:a+' + '+b,a:a+b};}a=rnd(8,20);b=rnd(1,a-1);return {q:a+' − '+b,a:a-b};
-    case 3:if(Math.random()<.6){a=pick([2,3,4,5,10]);b=rnd(1,10);return {q:a+' × '+b,a:a*b};}a=rnd(15,60);b=rnd(10,39);return {q:a+' + '+b,a:a+b};
-    case 4:if(Math.random()<.65){a=rnd(3,9);b=rnd(3,10);return {q:a+' × '+b,a:a*b};}b=rnd(2,9);a=b*rnd(2,9);return {q:a+' ÷ '+b,a:a/b};
-    case 5:if(Math.random()<.5){a=rnd(11,25);b=rnd(3,9);return {q:a+' × '+b,a:a*b};}b=rnd(3,12);a=b*rnd(3,12);return {q:a+' ÷ '+b,a:a/b};
-    case 6:if(Math.random()<.5){a=pick([10,20,25,50]);b=pick([20,40,60,80,100,200]);return {q:a+'% of '+b,a:a*b/100};}a=rnd(-9,9);b=rnd(-9,9);return {q:a+' + ('+b+')',a:a+b};
-    case 7:a=rnd(2,6);x=rnd(-5,9);b=rnd(-9,9);c=a*x+b;return {q:a+'x '+(b<0?'− '+(-b):'+ '+b)+' = '+c+'   x = ?',a:x};
-    case 8:if(Math.random()<.5){a=rnd(2,15);return {q:'√'+(a*a),a:a};}a=rnd(2,5);b=rnd(2,4);return {q:a+(b===2?'²':(b===3?'³':'⁴')),a:Math.pow(a,b)};
-    case 9:a=rnd(2,5);b=rnd(-6,6);x=rnd(-4,5);return {q:'f(x) = '+a+'x'+(b<0?' − '+(-b):' + '+b)+'   f('+x+') = ?',a:a*x+b};
-    case 10:c=pick([[3,4,5],[6,8,10],[5,12,13],[8,15,17],[9,12,15],[12,16,20]]);return {q:'legs '+c[0]+' and '+c[1]+'   hyp = ?',a:c[2]};
-    case 11:if(Math.random()<.5){a=pick([2,3,10]);b=rnd(1,a===10?4:6);return {q:'log'+(a===2?'₂':(a===3?'₃':'₁₀'))+' '+Math.pow(a,b),a:b};}a=rnd(2,4);b=rnd(2,5);return {q:a+'^'+b,a:Math.pow(a,b)};
-    case 12:a=rnd(2,4);x=rnd(1,4);return {q:'f(x) = x'+(a===2?'²':(a===3?'³':'⁴'))+"   f′("+x+') = ?',a:a*Math.pow(x,a-1)};
-    default:if(Math.random()<.5){a=rnd(1,6);b=rnd(1,6);c=rnd(1,6);x=rnd(1,6);return {q:'det [ '+a+' '+b+' ; '+c+' '+x+' ]',a:a*x-b*c};}a=rnd(-3,5);b=rnd(1,5);c=rnd(-3,5);x=rnd(1,5);return {q:'('+a+', '+b+') · ('+c+', '+x+')',a:a*c+b*x};
-  }
+  var a,b,c,d,x,y;
+  function nz(lo,hi){var v=0;while(!v)v=rnd(lo,hi);return v;}
+  function pm(n){return n<0?'− '+(-n):'+ '+n;}
+  function par(n){return n<0?'('+n+')':String(n);}
+  function co(n){return n===1?'':(n===-1?'−':String(n));}
+  var SUP={2:'²',3:'³',4:'⁴',5:'⁵',6:'⁶'};
+  var G=[null,
+  /* 1 */[function(){a=rnd(6,12);b=rnd(5,9);return {q:a+' + '+b,a:a+b};},
+        function(){a=rnd(11,18);b=rnd(3,9);return {q:a+' − '+b,a:a-b};},
+        function(){a=rnd(3,9);c=rnd(a+3,18);return {q:a+' + □ = '+c+'   □ = ?',a:c-a};},
+        function(){a=rnd(2,8);b=rnd(2,8);c=rnd(2,6);return {q:a+' + '+b+' + '+c,a:a+b+c};}],
+  /* 2 */[function(){a=rnd(23,58);b=rnd(17,39);return {q:a+' + '+b,a:a+b};},
+        function(){a=rnd(42,95);b=rnd(18,a-5);return {q:a+' − '+b,a:a-b};},
+        function(){a=pick([2,3,4,5,10]);b=rnd(4,10);return {q:a+' × '+b,a:a*b};},
+        function(){a=rnd(12,49)*2;return {q:'Half of '+a,a:a/2};},
+        function(){a=rnd(30,70);b=rnd(4,9);c=rnd(10,25);return {q:a+' + '+b+' − '+c,a:a+b-c};}],
+  /* 3 */[function(){a=rnd(6,9);b=rnd(6,12);return {q:a+' × '+b,a:a*b};},
+        function(){a=rnd(240,590);b=rnd(120,380);return {q:a+' + '+b,a:a+b};},
+        function(){a=rnd(500,950);b=rnd(120,a-150);return {q:a+' − '+b,a:a-b};},
+        function(){b=rnd(3,9);a=b*rnd(6,12);return {q:a+' ÷ '+b,a:a/b};},
+        function(){a=rnd(2,15);b=rnd(3,9);c=rnd(3,9);return {q:a+' + '+b+' × '+c,a:a+b*c};},
+        function(){a=rnd(6,9);b=rnd(6,12);return {q:a+' × □ = '+a*b+'   □ = ?',a:b};}],
+  /* 4 */[function(){a=rnd(13,49);b=rnd(4,9);return {q:a+' × '+b,a:a*b};},
+        function(){b=rnd(4,9);a=b*rnd(15,99);return {q:a+' ÷ '+b,a:a/b};},
+        function(){a=rnd(5,19);b=rnd(4,12);c=rnd(3,9);return {q:'('+a+' + '+b+') × '+c,a:(a+b)*c};},
+        function(){a=rnd(450,999);b=rnd(200,a-100);return {q:a+' − '+b,a:a-b};},
+        function(){a=rnd(60,99);b=rnd(3,9);c=rnd(3,9);return {q:a+' − '+b+' × '+c,a:a-b*c};},
+        function(){a=rnd(8,25);b=rnd(6,20);return {q:'Perimeter of a '+a+' by '+b+' rectangle = ?',a:2*(a+b)};}],
+  /* 5 */[function(){a=rnd(12,29);b=rnd(11,25);return {q:a+' × '+b,a:a*b};},
+        function(){b=rnd(6,15);a=b*rnd(12,30);return {q:a+' ÷ '+b,a:a/b};},
+        function(){a=rnd(3,9);b=rnd(4,15);c=rnd(3,9);d=rnd(5,30);return {q:a+' × ('+b+' + '+c+') − '+d,a:a*(b+c)-d};},
+        function(){a=pick([10,20,25,50,75]);b=pick([40,80,120,160,200,240]);return {q:a+'% of '+b,a:a*b/100};},
+        function(){a=rnd(2,4);b=rnd(3,5);c=rnd(5,20);return {q:a+SUP[b]+' + '+c,a:Math.pow(a,b)+c};},
+        function(){a=rnd(6,18)*2;b=rnd(5,15);return {q:'Area of a triangle, base '+a+', height '+b+' = ?',a:a*b/2};}],
+  /* 6 */[function(){do{a=pick([5,15,35,45,65,75,12,8,30,60]);b=pick([40,60,80,120,140,160,200,240,360]);}while((a*b)%100);return {q:a+'% of '+b,a:a*b/100};},
+        function(){a=rnd(-12,-3);b=rnd(4,9);return {q:par(a)+' × '+b,a:a*b};},
+        function(){a=rnd(-20,-4);b=rnd(-15,-3);return {q:a+' − ('+b+')',a:a-b};},
+        function(){a=rnd(-9,-3);b=rnd(-9,-3);c=rnd(4,20);return {q:par(a)+' × '+par(b)+' + '+c,a:a*b+c};},
+        function(){a=rnd(3,9);b=rnd(3,9);c=rnd(2,9);d=rnd(5,30);return {q:a+'² + '+b+' × '+c+' − '+d,a:a*a+b*c-d};},
+        function(){do{a=pick([4,6,8,9,10,12,14,15]);b=pick([4,6,8,9,10,12,14,15,18]);}while(a===b);return {q:'LCM of '+a+' and '+b+' = ?',a:a*b/gcd(a,b)};},
+        function(){do{d=rnd(3,12);a=d*pick([2,3,4,5,6,7]);b=d*pick([2,3,4,5,6,7]);}while(a===b||gcd(a,b)!==d);return {q:'GCF of '+a+' and '+b+' = ?',a:d};}],
+  /* 7 */[function(){a=rnd(3,9);x=rnd(-8,12);b=nz(-15,15);return {q:a+'x '+pm(b)+' = '+(a*x+b)+'   x = ?',a:x};},
+        function(){a=rnd(2,7);x=rnd(-6,9);b=rnd(1,9);return {q:a+'(x + '+b+') = '+a*(x+b)+'   x = ?',a:x};},
+        function(){a=rnd(2,9);x=rnd(2,9);b=rnd(2,12);return {q:'x ÷ '+a+' + '+b+' = '+(x+b)+'   x = ?',a:x*a};},
+        function(){a=rnd(-12,-4);b=rnd(-9,-3);c=rnd(10,40);return {q:par(a)+' × '+par(b)+' − '+c,a:a*b-c};},
+        function(){c=rnd(2,9);b=c*rnd(2,9);a=rnd(2,12);return {q:'x / '+a+' = '+b+' / '+c+'   x = ?',a:a*b/c};},
+        function(){do{a=pick([40,60,80,120,160,200,240]);b=pick([10,15,20,25,30,50]);}while((a*(100+b))%100);return {q:'$'+a+' goes up '+b+'%. New price = ?',a:a*(100+b)/100};}],
+  /* 8 */[function(){do{x=rnd(-6,9);a=rnd(3,8);c=rnd(1,a-1);b=rnd(-9,9);d=a*x+b-c*x;}while(!b||!d);return {q:a+'x '+pm(b)+' = '+c+'x '+pm(d)+'   x = ?',a:x};},
+        function(){a=rnd(3,6);b=rnd(2,4);c=rnd(2,8);return {q:a+SUP[b]+' − '+c,a:Math.pow(a,b)-c};},
+        function(){a=rnd(8,20);b=rnd(3,12);return {q:'√'+a*a+' + √'+b*b,a:a+b};},
+        function(){a=rnd(2,5);b=rnd(2,6);c=rnd(2,6);return {q:a+SUP[b]+' × '+a+SUP[c]+' = '+a+'^□   □ = ?',a:b+c};},
+        function(){a=rnd(-4,4);b=rnd(-4,4);x=rnd(1,5);y=rnd(-6,6);if(!y)y=3;return {q:'Slope through ('+a+', '+b+') and ('+(a+x)+', '+(b+x*y)+') = ?',a:y};},
+        function(){a=rnd(2,9);b=rnd(2,9);return {q:'('+a+'x)(' +b+'x) = □x²   □ = ?',a:a*b};}],
+  /* 9 */[function(){a=rnd(1,4);b=nz(-6,6);c=nz(-8,8);x=rnd(-3,4);return {q:'f(x) = '+co(a)+'x² '+pm(b)+'x '+pm(c)+'   f('+x+') = ?',a:a*x*x+b*x+c};},
+        function(){a=rnd(1,4);x=rnd(1,8);y=rnd(-5,5);return {q:a+'x + y = '+(a*x+y)+',  x − y = '+(x-y)+'   x = ?',a:x};},
+        function(){var r1,r2;do{r1=rnd(-6,8);r2=rnd(-6,8);}while(r1===r2||r1+r2===0||r1*r2===0);return {q:'x² '+pm(-(r1+r2))+'x '+pm(r1*r2)+' = 0   larger root = ?',a:Math.max(r1,r2)};},
+        function(){a=rnd(1,4);b=nz(-9,9);c=nz(-6,6);return {q:'Discriminant of '+co(a)+'x² '+pm(b)+'x '+pm(c)+' = ?',a:b*b-4*a*c};},
+        function(){a=rnd(2,5);b=rnd(-6,8);x=rnd(1,4);d=rnd(1,3);return {q:'Line through (' +x+', '+(a*x+b)+') and ('+(x+d)+', '+(a*(x+d)+b)+'): y-intercept = ?',a:b};}],
+  /* 10 */[function(){c=pick([[5,12,13],[8,15,17],[7,24,25],[20,21,29],[9,40,41],[12,35,37],[6,8,10]]);d=rnd(1,3);if(Math.random()<.5)return {q:'Right triangle, legs '+c[0]*d+' and '+c[1]*d+': hypotenuse = ?',a:c[2]*d};return {q:'Right triangle, hypotenuse '+c[2]*d+' and a leg '+c[0]*d+': other leg = ?',a:c[1]*d};},
+         function(){a=pick([5,6,7,8,9,10,12]);var nm={5:'pentagon',6:'hexagon',7:'heptagon',8:'octagon',9:'nonagon',10:'decagon',12:'dodecagon'};return {q:'Sum of the interior angles of a '+nm[a]+' = ?',a:(a-2)*180};},
+         function(){a=pick([1,2,3]);x=rnd(-5,6);if(!x)x=2;b=-2*a*x;c=nz(-7,7);return {q:'Vertex x of y = '+co(a)+'x² '+pm(b)+'x '+pm(c)+'   x = ?',a:x};},
+         function(){a=rnd(-5,12);d=rnd(2,9);b=rnd(12,30);return {q:'Sequence '+a+', '+(a+d)+', '+(a+2*d)+', …   term '+b+' = ?',a:a+(b-1)*d};},
+         function(){c=pick([[3,4],[6,8],[5,12],[8,15]]);x=rnd(-4,4);y=rnd(-4,4);return {q:'Distance from ('+x+', '+y+') to ('+(x+c[0])+', '+(y-c[1])+') = ?',a:Math.round(Math.hypot(c[0],c[1]))};},
+         function(){a=rnd(1,5);d=rnd(2,5);b=rnd(8,15);return {q:'Sum of the first '+b+' terms of '+a+', '+(a+d)+', '+(a+2*d)+', … = ?',a:b*(2*a+(b-1)*d)/2};}],
+  /* 11 */[function(){a=pick([2,3,5,10]);b=rnd(2,a===10?4:6);return {q:'log'+(a===2?'₂':a===3?'₃':a===5?'₅':'₁₀')+' '+Math.pow(a,b)+' = ?',a:b};},
+         function(){a=pick([2,3,5]);x=rnd(3,6);return {q:a+'^x = '+Math.pow(a,x)+'   x = ?',a:x};},
+         function(){a=rnd(12,40);return {q:'1 + 2 + 3 + … + '+a+' = ?',a:a*(a+1)/2};},
+         function(){a=rnd(6,10);b=rnd(2,4);return {q:'C('+a+', '+b+') = ?',a:(function(){var r=1;for(var i=1;i<=b;i++)r=r*(a-b+i)/i;return Math.round(r);})()};},
+         function(){a=rnd(2,5);b=nz(-4,6);x=rnd(1,4);return {q:'f(x) = '+a+'x '+pm(b)+',  g(x) = x²:  f(g('+x+')) = ?',a:a*x*x+b};},
+         function(){a=rnd(1,5);b=pick([2,3]);c=rnd(5,8);return {q:'Geometric: '+a+', '+a*b+', '+a*b*b+', …  term '+c+' = ?',a:a*Math.pow(b,c-1)};},
+         function(){a=rnd(2,5);b=rnd(1,4);c=rnd(1,4);d=rnd(-4,-1);return {q:'Real part of ('+a+' + '+b+'i)('+c+' '+pm(d)+'i) = ?',a:a*c-b*d};}],
+  /* 12 */[function(){a=rnd(1,4);b=nz(-4,5);x=rnd(1,4);return {q:'f(x) = '+co(a)+'x³ '+pm(b)+'x²   f′('+x+') = ?',a:3*a*x*x+2*b*x};},
+         function(){a=rnd(2,7);return {q:'lim x→'+a+'  (x² − '+a*a+') / (x − '+a+') = ?',a:2*a};},
+         function(){a=rnd(2,5);b=rnd(1,4);return {q:'∫₀^'+a+' (6x² + '+2*b+'x) dx = ?',a:2*a*a*a+b*a*a};},
+         function(){a=rnd(1,3);b=nz(-3,3);x=rnd(1,3);return {q:'f(x) = '+co(a)+'x⁴ '+pm(b)+'x³   f″('+x+') = ?',a:12*a*x*x+6*b*x};},
+         function(){a=rnd(2,4);b=nz(-3,3);x=rnd(0,2);var n=pick([3,4]);return {q:'f(x) = ('+a+'x '+pm(b)+')'+SUP[n]+'   f′('+x+') = ?',a:n*a*Math.pow(a*x+b,n-1)};},
+         function(){a=rnd(2,6);return {q:'lim x→'+a+'  (x³ − '+a*a*a+') / (x − '+a+') = ?',a:3*a*a};}],
+  /* 13 */[function(){var m=[];for(var i=0;i<9;i++)m.push(rnd(-3,4));var v=m[0]*(m[4]*m[8]-m[5]*m[7])-m[1]*(m[3]*m[8]-m[5]*m[6])+m[2]*(m[3]*m[7]-m[4]*m[6]);return {q:'det [ '+m.slice(0,3).join(' ')+' ; '+m.slice(3,6).join(' ')+' ; '+m.slice(6).join(' ')+' ] = ?',a:v};},
+         function(){a=[rnd(-4,5),rnd(-4,5),rnd(-4,5)];b=[rnd(-4,5),rnd(-4,5),rnd(-4,5)];return {q:'('+a.join(', ')+') · ('+b.join(', ')+') = ?',a:a[0]*b[0]+a[1]*b[1]+a[2]*b[2]};},
+         function(){a=rnd(2,4);b=rnd(1,5);x=rnd(1,3);y=rnd(1,4);return {q:'f(x, y) = '+a+'x²y + '+b+'y   ∂f/∂x at ('+x+', '+y+') = ?',a:2*a*x*y};},
+         function(){a=rnd(1,4)*3;b=rnd(1,3)*2;c=rnd(1,3);return {q:'∫₀^'+c+' ('+a+'x² + '+b+'x) dx = ?',a:a/3*c*c*c+b/2*c*c};},
+         function(){do{a=rnd(-5,6);b=rnd(-5,6);}while(a===b);c=rnd(1,5);return {q:'Largest eigenvalue of [ '+a+' '+c+' ; 0 '+b+' ] = ?',a:Math.max(a,b)};},
+         function(){a=rnd(-4,5);b=rnd(-4,5);c=rnd(-4,5);d=rnd(-4,5);return {q:'(' +a+', '+b+', 0) × ('+c+', '+d+', 0): z-part = ?',a:a*d-b*c};}]
+  ];
+  var list=G[clamp(L,1,13)];
+  var q=pick(list)();if(W.trq)q.q=W.trq(q.q);return q;
 }
+function gcd(a,b){a=Math.abs(a);b=Math.abs(b);while(b){var t=a%b;a=b;b=t;}return a;}
 function wrongs(ans,n,L){
   var out={},list=[],tries=0;
   var span=Math.max(3,Math.round(Math.abs(ans)*0.25));
@@ -78,7 +164,7 @@ var G=null;
 /* Home = play on your own. Class = two teams take turns on one screen; every game's score goes to the team that played it. */
 var CLS=(function(){var d={on:false,turn:'A',A:0,B:0,nA:'Team A',nB:'Team B'};try{var v=JSON.parse(ls('mx_arcade_class')||'null');if(v)for(var k in d)if(v[k]!==undefined)d[k]=v[k];}catch(e){}return d;})();
 function saveCls(){ls('mx_arcade_class',JSON.stringify(CLS));}
-function teamName(t){return CLS['n'+t]||('Team '+t);}
+function teamName(t){var n=CLS['n'+t]||('Team '+t);return n==='Team '+t?T(n):n;}
 function best(id){return parseInt(ls('mx_arcade_best_'+id)||'0',10)||0;}
 function setBest(id,v){if(v>best(id))ls('mx_arcade_best_'+id,String(v));}
 function startGame(def){
@@ -86,20 +172,20 @@ function startGame(def){
   stopGame(true);
   var ov=D.createElement('div');ov.id='mxgOv';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-label',T(def.name));
   ov.innerHTML='<div class="mxg-hud"><button type="button" class="mxg-ib" id="mxgX" aria-label="'+E(T('Exit game'))+'">✕</button>'
-    +'<div class="mxg-tt"><b>'+def.icon+' '+E(T(def.name))+(CLS.on?' \u00b7 '+E(teamName(CLS.turn)):'')+'</b><span id="mxgQ" aria-live="polite"></span></div>'
+    +'<div class="mxg-tt"><b>'+def.icon+' '+E(T(def.name))+(def.versus?' \u00b7 '+E(teamName('A'))+' vs '+E(teamName('B')):(CLS.on?' \u00b7 '+E(teamName(CLS.turn)):''))+'</b><span id="mxgQ" aria-live="polite"></span></div>'
     +'<div class="mxg-stat"><span id="mxgLives" aria-label="'+E(T('Lives'))+'"></span><span class="mxg-sc" id="mxgScore">0</span></div>'
     +'<button type="button" class="mxg-ib" id="mxgPause" aria-label="'+E(T('Pause'))+'">⏸</button></div>'
-    +'<canvas id="mxgCv"></canvas><div class="mxg-end" id="mxgEnd" hidden></div><div class="mxg-msg" id="mxgMsg"></div>';
+    +'<div class="mxg-bigq" id="mxgBigQ" aria-hidden="true"></div><canvas id="mxgCv"></canvas><div class="mxg-end" id="mxgEnd" hidden></div><div class="mxg-msg" id="mxgMsg"></div>';
   D.body.appendChild(ov);D.body.classList.add('mxg-on');
   var pushed=had;if(!had){try{history.pushState({mxg:1},'');pushed=true;}catch(e){}}
   var cv=$('mxgCv'),ctx=cv.getContext('2d');
-  G={def:def,ov:ov,cv:cv,ctx:ctx,w:0,h:0,score:0,lives:3,t:0,run:true,paused:false,raf:0,last:0,L:level(),state:{},pushed:pushed};
-  function size(){var r=cv.getBoundingClientRect(),dpr=Math.min(2,W.devicePixelRatio||1);G.w=r.width;G.h=r.height;cv.width=Math.round(r.width*dpr);cv.height=Math.round(r.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);if(def.resize)def.resize(G);}
+  G={def:def,ov:ov,cv:cv,ctx:ctx,w:0,h:0,score:0,lives:3,t:0,run:true,paused:false,raf:0,last:0,L:level(),state:{},pops:[],pushed:pushed};
+  function size(){swapBackgrounds();var r=cv.getBoundingClientRect(),dpr=Math.min(2,W.devicePixelRatio||1);G.bh=Math.round(clamp(r.height*.11,58,CLS.on?112:90));G.w=r.width;G.h=r.height-G.bh;cv.width=Math.round(r.width*dpr);cv.height=Math.round(r.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);if(def.resize)def.resize(G);}
   G.size=size;W.addEventListener('resize',size);
   $('mxgX').onclick=function(){stopGame();};
   $('mxgPause').onclick=function(){G.paused=!G.paused;this.textContent=G.paused?'▶':'⏸';this.setAttribute('aria-label',T(G.paused?'Resume':'Pause'));if(!G.paused){G.last=performance.now();}};
-  function pt(e){var r=cv.getBoundingClientRect();var p=e.touches?e.touches[0]||e.changedTouches[0]:e;return {x:p.clientX-r.left,y:p.clientY-r.top};}
-  cv.addEventListener('pointerdown',function(e){if(G&&!G.paused&&def.down){var p=pt(e);def.down(G,p.x,p.y);}});
+  function pt(e){var r=cv.getBoundingClientRect();var p=e.touches?e.touches[0]||e.changedTouches[0]:e;return {x:p.clientX-r.left,y:p.clientY-r.top-(G&&G.bh||0)};}
+  cv.addEventListener('pointerdown',function(e){if(G&&!G.paused&&def.down){var p=pt(e);if(p.y<0)return;def.down(G,p.x,p.y);}});
   cv.addEventListener('pointerup',function(e){if(G&&!G.paused&&def.up){var p=pt(e);def.up(G,p.x,p.y);}});
   cv.addEventListener('pointermove',function(e){if(G&&!G.paused&&def.move){var p=pt(e);def.move(G,p.x,p.y);}});
   ov.addEventListener('keydown',function(e){if(e.key==='Escape')stopGame();else if(G&&def.key)def.key(G,e.key);});
@@ -111,13 +197,15 @@ function startGame(def){
       if(!G||!G.run)return;
       var dt=Math.min(0.05,(now-G.last)/1000);G.last=now;
       if(!G.paused&&!D.hidden){G.t+=dt;def.update(G,dt);}
-      def.draw(G,G.ctx);
+      G.ctx.save();G.ctx.translate(0,G.bh);def.draw(G,G.ctx);
+      if(G.pops.length&&!G.paused){for(var pi=G.pops.length-1;pi>=0;pi--){var pp=G.pops[pi];pp.life-=dt;pp.y-=60*dt;if(pp.life<=0){G.pops.splice(pi,1);continue;}G.ctx.globalAlpha=clamp(pp.life*1.5,0,1);label(G.ctx,pp.t,pp.x,pp.y,28,'#fde68a');G.ctx.globalAlpha=1;}}
       if(G.paused){G.ctx.fillStyle='rgba(0,0,0,.45)';G.ctx.fillRect(0,0,G.w,G.h);label(G.ctx,T('Paused'),G.w/2,G.h/2,40,'#fff');}
+      G.ctx.restore();drawBanner(G);
       G.raf=requestAnimationFrame(loop);
     };
     G.raf=requestAnimationFrame(loop);
     try{ov.focus();}catch(e){}
-  });
+  },def);
 }
 function stopGame(keep){
   if(!G)return;var back=G.pushed&&!keep;G.pushed=false;G.run=false;cancelAnimationFrame(G.raf);W.removeEventListener('resize',G.size);
@@ -131,13 +219,32 @@ function hud(){
   if(G.def.timer)h+='<span class="mxg-time">⏱ '+Math.max(0,Math.ceil(G.def.timer-G.t))+'</span>';
   $('mxgLives').innerHTML=h;
 }
-function setQ(s){var q=$('mxgQ');if(q)q.textContent=s;}
+/* the equation is drawn inside the game screen (a band at the top of the canvas), on two lines if it is long */
+function setQ(s){s=String(s).replace(/\?\s*=\s*\?$/,'?');var q=$('mxgQ');if(q)q.textContent=s;if(G){G.qText=s;G.qAt=performance.now();}}
+function drawBanner(g){var ctx=g.ctx,w=g.w,bh=g.bh,t=g.qText||'',F='system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
+  var gr=ctx.createLinearGradient(0,0,0,bh);gr.addColorStop(0,'#1e1b4b');gr.addColorStop(1,'#0f1028');ctx.fillStyle=gr;ctx.fillRect(0,0,w,bh);
+  ctx.fillStyle='rgba(167,139,250,.6)';ctx.fillRect(0,bh-3,w,3);if(!t)return;
+  var pop=clamp((performance.now()-(g.qAt||0))/280,0,1),av=w-28,lines=[t],size;
+  ctx.font='900 100px '+F;var tw=ctx.measureText(t).width||1;size=Math.min(bh*.62,100*av/tw);
+  if(size<bh*.4&&t.indexOf(' ')>0){var mid=t.length/2,best=-1,bd=1e9;for(var i=0;i<t.length;i++)if(t[i]===' '&&Math.abs(i-mid)<bd){bd=Math.abs(i-mid);best=i;}
+    lines=[t.slice(0,best),t.slice(best+1)];var mw=Math.max(ctx.measureText(lines[0]).width,ctx.measureText(lines[1]).width)||1;size=Math.min(bh*.4,100*av/mw);}
+  ctx.save();ctx.translate(w/2,bh/2-1);var sc=.92+.08*pop;ctx.scale(sc,sc);ctx.globalAlpha=.4+.6*pop;ctx.font='900 '+size+'px '+F;ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.shadowColor='rgba(251,191,36,.5)';ctx.shadowBlur=16;ctx.fillStyle='#fde68a';
+  lines.forEach(function(l,i){ctx.fillText(l,0,lines.length===1?0:(i-.5)*size*1.08);});ctx.restore();}
 function flash(s,col){var m=$('mxgMsg');if(!m)return;m.textContent=s;m.style.color=col||'#fff';m.classList.remove('on');void m.offsetWidth;m.classList.add('on');}
-function addScore(n){G.score=Math.max(0,G.score+n);hud();}
-function hurt(){G.lives--;hud();if(navigator.vibrate)try{navigator.vibrate(60);}catch(e){}if(G.lives<=0)gameOver();}
+function addScore(n){G.score=Math.max(0,G.score+n);hud();if(n>0)G.pops.push({t:'+'+n,x:G.w/2+rnd(-60,60),y:G.h*.45,life:1});}
+function hurt(){G.lives--;hud();try{G.cv.classList.remove('shake');void G.cv.offsetWidth;G.cv.classList.add('shake');}catch(e){}if(navigator.vibrate)try{navigator.vibrate(60);}catch(e){}if(G.lives<=0)gameOver();}
 function gameOver(){
   if(!G||G.over)return;G.over=true;G.paused=true;
-  var id=G.def.id,prev=best(id);setBest(id,G.score);
+  if(G.def.versus){var wd=G.def,wn=G.winner;if(wn){CLS[wn]+=1;saveCls();}
+    var endv=$('mxgEnd');endv.hidden=false;
+    endv.innerHTML='<div class="mxg-card"><div class="mxg-big">\uD83C\uDFC6</div><h2>'+(wn?E(teamName(wn))+' '+E(T('wins!')):E(T('Game over')))+'</h2>'
+      +'<div class="mxg-teams"><div class="'+(CLS.A>=CLS.B?'lead':'')+'"><span>'+E(teamName('A'))+'</span><b>'+CLS.A+'</b></div><div class="'+(CLS.B>CLS.A?'lead':'')+'"><span>'+E(teamName('B'))+'</span><b>'+CLS.B+'</b></div></div>'
+      +'<div class="mxg-btns"><button type="button" class="mxm-btn pri" id="mxgAgain">\u21BB '+E(T('Rematch'))+'</button><button type="button" class="mxm-btn sec" id="mxgQuit">'+E(T('Pick another game'))+'</button></div></div>';
+    $('mxgAgain').onclick=function(){startGame(wd);};$('mxgQuit').onclick=function(){stopGame();};try{$('mxgAgain').focus();}catch(e){}
+    if(wn&&typeof W.lxConfetti==='function')try{W.lxConfetti();}catch(e){}
+    return;}
+  var id=G.def.id,prev=best(id);setBest(id,G.score);pushBest(id,G.score);
   var end=$('mxgEnd');end.hidden=false;
   end.innerHTML='<div class="mxg-card"><div class="mxg-big">'+(G.score>prev&&G.score>0?'🏆':'🎮')+'</div><h2>'+E(T(G.score>prev&&G.score>0?'New best score!':'Game over'))+'</h2>'
     +'<p class="mxg-final">'+G.score+'</p><p>'+E(T('Best'))+': '+Math.max(prev,G.score)+'</p>'
@@ -151,6 +258,7 @@ function gameOver(){
   }
   $('mxgAgain').onclick=function(){startGame(def);};
   $('mxgQuit').onclick=function(){stopGame();};
+  var card=end.querySelector('.mxg-card');if(card&&!CLS.on){var tp=D.createElement('div');tp.id='mxgTop';tp.className='mxg-top';card.insertBefore(tp,card.querySelector('.mxg-btns'));showTop(id);}
   try{$('mxgAgain').focus();}catch(e){}
   if(G.score>prev&&G.score>0&&typeof W.lxConfetti==='function')try{W.lxConfetti();}catch(e){}
 }
@@ -646,37 +754,607 @@ var FLIGHT={id:'flight',icon:'🪶',name:'Owl Flight',thumb:'owl1.png',bg:'bg_sk
   key:function(g,k){if(k===' '||k==='ArrowUp'||k==='Enter')g.state.vy=-340;}
 };
 
-var GAMES=[ASTEROIDS,TRUEFALSE,CASTLE,FLIGHT,BALLOONS,SNAKE,BOMB,RACE,STONES,CATCHER,FRUITS,PIZZA,RUNNER,MEMORY];
+
+/* =====================================================================
+   1.2.0: seven new games, each made for certain grades (g.lv = [from, to])
+   ===================================================================== */
+function fmtT(h,m){return h+':'+(m<10?'0':'')+m;}
+function ringBtns(g,ctx,opts,top,h){choiceBtns(g,ctx,opts,top,h);}
+function addMin(h,m,d){var t=((h-1)*60+m+d)%720;if(t<0)t+=720;return [Math.floor(t/60)+1,t%60];}
+function qBox(ctx,x,y,w,h){ctx.fillStyle='rgba(15,16,40,.82)';rr(ctx,x,y,w,h,20);ctx.fill();}
+function limitFor(g,base,floor,rate){return Math.max(floor,base-g.t*rate);}
+
+/* =====================================================================
+   1.2.0: In class = smart-board exercises (big problem, pen board, reveal
+   the worked answer, award points to the team whose turn it is)
+   ===================================================================== */
+function fr(n,d){var g=gcd(n,d);n/=g;d/=g;if(d<0){n=-n;d=-d;}return d===1?String(n):n+'/'+d;}
+function poly(t){var out='';t.forEach(function(p,i){var c=p[0],e=p[1];if(!c)return;var ab=Math.abs(c),body=(e===0)?String(ab):(ab===1?'':String(ab))+'x'+(e===1?'':({2:'\u00b2',3:'\u00b3',4:'\u2074',5:'\u2075'}[e]||'^'+e));
+  out+=out?(c<0?' \u2212 ':' + ')+body:(c<0?'\u2212':'')+body;});return out||'0';}
+var NAMES=['Mia','Omar','Lina','Sam','Noor','Leo','Zaid','Maya','Ali','Dana','Kareem','Sara'];
+/* Each generator returns {q, a, steps[]} */
+var BOARD=[null,
+ /* 1 */[function(){var a=rnd(6,9),b=rnd(4,9),n=pick(NAMES);return {q:'Make a ten:\n'+a+' + '+b+' = ?',a:String(a+b),steps:[a+' needs '+(10-a)+' to make 10','Split '+b+' into '+(10-a)+' and '+(b-(10-a)),'10 + '+(b-(10-a))+' = '+(a+b)]};},
+      function(){var a=rnd(3,9),c=rnd(a+4,18);return {q:'Fill the gap:\n'+a+' + \u25a1 = '+c,a:String(c-a),steps:['Count up from '+a+' to '+c,c+' \u2212 '+a+' = '+(c-a)]};},
+      function(){var n=pick(NAMES),a=rnd(8,12),b=rnd(4,8),c=rnd(3,7);return {q:n+' has '+a+' stickers.\nGets '+b+' more, then gives '+c+' away.\nHow many now?',a:String(a+b-c),steps:[a+' + '+b+' = '+(a+b),(a+b)+' \u2212 '+c+' = '+(a+b-c)]};}],
+ /* 2 */[function(){var a=rnd(24,58),b=rnd(17,39);return {q:'Add using tens and ones:\n'+a+' + '+b+' = ?',a:String(a+b),steps:['Tens: '+Math.floor(a/10)*10+' + '+Math.floor(b/10)*10+' = '+(Math.floor(a/10)+Math.floor(b/10))*10,'Ones: '+a%10+' + '+b%10+' = '+(a%10+b%10),'Together: '+(a+b)]};},
+      function(){var a=rnd(52,95),b=rnd(18,a-10);return {q:'Subtract:\n'+a+' \u2212 '+b+' = ?',a:String(a-b),steps:['Count back '+Math.floor(b/10)*10+' from '+a+' = '+(a-Math.floor(b/10)*10),'Then back '+b%10+' more = '+(a-b)]};},
+      function(){var a=pick([3,4,5,6]),b=rnd(3,9),n=pick(NAMES);return {q:n+' has '+a+' bags with '+b+' marbles in each.\nHow many marbles in all?',a:String(a*b),steps:[a+' groups of '+b,a+' \u00d7 '+b+' = '+a*b]};}],
+ /* 3 */[function(){var a=rnd(14,39),b=rnd(3,9);return {q:'Break it apart:\n'+a+' \u00d7 '+b+' = ?',a:String(a*b),steps:[a+' = '+Math.floor(a/10)*10+' + '+a%10,Math.floor(a/10)*10+' \u00d7 '+b+' = '+Math.floor(a/10)*10*b,a%10+' \u00d7 '+b+' = '+a%10*b,'Add: '+a*b]};},
+      function(){var b=rnd(3,9),q=rnd(12,19),a=b*q;return {q:'Divide:\n'+a+' \u00f7 '+b+' = ?',a:String(q),steps:['Think: '+b+' \u00d7 ? = '+a,b+' \u00d7 '+q+' = '+a]};},
+      function(){var l=rnd(6,15),w=rnd(4,9);return {q:'A garden is '+l+' m by '+w+' m.\nFind the area AND the perimeter.',a:'Area '+l*w+' m\u00b2, perimeter '+2*(l+w)+' m',steps:['Area = '+l+' \u00d7 '+w+' = '+l*w,'Perimeter = 2 \u00d7 ('+l+' + '+w+') = '+2*(l+w)]};},
+      function(){var d=pick([4,5,6,8]),a=rnd(1,d-3),b=rnd(1,d-a-1);return {q:'Add the fractions:\n'+a+'/'+d+' + '+b+'/'+d+' = ?',a:a+b+'/'+d+(gcd(a+b,d)>1?' = '+fr(a+b,d):''),steps:['Same denominator: keep '+d,'Add the tops: '+a+' + '+b+' = '+(a+b)]};}],
+ /* 4 */[function(){var a=rnd(3,9),b=rnd(4,9),c=rnd(2,8),d=rnd(5,20);return {q:'Order of operations:\n'+a+' + '+b+' \u00d7 '+c+' \u2212 '+d+' = ?',a:String(a+b*c-d),steps:['Multiply first: '+b+' \u00d7 '+c+' = '+b*c,a+' + '+b*c+' = '+(a+b*c),(a+b*c)+' \u2212 '+d+' = '+(a+b*c-d)]};},
+      function(){var a=rnd(23,48),b=rnd(6,9);return {q:'Multiply:\n'+a+' \u00d7 '+b+' = ?',a:String(a*b),steps:[Math.floor(a/10)*10+' \u00d7 '+b+' = '+Math.floor(a/10)*10*b,a%10+' \u00d7 '+b+' = '+a%10*b,'Add: '+a*b]};},
+      function(){var n=pick(NAMES),b=rnd(4,9),per=rnd(6,12),extra=rnd(3,9);return {q:n+' packs '+b+' boxes of '+per+' pencils,\nthen adds '+extra+' loose pencils.\nHow many pencils?',a:String(b*per+extra),steps:[b+' \u00d7 '+per+' = '+b*per,b*per+' + '+extra+' = '+(b*per+extra)]};}],
+ /* 5 */[function(){var a=pick([2,3,4,5]),b=pick([3,4,6,8]);if(a===b)b=7;var l=a*b/gcd(a,b);return {q:'Add the fractions:\n1/'+a+' + 1/'+b+' = ?',a:fr(l/a+l/b,l),steps:['Common denominator: '+l,'1/'+a+' = '+l/a+'/'+l+',  1/'+b+' = '+l/b+'/'+l,(l/a)+'/'+l+' + '+(l/b)+'/'+l+' = '+(l/a+l/b)+'/'+l+(gcd(l/a+l/b,l)>1?' = '+fr(l/a+l/b,l):'')]};},
+      function(){var p,b;do{p=pick([15,35,45,12,30,60]);b=pick([40,80,120,160,200,240,360]);}while((p*b)%100);return {q:'Find '+p+'% of '+b+'.',a:String(p*b/100),steps:['10% of '+b+' = '+b/10,'1% of '+b+' = '+b/100,p+'% = '+p+' \u00d7 '+b/100+' = '+p*b/100]};},
+      function(){var a=rnd(3,9),b=rnd(2,7),t=(a+b)*rnd(2,6);return {q:'Paint is mixed '+a+' : '+b+'.\nA batch has '+t+' litres in total.\nHow much of each?',a:t/(a+b)*a+' L and '+t/(a+b)*b+' L',steps:['Parts: '+a+' + '+b+' = '+(a+b),'One part = '+t+' \u00f7 '+(a+b)+' = '+t/(a+b),a+' parts = '+t/(a+b)*a+', '+b+' parts = '+t/(a+b)*b]};}],
+ /* 6 */[function(){var a=rnd(3,9),b=rnd(-9,-2),c=rnd(2,6),d=rnd(5,20);return {q:'Evaluate:\n'+a+'\u00b2 + ('+b+') \u00d7 '+c+' \u2212 '+d,a:String(a*a+b*c-d),steps:['Exponent: '+a+'\u00b2 = '+a*a,'Multiply: ('+b+') \u00d7 '+c+' = '+b*c,a*a+' + ('+b*c+') \u2212 '+d+' = '+(a*a+b*c-d)]};},
+      function(){var a=rnd(2,5),b=rnd(2,5),k=rnd(2,7),n1=a*k,n2=b*k;if(a===b)n2=(b+1)*k;return {q:'Simplify the ratio  '+n1+' : '+n2,a:fr(n1,n2).replace('/',' : '),steps:['GCF of '+n1+' and '+n2+' is '+gcd(n1,n2),'Divide both by '+gcd(n1,n2)]};},
+      function(){var p=pick([10,15,20,25,30]),base=pick([40,60,80,120,200]);while((base*p)%100)base=pick([40,60,80,120,200]);return {q:'A $'+base+' jacket is '+p+'% off.\nWhat is the sale price?',a:'$'+(base-base*p/100),steps:['Discount = '+p+'% of '+base+' = '+base*p/100,base+' \u2212 '+base*p/100+' = '+(base-base*p/100)]};}],
+ /* 7 */[function(){var a=rnd(3,8),x=rnd(-6,9),b=rnd(-12,12)||5;return {q:'Solve for x:\n'+a+'x '+(b<0?'\u2212 ':'+ ')+Math.abs(b)+' = '+(a*x+b),a:'x = '+x,steps:[(b<0?'Add ':'Subtract ')+Math.abs(b)+' from both sides:  '+a+'x = '+a*x,'Divide by '+a+':  x = '+x]};},
+      function(){var a=rnd(2,6),x=rnd(-5,8),b=rnd(2,7);return {q:'Solve:\n'+a+'(x + '+b+') = '+a*(x+b),a:'x = '+x,steps:['Divide by '+a+':  x + '+b+' = '+(x+b),'Subtract '+b+':  x = '+x]};},
+      function(){var n=pick(NAMES),s=rnd(2,6),a=s*3,t=rnd(2,5)*2;return {q:n+' is 3 times as old as '+pick(['Sam','Rima','Tala'])+'.\nIn '+t+' years their ages add to '+(4*s+2*t)+'.\nHow old is the younger one now?',a:String(s),steps:['Younger = x, older = 3x','In '+t+' years: (x + '+t+') + (3x + '+t+') = '+(4*s+2*t),'4x + '+2*t+' = '+(4*s+2*t)+'  \u2192  x = '+s]};}],
+ /* 8 */[function(){var x,a,c,b,d;do{x=rnd(-5,8);a=rnd(4,8);c=rnd(1,a-2);b=rnd(-8,8);d=a*x+b-c*x;}while(!b||!d);return {q:'Solve for x:\n'+a+'x '+(b<0?'\u2212 ':'+ ')+Math.abs(b)+' = '+c+'x '+(d<0?'\u2212 ':'+ ')+Math.abs(d),a:'x = '+x,steps:['Subtract '+c+'x from both sides:  '+(a-c)+'x '+(b<0?'\u2212 ':'+ ')+Math.abs(b)+' = '+(d<0?'\u2212 ':'')+Math.abs(d),'Move the '+b+':  '+(a-c)+'x = '+(d-b),'x = '+(d-b)/(a-c)]};},
+      function(){var p=rnd(-3,3),q=rnd(-4,4),x=rnd(1,4),y=rnd(1,4)*(Math.random()<.5?1:-1);return {q:'Find the slope and the equation of the line through\n('+p+', '+q+') and ('+(p+x)+', '+(q+x*y)+').',a:'y = '+(y===1?'':y===-1?'\u2212':y)+'x '+((q-y*p)<0?'\u2212 ':'+ ')+Math.abs(q-y*p),steps:['Slope = ('+(q+x*y)+' \u2212 '+q+') / ('+(p+x)+' \u2212 '+p+') = '+y,'y = '+y+'x + b, plug in ('+p+', '+q+')','b = '+q+' \u2212 '+y+'\u00d7'+p+' = '+(q-y*p)]};},
+      function(){var t=pick([[3,4,5],[5,12,13],[8,15,17],[6,8,10]]);return {q:'A ladder '+t[2]+' m long leans on a wall.\nIts base is '+t[0]+' m from the wall.\nHow high does it reach?',a:t[1]+' m',steps:['Right triangle: a\u00b2 + b\u00b2 = c\u00b2',t[0]+'\u00b2 + h\u00b2 = '+t[2]+'\u00b2',t[0]*t[0]+' + h\u00b2 = '+t[2]*t[2]+'  \u2192  h\u00b2 = '+t[1]*t[1],'h = '+t[1]]};},
+      function(){var a=rnd(2,5),b=rnd(2,6),c=rnd(2,4),d=rnd(2,7);return {q:'Expand and simplify:\n'+a+'(x + '+b+') \u2212 '+c+'(x \u2212 '+d+')',a:poly([[a-c,1],[a*b+c*d,0]]),steps:[a+'x + '+a*b+' \u2212 '+c+'x + '+c*d,'Combine x terms: '+(a-c)+'x','Combine numbers: '+(a*b+c*d)]};}],
+ /* 9 */[function(){var r1,r2;do{r1=rnd(-6,7);r2=rnd(-6,7);}while(r1===r2||r1+r2===0||!r1*r2);return {q:'Solve by factoring:\nx\u00b2 '+(-(r1+r2)<0?'\u2212 ':'+ ')+Math.abs(r1+r2)+'x '+(r1*r2<0?'\u2212 ':'+ ')+Math.abs(r1*r2)+' = 0',a:'x = '+Math.min(r1,r2)+' or x = '+Math.max(r1,r2),steps:['Find two numbers: product '+r1*r2+', sum '+(-(r1+r2)),'(x '+(r1<0?'+ ':'\u2212 ')+Math.abs(r1)+')(x '+(r2<0?'+ ':'\u2212 ')+Math.abs(r2)+') = 0','x = '+r1+' or x = '+r2]};},
+      function(){var x=rnd(1,6),y=rnd(-4,5),a=rnd(2,4);return {q:'Solve the system:\n'+a+'x + y = '+(a*x+y)+'\nx \u2212 y = '+(x-y),a:'x = '+x+', y = '+y,steps:['Add the equations: '+(a+1)+'x = '+(a*x+y+x-y),'x = '+x,'y = x \u2212 '+(x-y)+' = '+y]};},
+      function(){var t=pick([[3,4,5],[5,12,13],[8,15,17],[7,24,25]]);return {q:'In a right triangle the opposite side is '+t[0]+'\nand the hypotenuse is '+t[2]+'.\nFind sin \u03b8, cos \u03b8 and tan \u03b8.',a:'sin = '+t[0]+'/'+t[2]+',  cos = '+t[1]+'/'+t[2]+',  tan = '+t[0]+'/'+t[1],steps:['Adjacent: \u221a('+t[2]+'\u00b2 \u2212 '+t[0]+'\u00b2) = '+t[1],'sin = opp/hyp, cos = adj/hyp, tan = opp/adj']};}],
+ /* 10 */[function(){var a=rnd(1,3),h=rnd(-4,4),k=rnd(-5,5);return {q:'Find the vertex of the parabola\ny = '+(a===1?'':a)+'(x '+(h<=0?'+ '+(-h):'\u2212 '+h)+')\u00b2 '+(k<0?'\u2212 ':'+ ')+Math.abs(k),a:'('+h+', '+k+')',steps:['Vertex form: y = a(x \u2212 h)\u00b2 + k','h = '+h+',  k = '+k]};},
+       function(){var x1=rnd(-4,2),y1=rnd(-3,3),dx=pick([3,6,5,8]),dy=pick([4,8,12,15]);var t={3:[3,4,5],6:[6,8,10],5:[5,12,13],8:[8,15,17]}[dx];return {q:'Find the distance and the midpoint\nbetween ('+x1+', '+y1+') and ('+(x1+t[0])+', '+(y1+t[1])+').',a:'distance '+t[2]+',  midpoint ('+(x1+t[0]/2)+', '+(y1+t[1]/2)+')',steps:['d = \u221a('+t[0]+'\u00b2 + '+t[1]+'\u00b2) = \u221a'+(t[0]*t[0]+t[1]*t[1])+' = '+t[2],'Midpoint = average of the x\u2019s and y\u2019s']};},
+       function(){var a=rnd(2,6),d=rnd(3,7),n=rnd(15,30);return {q:'An arithmetic sequence starts '+a+', '+(a+d)+', '+(a+2*d)+', \u2026\nFind term '+n+' and the sum of the first '+n+' terms.',a:'term = '+(a+(n-1)*d)+',  sum = '+(n*(2*a+(n-1)*d)/2),steps:['a\u2099 = a + (n \u2212 1)d = '+a+' + '+(n-1)+' \u00d7 '+d+' = '+(a+(n-1)*d),'S\u2099 = n(a + a\u2099)/2 = '+n+'('+(a+(a+(n-1)*d))+')/2 = '+n*(2*a+(n-1)*d)/2]};}],
+ /* 11 */[function(){var b=pick([2,3]),x=rnd(2,5),k=rnd(0,2);return {q:'Solve:\n'+b+'^(x + '+k+') = '+Math.pow(b,x+k),a:'x = '+x,steps:['Write '+Math.pow(b,x+k)+' as '+b+'^'+(x+k),'x + '+k+' = '+(x+k),'x = '+x]};},
+       function(){var a=rnd(2,5),b=rnd(1,4),c=rnd(2,6);return {q:'Differentiate:\nf(x) = '+poly([[a,4],[-b,2],[c,1],[-3,0]]),a:'f\u2032(x) = '+poly([[4*a,3],[-2*b,1],[c,0]]),steps:['Power rule: d/dx x\u207f = n x\u207f\u207b\u00b9','Bring each power down and subtract 1','Constants disappear']};},
+       function(){var a=rnd(2,5),k=rnd(2,4),b=pick([2,4,6]);return {q:'Find lim x\u2192'+k+' of\n(x\u00b2 \u2212 '+k*k+') / (x \u2212 '+k+')',a:String(2*k),steps:['Factor: (x \u2212 '+k+')(x + '+k+') / (x \u2212 '+k+')','Cancel: x + '+k,'Plug in x = '+k+':  '+2*k]};}],
+ /* 12 */[function(){var a=pick([3,6,9]),b=pick([2,4,6]),c=rnd(2,7);return {q:'Integrate:\n\u222b ('+a+'x\u00b2 \u2212 '+b+'x + '+c+') dx',a:poly([[a/3,3],[-b/2,2],[c,1]])+' + C',steps:['Raise each power by 1, divide by the new power',a+'x\u00b2 \u2192 '+a/3+'x\u00b3,   '+b+'x \u2192 '+b/2+'x\u00b2,   '+c+' \u2192 '+c+'x','Add + C']};},
+       function(){var a=rnd(2,4),b=rnd(1,5),n=pick([3,4]);return {q:'Use the chain rule:\nd/dx ('+a+'x + '+b+')'+({3:'\u00b3',4:'\u2074'}[n]),a:n*a+'('+a+'x + '+b+')'+(n-1===2?'\u00b2':'\u00b3'),steps:['Outer: '+n+'(\u2026)^'+(n-1),'Inner derivative: '+a,'Multiply: '+n*a+'('+a+'x + '+b+')^'+(n-1)]};},
+       function(){var k=pick([1,2]),ang={1:'\u00bd',2:'\u221a2/2'};return {q:'Solve for 0\u00b0 \u2264 x \u2264 360\u00b0:\n'+(k===1?'2 sin x = 1':'\u221a2 sin x = 1'),a:k===1?'x = 30\u00b0 or 150\u00b0':'x = 45\u00b0 or 135\u00b0',steps:['sin x = '+ang[k],'First quadrant: '+(k===1?30:45)+'\u00b0','Second quadrant: 180\u00b0 \u2212 '+(k===1?30:45)+'\u00b0 = '+(k===1?150:135)+'\u00b0']};}],
+ /* 13 */[function(){var a=rnd(1,3),b=rnd(0,3),c=rnd(0,3),d=rnd(1,3),e=rnd(1,3),f=rnd(0,2),g2=rnd(0,2),h=rnd(1,3);var AB=[[a*e+b*g2,a*f+b*h],[c*e+d*g2,c*f+d*h]];return {q:'Multiply the matrices:\n[ '+a+' '+b+' ; '+c+' '+d+' ] \u00d7 [ '+e+' '+f+' ; '+g2+' '+h+' ]',a:'[ '+AB[0][0]+' '+AB[0][1]+' ; '+AB[1][0]+' '+AB[1][1]+' ]',steps:['Row \u00d7 column for each entry','Top-left: '+a+'\u00d7'+e+' + '+b+'\u00d7'+g2+' = '+AB[0][0],'Top-right: '+a+'\u00d7'+f+' + '+b+'\u00d7'+h+' = '+AB[0][1]]};},
+       function(){var a=pick([2,3,4]);return {q:'Differentiate (chain rule):\nd/dx sin('+a+'x\u00b2)',a:2*a+'x cos('+a+'x\u00b2)',steps:['Outer: cos('+a+'x\u00b2)','Inner derivative: '+2*a+'x','Multiply them']};},
+       function(){var k=pick([2,3,4,5]);return {q:'Find the sum of the series\n\u03a3 (1/'+k+')\u207f  from n = 0 to \u221e',a:fr(k,k-1),steps:['Geometric, ratio r = 1/'+k,'Sum = 1 / (1 \u2212 r) = 1 / (1 \u2212 1/'+k+')','= '+fr(k,k-1)]};},
+       function(){var a=rnd(2,5),b=rnd(1,3);return {q:'Eigenvalues of  [ '+a+' '+b+' ; '+b+' '+a+' ]',a:'\u03bb = '+(a+b)+' and '+(a-b),steps:['Symmetric: \u03bb = a \u00b1 b','\u03bb\u2081 = '+a+' + '+b+' = '+(a+b),'\u03bb\u2082 = '+a+' \u2212 '+b+' = '+(a-b)]};}]
+];
+/* word problems */
+var WORDS=[null,
+ /* 1-2 */[function(){var n=pick(NAMES),a=rnd(9,15),b=rnd(3,8),c=rnd(2,6);return {q:n+' has '+a+' marbles, wins '+b+' more and loses '+c+'.\nHow many marbles does '+n+' have now?',a:String(a+b-c),steps:[a+' + '+b+' = '+(a+b),(a+b)+' \u2212 '+c+' = '+(a+b-c)]};},
+         function(){var n=pick(NAMES),a=rnd(3,6),b=rnd(4,9);return {q:'A shelf holds '+b+' books in each of '+a+' rows.\nHow many books are there?',a:String(a*b),steps:[a+' rows \u00d7 '+b+' books = '+a*b]};}],
+ /* 3-4 */[function(){var a=rnd(4,9),b=rnd(5,12),c=rnd(3,9);return {q:'A bakery makes '+a+' trays of '+b+' rolls.\n'+c+' rolls are burnt. How many good rolls are left?',a:String(a*b-c),steps:[a+' \u00d7 '+b+' = '+a*b,a*b+' \u2212 '+c+' = '+(a*b-c)]};},
+         function(){var k=rnd(4,8),n=k*rnd(5,12);return {q:n+' students sit in equal teams of '+k+'.\nHow many teams? If 2 more teams join, how many students now?',a:n/k+' teams,  '+(n+2*k)+' students',steps:[n+' \u00f7 '+k+' = '+n/k,'2 more teams = '+2*k+' more students',n+' + '+2*k+' = '+(n+2*k)]};}],
+ /* 5-6 */[function(){var v=rnd(4,9)*10,t=pick([2,3,4]);return {q:'A bus drives '+v+' km every hour for '+t+' hours,\nthen another '+v/2+' km. Total distance?',a:(v*t+v/2)+' km',steps:[v+' \u00d7 '+t+' = '+v*t,v*t+' + '+v/2+' = '+(v*t+v/2)]};},
+         function(){var p=pick([20,25,50]),b=pick([40,60,80,120]);return {q:'A game costs $'+b+'. It is '+p+'% off, then you pay $5 for shipping.\nWhat is the total?',a:'$'+(b-b*p/100+5),steps:['Discount: '+p+'% of '+b+' = '+b*p/100,b+' \u2212 '+b*p/100+' = '+(b-b*p/100),'Add shipping: '+(b-b*p/100+5)]};}],
+ /* 7-8 */[function(){var s=rnd(10,40),d=rnd(2,9)*2;var big=(s*2+d)/2;return {q:'Two numbers add to '+(s*2+d)+' and differ by '+d+'.\nFind both numbers.',a:big+' and '+(big-d),steps:['x + y = '+(s*2+d)+',  x \u2212 y = '+d,'Add: 2x = '+(s*2+2*d)+'  \u2192  x = '+(s+d),'y = '+(s*2+d)+' \u2212 '+(s+d)+' = '+s].map(function(t,i){return t;})};},
+         function(){var n=rnd(5,20);return {q:'Three consecutive integers add to '+(3*n)+'.\nWhat are they?',a:(n-1)+', '+n+', '+(n+1),steps:['x + (x+1) + (x+2) = '+3*n,'3x + 3 = '+3*n+'  \u2192  x = '+(n-1)]};}],
+ /* 9-10 */[function(){var w=rnd(3,9),d=rnd(2,5);return {q:'A rectangle is '+d+' m longer than it is wide.\nIts area is '+w*(w+d)+' m\u00b2. Find the width.',a:w+' m',steps:['w(w + '+d+') = '+w*(w+d),'w\u00b2 + '+d+'w \u2212 '+w*(w+d)+' = 0','Factor: (w \u2212 '+w+')(w + '+(w+d)+') = 0','w = '+w+' (length can\u2019t be negative)']};},
+          function(){var v=rnd(2,6)*10,t=rnd(2,5);return {q:'Two cars leave the same point in opposite directions\nat '+v+' km/h and '+(v+20)+' km/h.\nHow far apart after '+t+' hours?',a:(2*v+20)*t+' km',steps:['Gap grows at '+v+' + '+(v+20)+' = '+(2*v+20)+' km/h',(2*v+20)+' \u00d7 '+t+' = '+(2*v+20)*t]};}],
+ /* 11-12 */[function(){var n0=rnd(2,6)*10,d=rnd(2,4),k=rnd(2,4);return {q:'A culture of '+n0+' bacteria doubles every '+d+' hours.\nHow many after '+d*k+' hours?',a:String(n0*Math.pow(2,k)),steps:['Doublings: '+d*k+' \u00f7 '+d+' = '+k,n0+' \u00d7 2^'+k+' = '+n0*Math.pow(2,k)]};},
+          function(){var t=rnd(2,5),a=rnd(2,4);return {q:'A ball\u2019s height is h(t) = '+a+'t\u00b2 + 3t metres.\nFind its speed (dh/dt) at t = '+t+' s.',a:(2*a*t+3)+' m/s',steps:['h\u2032(t) = '+2*a+'t + 3','h\u2032('+t+') = '+2*a*t+' + 3 = '+(2*a*t+3)]};}],
+ /* 13 */[function(){var s=rnd(4,12),r=rnd(2,5);return {q:'A square\u2019s side grows '+r+' cm/s.\nHow fast is its area growing when the side is '+s+' cm?',a:2*s*r+' cm\u00b2/s',steps:['A = s\u00b2  \u2192  dA/dt = 2s \u00b7 ds/dt','= 2 \u00d7 '+s+' \u00d7 '+r+' = '+2*s*r]};},
+        function(){var P=pick([40,60,80,100,120]);return {q:'You have '+P+' m of fence for a rectangular pen.\nWhat is the largest area you can enclose?',a:(P/4)*(P/4)+' m\u00b2',steps:['2(l + w) = '+P+'  \u2192  w = '+P/2+' \u2212 l','A = l('+P/2+' \u2212 l), maximum at l = '+P/4,'A = '+P/4+' \u00d7 '+P/4+' = '+(P/4)*(P/4)]};}]
+];
+function bandIdx(L){return L<=2?1:L<=4?2:L<=6?3:L<=8?4:L<=10?5:L<=12?6:7;}
+function trB(o){if(!W.trq)return o;o.q=W.trq(o.q);o.a=W.trq(o.a);o.steps=(o.steps||[]).map(function(x){return W.trq(x);});return o;}
+function boardQ(L){var list=BOARD[clamp(L,1,13)];return trB(pick(list)());}
+function wordQ(L){var list=WORDS[bandIdx(L)];return trB(pick(list)());}
+/* order-it cards */
+function orderSet(L){var n=L>=7?6:5,items=[],seen={};
+  function add(l,v){var k=Math.round(v*1000);if(seen[k])return false;seen[k]=1;items.push({l:l,v:v});return true;}
+  var guard=0;while(items.length<n&&guard++<200){
+    if(L<=2){var n1=rnd(3,99);add(String(n1),n1);}
+    else if(L<=4){var r=Math.random();if(r<.4){var a=rnd(100,999);add(String(a),a);}else if(r<.7){var d=pick([2,4,5,8,10]);var nn=rnd(1,d-1);add(nn+'/'+d,nn/d);}else{var dd=rnd(1,99)/10;add(String(dd),dd);}}
+    else if(L<=6){var r2=Math.random();if(r2<.34){var d2=pick([2,3,4,5,8]);var n2=rnd(1,d2*2);add(n2+'/'+d2,n2/d2);}else if(r2<.67){var f=rnd(5,250)/100;add(String(f),f);}else{var p=rnd(5,190);add(p+'%',p/100);}}
+    else if(L<=8){var r3=Math.random();if(r3<.4){var q=rnd(-9,9);add(String(q).replace('-','\u2212'),q);}else if(r3<.7){var n3=rnd(-12,12),d3=pick([2,3,4,5]);add((n3<0?'\u2212':'')+Math.abs(n3)+'/'+d3,n3/d3);}else{var s=rnd(2,60);add('\u221a'+s,Math.sqrt(s));}}
+    else if(L<=10){var r4=Math.random();if(r4<.3){var a4=rnd(2,4),b4=rnd(2,5);add(a4+'^'+b4,Math.pow(a4,b4));}else if(r4<.6){var s4=rnd(5,90);add('\u221a'+s4,Math.sqrt(s4));}else if(r4<.8){var n5=rnd(2,15);add(n5+'\u00b2/3',n5*n5/3);}else{var lg=rnd(2,9)*5;add('log\u2082 '+lg,Math.log2(lg));}}
+    else{var pool=[['\u03c0',Math.PI],['e',Math.E],['\u221a10',Math.sqrt(10)],['ln 20',Math.log(20)],['2\u00b7e\u207b\u00b9',2/Math.E],['sin 2',Math.sin(2)],['cos 3',Math.cos(3)],['log\u2082 10',Math.log2(10)],['e\u00b2',Math.E*Math.E],['\u03c0/2',Math.PI/2],['\u221a2\u00b7\u03c0',Math.SQRT2*Math.PI],['ln 0.3',Math.log(.3)],['\u22122\u03c0/3',-2*Math.PI/3],['1/e',1/Math.E]];var it=pick(pool);add(it[0],it[1]);}
+  }
+  return items;}
+
+var BX={on:null};
+function stopBoard(){if(!BX.on)return;var o=BX.on;BX.on=null;try{W.removeEventListener('resize',o.rs);}catch(e){}if(o.tm)clearInterval(o.tm);if(o.el.parentNode)o.el.parentNode.removeChild(o.el);D.body.classList.remove('mxg-on');var c=$('content');if(c&&c.querySelector('.mxr-arcade'))renderArcade(c);}
+var EXERCISES=[
+  {id:'board',icon:'\u270F\uFE0F',name:'Solve on the Board',desc:'A real worked problem for your grade. Work it out on the board with the pen, then reveal the steps.',n:8,pen:true,gen:boardQ},
+  {id:'sprint',icon:'\u23F1\uFE0F',name:'Mental Math Sprint',desc:'One hard question, a ring counting down. Shout the answer, then reveal. 10 rounds.',n:10,pen:false,timer:20,gen:function(L){var q=makeQ(L);return {q:qText(q),a:String(q.a),steps:[]};}},
+  {id:'word',icon:'\uD83D\uDCD6',name:'Word Problem',desc:'A story problem for your grade. Write the plan on the board, solve it, then check.',n:6,pen:true,gen:wordQ},
+  {id:'order',icon:'\uD83D\uDD00',name:'Order It',desc:'Drag the cards into order, smallest to largest (or the other way round). Numbers, fractions, roots, logs\u2026',n:6,order:true}
+];
+function startBoard(ex){
+  stopGame(true);stopBoard();
+  var L=level(),round=0,N=ex.n,pts={A:0,B:0},cur=null,revealed=false;
+  CLS.on=true;
+  var el=D.createElement('div');el.id='mxbOv';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');el.setAttribute('aria-label',T(ex.name));
+  D.body.appendChild(el);D.body.classList.add('mxg-on');
+  var strokes=[],color='#ffffff',size=5,cvs=null,cx=null,drawing=null,tmr=0,tm=null,ord=null,sel=-1;
+  var o={el:el,rs:function(){fitCv();},tm:null};BX.on=o;
+  function teamChip(t){return '<div class="mxb-team'+(CLS.turn===t?' on':'')+'"><span>'+E(teamName(t))+'</span><b>'+CLS[t]+'</b></div>';}
+  function head(){return '<div class="mxb-top"><button type="button" class="mxg-ib" id="mxbX" aria-label="'+E(T('Exit'))+'">\u2715</button><div class="mxb-title"><b>'+ex.icon+' '+E(T(ex.name))+'</b><span>'+E(T('Question'))+' '+Math.min(round,N)+' / '+N+' \u00b7 '+E(T(LEVELS[L-1][1]))+'</span></div>'+teamChip('A')+teamChip('B')+'</div>';}
+  function next(){
+    round++;if(round>N){return finish();}revealed=false;strokes=[];sel=-1;
+    if(ex.order){ord=orderSet(L);var asc=Math.random()<.7;ord.asc=asc;ord.sorted=ord.slice().sort(function(a,b){return asc?a.v-b.v:b.v-a.v;});ord.cards=shuffle(ord.slice());ord.checked=false;cur={q:T(asc?'Smallest \u2192 largest':'Largest \u2192 smallest'),a:'',steps:[]};}
+    else cur=ex.gen(L);
+    paint();
+    if(ex.timer){tmr=ex.timer;if(tm)clearInterval(tm);tm=setInterval(function(){if(BX.on!==o){clearInterval(tm);return;}tmr--;var r=$('mxbRing');if(r)r.textContent=Math.max(0,tmr);var rg=$('mxbRingBar');if(rg)rg.style.setProperty('--p',Math.max(0,tmr/ex.timer));if(tmr<=0){clearInterval(tm);reveal();}},1000);o.tm=tm;}
+  }
+  function paint(){
+    var h=head();
+    if(ex.order){
+      h+='<div class="mxb-prob"><div class="mxb-q small">'+E(cur.q)+'</div></div><div class="mxb-cards" id="mxbCards"></div><div class="mxb-ans" id="mxbAns" '+(revealed?'':'hidden')+'></div>';
+    }else{
+      h+='<div class="mxb-prob"><div class="mxb-q" id="mxbQ">'+E(cur.q).replace(/\n/g,'<br>')+'</div>'+(ex.timer?'<div class="mxb-ring" id="mxbRingBar"><b id="mxbRing">'+tmr+'</b></div>':'')+'</div>'
+        +'<div class="mxb-ans" id="mxbAns" hidden></div>'
+        +(ex.pen?'<div class="mxb-tools" role="toolbar" aria-label="'+E(T('Pen'))+'">'+['#ffffff','#fde047','#38bdf8','#f472b6','#4ade80'].map(function(c){return '<button type="button" class="mxb-c'+(c===color?' on':'')+'" data-c="'+c+'" style="background:'+c+'" aria-label="'+c+'"></button>';}).join('')
+          +'<button type="button" class="mxb-t" data-s="5">\u2022</button><button type="button" class="mxb-t" data-s="12">\u25CF</button><button type="button" class="mxb-t" data-e="1">\u2B1C '+E(T('Eraser'))+'</button><button type="button" class="mxb-t" id="mxbUndo">\u21B6 '+E(T('Undo'))+'</button><button type="button" class="mxb-t" id="mxbClr">\uD83D\uDDD1 '+E(T('Clear'))+'</button></div><canvas id="mxbCv" class="mxb-cv"></canvas>':'<div class="mxb-fill"></div>');
+    }
+    h+='<div class="mxb-act" id="mxbAct"></div>';
+    el.innerHTML=h;acts();bind();
+    if(ex.order)cards();
+    else if(ex.pen){cvs=$('mxbCv');cx=cvs.getContext('2d');fitCv();penBind();}
+  }
+  function acts(){var a=$('mxbAct');if(!a)return;var t=CLS.turn,ot=t==='A'?'B':'A';
+    if(ex.order&&!revealed&&!ord.checked){a.innerHTML='<button type="button" class="mxb-b pri" id="mxbCheck">\u2714 '+E(T('Check order'))+'</button>';}
+    else if(!revealed){a.innerHTML='<button type="button" class="mxb-b pri" id="mxbShow">\uD83D\uDC41 '+E(T('Show answer'))+'</button>';}
+    else{a.innerHTML='<button type="button" class="mxb-b ok" id="mxbOk">\u2714 '+E(teamName(t))+' +10</button><button type="button" class="mxb-b steal" id="mxbSteal">\u21AA '+E(teamName(ot))+' '+E(T('steals'))+' +5</button><button type="button" class="mxb-b" id="mxbNo">'+E(T('No points'))+'</button>';}
+    var b;b=$('mxbShow');if(b)b.onclick=reveal;b=$('mxbCheck');if(b)b.onclick=reveal;
+    b=$('mxbOk');if(b)b.onclick=function(){award(t,10);};b=$('mxbSteal');if(b)b.onclick=function(){award(ot,5);};b=$('mxbNo');if(b)b.onclick=function(){award(null,0);};}
+  function bind(){var x=$('mxbX');if(x)x.onclick=stopBoard;
+    el.querySelectorAll('.mxb-team').forEach(function(d,i){d.onclick=function(){CLS.turn=i?'B':'A';saveCls();var tp=el.querySelector('.mxb-top');if(tp){var n=D.createElement('div');n.innerHTML=head();tp.replaceWith(n.firstChild);}bind();acts();};});}
+  function award(t,n){if(t){CLS[t]+=n;pts[t]+=n;}CLS.turn=CLS.turn==='A'?'B':'A';saveCls();next();}
+  function reveal(){if(revealed)return;revealed=true;if(tm){clearInterval(tm);}
+    var a=$('mxbAns');
+    if(ex.order){ord.checked=true;var ok2=ord.cards.every(function(c,i){return c===ord.sorted[i];});cards();a.hidden=false;a.innerHTML=(ok2?'\uD83C\uDF89 '+E(T('Perfect order!')):'\u274C '+E(T('Not quite. The right order is:')+' '+ord.sorted.map(function(c){return c.l;}).join(ord.asc?'  <  ':'  >  ')));}
+    else{a.hidden=false;a.innerHTML='<div class="mxb-a">'+E(cur.a)+'</div>'+(cur.steps&&cur.steps.length?'<ol>'+cur.steps.map(function(s){return '<li>'+E(s)+'</li>';}).join('')+'</ol>':'');}
+    acts();}
+  function finish(){if(tm)clearInterval(tm);var w=pts.A===pts.B?T('It\u2019s a tie!'):teamName(pts.A>pts.B?'A':'B')+' '+T('wins this round!');
+    el.innerHTML=head()+'<div class="mxb-end"><div class="mxg-big">\uD83C\uDFC6</div><h2>'+E(w)+'</h2><div class="mxg-teams"><div class="'+(pts.A>=pts.B?'lead':'')+'"><span>'+E(teamName('A'))+'</span><b>'+pts.A+'</b></div><div class="'+(pts.B>pts.A?'lead':'')+'"><span>'+E(teamName('B'))+'</span><b>'+pts.B+'</b></div></div>'
+      +'<p>'+E(T('Total this class'))+': '+E(teamName('A'))+' '+CLS.A+' \u00b7 '+E(teamName('B'))+' '+CLS.B+'</p><div class="mxg-btns"><button type="button" class="mxb-b pri" id="mxbAgain">\u21BB '+E(T('Play again'))+'</button><button type="button" class="mxb-b" id="mxbBack">'+E(T('Pick another exercise'))+'</button></div></div>';
+    bind();$('mxbAgain').onclick=function(){round=0;pts={A:0,B:0};next();};$('mxbBack').onclick=stopBoard;}
+  /* pen */
+  function fitCv(){if(!cvs)return;var r=cvs.getBoundingClientRect(),dpr=Math.min(2,W.devicePixelRatio||1);cvs.width=Math.round(r.width*dpr);cvs.height=Math.round(r.height*dpr);cx.setTransform(dpr,0,0,dpr,0,0);redraw();}
+  function redraw(){if(!cx)return;var r=cvs.getBoundingClientRect();cx.clearRect(0,0,r.width,r.height);cx.lineCap='round';cx.lineJoin='round';
+    strokes.forEach(function(st){cx.strokeStyle=st.c==='erase'?'#0f2a1e':st.c;cx.lineWidth=st.w;cx.beginPath();st.p.forEach(function(p,i){i?cx.lineTo(p[0],p[1]):cx.moveTo(p[0],p[1]);});if(st.p.length===1)cx.lineTo(st.p[0][0]+.1,st.p[0][1]);cx.stroke();});}
+  function penBind(){
+    function pt(e){var r=cvs.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top];}
+    cvs.addEventListener('pointerdown',function(e){e.preventDefault();try{cvs.setPointerCapture(e.pointerId);}catch(_){}drawing={c:color,w:color==='erase'?34:size,p:[pt(e)]};strokes.push(drawing);redraw();});
+    cvs.addEventListener('pointermove',function(e){if(!drawing)return;drawing.p.push(pt(e));redraw();});
+    var end=function(){drawing=null;};cvs.addEventListener('pointerup',end);cvs.addEventListener('pointercancel',end);
+    el.querySelectorAll('.mxb-c').forEach(function(b){b.onclick=function(){color=b.dataset.c;el.querySelectorAll('.mxb-c,.mxb-t[data-e]').forEach(function(x){x.classList.remove('on');});b.classList.add('on');};});
+    el.querySelectorAll('.mxb-t[data-s]').forEach(function(b){b.onclick=function(){size=+b.dataset.s;if(color==='erase')color='#ffffff';};});
+    var er=el.querySelector('.mxb-t[data-e]');if(er)er.onclick=function(){color='erase';el.querySelectorAll('.mxb-c').forEach(function(x){x.classList.remove('on');});er.classList.add('on');};
+    $('mxbUndo').onclick=function(){strokes.pop();redraw();};$('mxbClr').onclick=function(){strokes=[];redraw();};}
+  /* order cards: tap two to swap, or drag */
+  function cards(){var box=$('mxbCards');if(!box)return;box.innerHTML='';
+    ord.cards.forEach(function(c,i){var d=D.createElement('div');d.className='mxb-card'+(sel===i?' sel':'')+(ord.checked?(c===ord.sorted[i]?' good':' bad'):'');d.setAttribute('role','button');d.setAttribute('tabindex','0');d.dataset.i=i;
+      d.innerHTML='<span>'+E(c.l)+'</span>'+(ord.checked?'<small>'+(Math.round(c.v*1000)/1000)+'</small>':'');box.appendChild(d);});
+    if(ord.checked)return;
+    var drag=null;
+    box.querySelectorAll('.mxb-card').forEach(function(d){
+      d.addEventListener('pointerdown',function(e){e.preventDefault();try{d.setPointerCapture(e.pointerId);}catch(_){}drag={d:d,i:+d.dataset.i,x0:e.clientX,y0:e.clientY,moved:false};});
+      d.addEventListener('pointermove',function(e){if(!drag||drag.d!==d)return;var dx=e.clientX-drag.x0,dy=e.clientY-drag.y0;if(Math.abs(dx)+Math.abs(dy)>8)drag.moved=true;if(drag.moved){d.style.transform='translate('+dx+'px,'+dy+'px) scale(1.08)';d.style.zIndex=5;}});
+      d.addEventListener('pointerup',function(e){if(!drag||drag.d!==d)return;var dr=drag;drag=null;
+        if(dr.moved){var kids=[].slice.call(box.children),best=dr.i,bd=1e9;kids.forEach(function(k,j){var r=k.getBoundingClientRect(),dd=Math.hypot(e.clientX-(r.left+r.width/2),e.clientY-(r.top+r.height/2));if(dd<bd){bd=dd;best=j;}});
+          var it=ord.cards.splice(dr.i,1)[0];ord.cards.splice(best,0,it);sel=-1;cards();}
+        else{if(sel<0)sel=dr.i;else if(sel===dr.i)sel=-1;else{var t=ord.cards[sel];ord.cards[sel]=ord.cards[dr.i];ord.cards[dr.i]=t;sel=-1;}cards();}});});
+  }
+  next();
+}
+
+
+/* =====================================================================
+   1.3.0: four more games, with two new backgrounds (ocean, forest) drawn for every screen shape
+   ===================================================================== */
+var SUP={2:'²',3:'³',4:'⁴',5:'⁵',6:'⁶'};
+/* number "cards" of a size that suits the grade: {l: text, v: value} */
+function numCard(L){
+  var a,b,c,d;
+  if(L<=2){a=rnd(1,L<=1?20:99);return {l:String(a),v:a};}
+  if(L<=4){var t=pick([0,1,2]);if(t===0){a=rnd(100,L<=3?999:9999);return {l:String(a),v:a};}
+    if(t===1){a=rnd(3,9);b=rnd(3,12);return {l:a+' × '+b,v:a*b};}a=rnd(20,90);b=rnd(10,60);return {l:a+' + '+b,v:a+b};}
+  if(L<=6){var t2=pick([0,1,2,3]);if(t2===0){a=rnd(1,99)/100+rnd(0,9);a=Math.round(a*100)/100;return {l:a.toFixed(2),v:a};}
+    if(t2===1){b=rnd(2,9);a=rnd(1,b-1);return {l:a+'/'+b,v:a/b};}
+    if(t2===2){a=pick([10,20,25,30,40,50,60,75]);b=pick([40,80,120,200,240]);return {l:a+'% of '+b,v:a*b/100};}
+    a=rnd(2,9);b=rnd(2,4);return {l:a+SUP[b],v:Math.pow(a,b)};}
+  if(L<=9){var t3=pick([0,1,2,3]);if(t3===0){a=rnd(-40,40);return {l:a<0?'−'+(-a):String(a),v:a};}
+    if(t3===1){b=rnd(2,9);a=rnd(-9,9);if(!a)a=1;return {l:(a<0?'−':'')+Math.abs(a)+'/'+b,v:a/b};}
+    if(t3===2){a=rnd(2,60);return {l:'√'+a,v:Math.sqrt(a)};}
+    a=rnd(2,5);b=rnd(2,5);return {l:a+SUP[b]+' − '+rnd(1,20),v:0};}
+  var t4=pick([0,1,2,3]);
+  if(t4===0){a=rnd(2,60);return {l:'√'+a,v:Math.sqrt(a)};}
+  if(t4===1){a=pick([2,3,5,10]);b=rnd(2,50);var nm={2:'₂',3:'₃',5:'₅',10:'₁₀'};return {l:'log'+nm[a]+' '+b,v:Math.log(b)/Math.log(a)};}
+  if(t4===2){a=rnd(1,11);var ang=pick([[0,'0'],[30,'π/6'],[45,'π/4'],[60,'π/3'],[90,'π/2'],[120,'2π/3'],[180,'π']]);var f=pick([['sin',Math.sin],['cos',Math.cos]]);return {l:f[0]+' '+ang[1],v:f[1](ang[0]*Math.PI/180)};}
+  a=rnd(2,6);b=rnd(-3,3);return {l:'e^'+b,v:Math.exp(b)};
+}
+function fixCard(c){ /* the lazy power-minus-number card above needs its value worked out from its label */
+  var m=/^(\d)([²³⁴⁵⁶]) − (\d+)$/.exec(c.l);if(m){var e={'²':2,'³':3,'⁴':4,'⁵':5,'⁶':6}[m[2]];c.v=Math.pow(+m[1],e)-(+m[3]);}return c;}
+function card(L){return fixCard(numCard(L));}
+function distinctCards(L,n){var out=[],tries=0;while(out.length<n&&tries++<200){var c=card(L);if(!out.some(function(o){return Math.abs(o.v-c.v)<1e-6||o.l===c.l;}))out.push(c);}return out;}
+
+/* 🐠 Fish Quiz (all grades): tap the fish carrying the right answer */
+var FISH={id:'fish',icon:'🐠',name:'Fish Quiz',thumb:'fish_orange.png',bg:'bg_ocean.jpg',
+  desc:'A school of fish swims by, each one carrying an answer. Tap the fish with the right one before they all swim away!',
+  init:function(g){var s=g.state;s.parts=[];s.fish=[];s.streak=0;s.bub=[];for(var i=0;i<14;i++)s.bub.push({x:Math.random(),y:Math.random(),r:2+Math.random()*5,v:.03+Math.random()*.06});this.next(g);},
+  next:function(g){var s=g.state,q=makeQ(g.L),n=g.w<520?4:5,vals=shuffle([q.a].concat(wrongs(q.a,n-1,g.L)));s.q=q;setQ(qText(q));
+    var top=g.h*.2,bot=btnsTop(g)+(g.w<520?60:20),lane=(Math.min(g.h-70,bot)-top)/n,sp=Math.min(130,60+g.t*1.1+g.w*.03);
+    s.fish=vals.map(function(v,i){var dir=i%2?1:-1,r=Math.min(46,lane*.42,g.w*.1);return {v:v,x:dir<0?g.w+r+rnd(0,160):-r-rnd(0,160),y:top+lane*(i+.5),dir:dir,r:r,sp:sp*(.8+Math.random()*.5),ph:Math.random()*6,img:i%2?'fish_blue.png':'fish_orange.png'};});},
+  update:function(g,dt){var s=g.state;
+    s.bub.forEach(function(b){b.y-=b.v*dt;if(b.y<-.05){b.y=1.05;b.x=Math.random();}});
+    s.fish.forEach(function(f){f.x+=f.dir*f.sp*dt;f.ph+=dt*4;});
+    if(s.fish.every(function(f){return f.dir<0?f.x<-f.r*2:f.x>g.w+f.r*2;})){flash(T('They swam away!')+' '+ansText(s.q),'#fca5a5');s.streak=0;hurt();if(!g.over)this.next(g);}},
+  draw:function(g,ctx){var s=g.state;cover(ctx,IMG['bg_ocean.jpg'],g.w,g.h);
+    ctx.fillStyle='rgba(255,255,255,.35)';s.bub.forEach(function(b){ctx.beginPath();ctx.arc(b.x*g.w,b.y*g.h,b.r,0,6.283);ctx.fill();});
+    s.fish.forEach(function(f){var im=IMG[f.img],y=f.y+Math.sin(f.ph)*6;ctx.save();ctx.translate(f.x,y);if(f.dir>0)ctx.scale(-1,1);
+      if(ok(im))ctx.drawImage(im,-f.r*1.5,-f.r*1.1,f.r*3,f.r*2.2);ctx.restore();
+      label(ctx,String(f.v),f.x+(f.dir<0?-f.r*.1:f.r*.1),y-f.r*.05,Math.round(f.r*(String(f.v).length>3?.5:.72)),'#fff');});
+    if(s.streak>1)label(ctx,'🔥 '+s.streak,g.w-52,g.h*.14,24,'#fbbf24');
+    drawParts(ctx,s.parts,1/60);},
+  down:function(g,x,y){var s=g.state,hit=null,bd=1e9;s.fish.forEach(function(f){var d=Math.hypot(x-f.x,y-f.y);if(d<f.r*1.6&&d<bd){bd=d;hit=f;}});if(!hit)return;
+    if(hit.v===s.q.a){s.streak++;addScore(10+Math.min(10,s.streak)*2);burst(s.parts,hit.x,hit.y,'#7dd3fc');this.next(g);}
+    else{s.streak=0;flash(T('Not quite!')+' '+hit.v,'#fca5a5');burst(s.parts,hit.x,hit.y,'#ef4444');s.fish=s.fish.filter(function(f){return f!==hit;});hurt();}},
+  key:function(g,k){var i=parseInt(k,10)-1,s=g.state;if(s.fish[i])this.down(g,s.fish[i].x,s.fish[i].y);}
+};
+
+/* ⭐ Star Order (all grades): tap the stars from smallest to biggest */
+var STARS={id:'stars',icon:'⭐',name:'Star Order',thumb:'star.png',bg:'bg_forest.jpg',
+  desc:'Stars light up the evening sky. Tap them from the smallest number to the biggest. Fractions, roots and logs join in as you grow!',
+  init:function(g){var s=g.state;s.parts=[];s.round=0;s.streak=0;this.round(g);},
+  round:function(g){var s=g.state,n=clamp(4+Math.floor(s.round/2),4,g.L<=2?6:7),cs=distinctCards(g.L,n),r=Math.min(64,g.w*.13,g.h*.1),top=g.h*.2+r,bot=g.h-r-24,tries=0;
+    s.round++;s.next=0;s.st=[];
+    cs.forEach(function(c,i){var x,y,k=0;do{x=rnd(Math.round(r),Math.round(g.w-r));y=rnd(Math.round(top),Math.round(Math.max(top+1,bot)));k++;}while(k<80&&s.st.some(function(o){return Math.hypot(o.x-x,o.y-y)<r*2.3;}));
+      s.st.push({l:c.l,v:c.v,x:x,y:y,r:r,ph:Math.random()*6,done:false});});
+    s.order=s.st.slice().sort(function(a,b){return a.v-b.v;});s.limit=limitFor(g,10+n*2.2,7,.12);s.left=s.limit;setQ(T('Smallest to biggest'));},
+  update:function(g,dt){var s=g.state;s.st.forEach(function(o){o.ph+=dt*3;});s.left-=dt;
+    if(s.left<=0){flash(T('Time up!')+' '+s.order.map(function(o){return o.l;}).join(' < '),'#fca5a5');s.streak=0;hurt();if(!g.over)this.round(g);}},
+  draw:function(g,ctx){var s=g.state;cover(ctx,IMG['bg_forest.jpg'],g.w,g.h);timeBar(ctx,14,g.h*.17,g.w-28,clamp(s.left/s.limit,0,1));
+    s.st.forEach(function(o){var im=IMG['star.png'],p=1+Math.sin(o.ph)*.05,R=o.r*p;ctx.globalAlpha=o.done?.3:1;
+      ctx.save();ctx.shadowColor='#fde047';ctx.shadowBlur=o.done?0:18;if(ok(im))ctx.drawImage(im,o.x-R*1.25,o.y-R*1.25,R*2.5,R*2.5);ctx.restore();
+      label(ctx,o.l,o.x,o.y+R*.12,Math.round(Math.min(R*.7,R*1.7/Math.max(2.4,o.l.length*.6))),o.done?'#cbd5e1':'#1e1b4b',false);ctx.globalAlpha=1;});
+    if(s.streak>1)label(ctx,'🔥 '+s.streak,g.w-52,g.h*.13,24,'#fbbf24');
+    drawParts(ctx,s.parts,1/60);},
+  down:function(g,x,y){var s=g.state,hit=null,bd=1e9;s.st.forEach(function(o){var d=Math.hypot(x-o.x,y-o.y);if(!o.done&&d<o.r*1.5&&d<bd){bd=d;hit=o;}});if(!hit)return;
+    if(hit===s.order[s.next]){hit.done=true;s.next++;addScore(4+Math.round(s.left*.5));burst(s.parts,hit.x,hit.y,'#fde047');
+      if(s.next>=s.order.length){s.streak++;addScore(10+s.streak*2);flash('✨ '+T('Great order!'),'#bbf7d0');this.round(g);}}
+    else{s.streak=0;flash(hit.l+' '+T('is not the smallest left'),'#fca5a5');hurt();if(!g.over)s.left=Math.max(1,s.left-2);}}
+};
+
+/* 💎 Gem Hunt: tap every number that fits the rule */
+var GEMS={id:'gems',icon:'💎',name:'Gem Hunt',thumb:'gem.png',bg:'bg_ocean.jpg',
+  desc:'Dig up every gem that fits the rule: multiples, primes, squares, factors. Miss one when time is up, or dig a wrong one, and you lose a heart.',
+  init:function(g){var s=g.state;s.parts=[];s.round=0;s.streak=0;this.round(g);},
+  rule:function(L){var n;
+    if(L<=4){n=pick([3,4,6,7,8,9]);return {t:T('Multiples of')+' '+n,f:function(v){return v%n===0;},lo:n,hi:n*12};}
+    if(L<=6){n=pick([2,3,4,5,6,7]);var kind=pick([0,1]);if(kind)return {t:T('Prime numbers'),f:isPrime,lo:2,hi:60};return {t:T('Multiples of')+' '+n*3,f:function(v){return v%(n*3)===0;},lo:n*3,hi:n*3*10};}
+    if(L<=9){var k=pick([0,1,2]);if(k===0)return {t:T('Prime numbers'),f:isPrime,lo:2,hi:90};if(k===1)return {t:T('Perfect squares'),f:function(v){return Math.sqrt(v)%1===0;},lo:1,hi:200};n=pick([24,36,48,60,72]);return {t:T('Factors of')+' '+n,f:function(v){return n%v===0;},lo:1,hi:n};}
+    var k2=pick([0,1,2]);if(k2===0)return {t:T('Perfect cubes'),f:function(v){return Math.round(Math.cbrt(v))%1===0&&Math.pow(Math.round(Math.cbrt(v)),3)===v;},lo:1,hi:1100};
+    if(k2===1){n=pick([84,96,120,144,180]);return {t:T('Factors of')+' '+n,f:function(v){return n%v===0;},lo:1,hi:n};}
+    return {t:T('Prime numbers'),f:isPrime,lo:2,hi:200};},
+  round:function(g){var s=g.state,rule=this.rule(g.L),n=g.w<520?12:15,cols=g.w<520?3:5,vals=[],good=[],bad=[],tries=0;
+    for(var v=rule.lo;v<=rule.hi;v++)(rule.f(v)?good:bad).push(v);
+    good=shuffle(good);bad=shuffle(bad);var ng=clamp(Math.round(n*.4),3,good.length);vals=good.slice(0,ng).concat(bad.slice(0,n-ng));
+    if(vals.length<n)vals=vals.concat(good.slice(ng,ng+n-vals.length));
+    vals=shuffle(vals);s.round++;s.rule=rule;s.cells=vals.map(function(v){return {v:v,good:rule.f(v),done:false};});s.cols=cols;
+    s.limit=limitFor(g,22,10,.15);s.left=s.limit;setQ(rule.t);},
+  update:function(g,dt){var s=g.state;s.left-=dt;
+    if(s.left<=0){flash(T('Time up!'),'#fca5a5');s.streak=0;hurt();if(!g.over)this.round(g);}},
+  draw:function(g,ctx){var s=g.state;cover(ctx,IMG['bg_ocean.jpg'],g.w,g.h);ctx.fillStyle='rgba(6,24,70,.35)';ctx.fillRect(0,0,g.w,g.h);
+    timeBar(ctx,14,g.h*.17,g.w-28,clamp(s.left/s.limit,0,1));
+    var rows=Math.ceil(s.cells.length/s.cols),top=g.h*.22,gap=8,cw=(g.w-24-gap*(s.cols-1))/s.cols,ch=Math.min(cw,(g.h-top-20-gap*(rows-1))/rows);
+    s.cells.forEach(function(c,i){var r=Math.floor(i/s.cols),k=i%s.cols;c.x=12+k*(cw+gap);c.y=top+r*(ch+gap);c.w=cw;c.h=ch;
+      ctx.globalAlpha=c.done?.25:1;var im=IMG['gem.png'];ctx.fillStyle='rgba(255,255,255,.14)';rr(ctx,c.x,c.y,cw,ch,16);ctx.fill();
+      if(ok(im)){var sz=Math.min(cw,ch)*.92;ctx.drawImage(im,c.x+(cw-sz)/2,c.y+(ch-sz)/2,sz,sz);}
+      label(ctx,String(c.v),c.x+cw/2,c.y+ch*.44,Math.round(Math.min(ch*.34,cw/Math.max(2,String(c.v).length)*.8)),'#fff');ctx.globalAlpha=1;});
+    var left=s.cells.filter(function(c){return c.good&&!c.done;}).length;label(ctx,'💎 '+left,g.w-48,g.h*.13,24,'#fde047');
+    if(s.streak>1)label(ctx,'🔥 '+s.streak,48,g.h*.13,24,'#fbbf24');drawParts(ctx,s.parts,1/60);},
+  down:function(g,x,y){var s=g.state,hit=null;s.cells.forEach(function(c){if(!c.done&&x>c.x&&x<c.x+c.w&&y>c.y&&y<c.y+c.h)hit=c;});if(!hit)return;
+    if(hit.good){hit.done=true;addScore(5);burst(s.parts,hit.x+hit.w/2,hit.y+hit.h/2,'#67e8f9');
+      if(!s.cells.some(function(c){return c.good&&!c.done;})){s.streak++;addScore(10+Math.round(s.left)+s.streak*2);flash('✨ '+T('All found!'),'#bbf7d0');this.round(g);}}
+    else{hit.done=true;s.streak=0;flash(hit.v+' '+T('does not fit'),'#fca5a5');burst(s.parts,hit.x+hit.w/2,hit.y+hit.h/2,'#ef4444');hurt();}}
+};
+function isPrime(n){if(n<2)return false;for(var i=2;i*i<=n;i++)if(n%i===0)return false;return true;}
+
+/* ⚔️ Bigger Duel (all grades): which card is worth more? */
+var DUEL={id:'duel',icon:'⚔️',name:'Bigger Duel',thumb:'bolt.png',bg:'bg_forest.jpg',
+  desc:'Two cards, one winner. Tap the bigger value, fast. From 38 vs 83 to 5/8 vs 0.6, and √50 vs 7 for the older players.',
+  init:function(g){g.state.parts=[];g.state.streak=0;this.next(g);},
+  next:function(g){var s=g.state,p=distinctCards(g.L,2);
+    if(Math.abs(p[0].v-p[1].v)<1e-6||p.length<2){this.next(g);return;}
+    s.a=p[0];s.b=p[1];s.win=p[0].v>p[1].v?s.a:s.b;s.limit=Math.max(2,6-g.t*.04);s.left=s.limit;setQ(T('Which is bigger?'));},
+  update:function(g,dt){var s=g.state;s.left-=dt;if(s.left<=0){flash(T('Too slow!')+' '+s.win.l,'#fca5a5');s.streak=0;hurt();if(!g.over)this.next(g);}},
+  draw:function(g,ctx){var s=g.state;cover(ctx,IMG['bg_forest.jpg'],g.w,g.h);
+    var cw=Math.min(300,(g.w-70)/2),ch=Math.min(g.h*.46,260),y=g.h*.28,x1=g.w/2-cw-22,x2=g.w/2+22;s.ra={x:x1,y:y,w:cw,h:ch};s.rb={x:x2,y:y,w:cw,h:ch};
+    timeBar(ctx,x1,y-26,cw*2+44,clamp(s.left/s.limit,0,1));
+    [[s.a,x1,'#7c3aed'],[s.b,x2,'#0ea5e9']].forEach(function(c){ctx.save();ctx.shadowColor='rgba(0,0,0,.5)';ctx.shadowBlur=20;ctx.fillStyle=c[2];rr(ctx,c[1],y,cw,ch,26);ctx.fill();ctx.restore();
+      label(ctx,c[0].l,c[1]+cw/2,y+ch/2,Math.round(Math.min(56,cw*.66/Math.max(2.4,c[0].l.length*.6))),'#fff');});
+    label(ctx,'VS',g.w/2,y+ch/2,Math.round(Math.min(30,cw*.14)),'#fde68a');
+    if(s.streak>1)label(ctx,'🔥 '+s.streak,g.w/2,y+ch+40,26,'#fbbf24');drawParts(ctx,s.parts,1/60);},
+  down:function(g,x,y){var s=g.state;function inb(b){return b&&x>b.x&&x<b.x+b.w&&y>b.y&&y<b.y+b.h;}if(inb(s.ra))this.pick(g,s.a,s.ra);else if(inb(s.rb))this.pick(g,s.b,s.rb);},
+  key:function(g,k){var s=g.state;if(k==='ArrowLeft'||k==='1')this.pick(g,s.a,s.ra);else if(k==='ArrowRight'||k==='2')this.pick(g,s.b,s.rb);},
+  pick:function(g,c,r){var s=g.state;if(c===s.win){s.streak++;addScore(5+Math.min(10,s.streak)*2+Math.round(s.left*2));burst(s.parts,r.x+r.w/2,r.y+r.h/2,'#22c55e');}
+    else{s.streak=0;flash(T('Nope!')+' '+s.win.l+' > '+(c===s.a?s.b:s.a).l,'#fca5a5');hurt();}if(!g.over)this.next(g);}
+};
+
+/* =====================================================================
+   1.4.0: 96 themed games = 12 worlds x 8 game types. Every world has its own character and a scene
+   drawn for each screen shape (tools/make-theme-art.py). Games and art load only when you open one.
+   ===================================================================== */
+var THEMES=[['dino','🦖','Dino','dinos'],['jungle','🐒','Jungle','monkeys'],['desert','🦊','Desert','desert foxes'],['arctic','🐧','Arctic','penguins'],['volcano','🌋','Volcano','fire imps'],['candy','🍬','Candy','candies'],
+  ['pirate','🏴‍☠️','Pirate','pirates'],['robot','🤖','Robot','robots'],['farm','🐷','Farm','piglets'],['haunted','👻','Haunted','ghosts'],['rainbow','🦄','Rainbow','unicorns'],['island','🦜','Island','parrots']];
+function tag(ctx,s,x,y,size,maxW){ctx.font='800 '+size+'px system-ui,sans-serif';var m=ctx.measureText(s).width+size*.8;if(maxW&&m>maxW){size=Math.max(9,size*maxW/m);ctx.font='800 '+size+'px system-ui,sans-serif';m=ctx.measureText(s).width+size*.8;}
+  var w=Math.max(size*1.7,m),h=size*1.4;ctx.fillStyle='rgba(255,255,255,.96)';rr(ctx,x-w/2,y-h/2,w,h,h/2);ctx.fill();ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#1f2937';ctx.fillText(s,x,y+1);}
+function spr(ctx,im,x,y,sz,flip){if(!ok(im))return;ctx.save();ctx.translate(x,y);if(flip)ctx.scale(-1,1);ctx.drawImage(im,-sz/2,-sz/2,sz,sz);ctx.restore();}
+function themedBase(th,key,suffix,desc){var id=th[0];return {id:'t_'+id+'_'+key,icon:th[1],name:th[2]+' '+suffix,thumb:'sp_'+id+'.png',bg:'bg_'+id+'.jpg',themed:true,bgThumb:'bg_'+id+'_w.jpg',assets:['bg_'+id+'.jpg','sp_'+id+'.png'],desc:desc,th:id};}
+function mkFloat(th,dir,suffix,desc){var d=themedBase(th,dir,suffix,desc),bgk=d.bg,spk=d.assets[1];
+  d.init=function(g){var s=g.state;s.parts=[];s.o=[];s.streak=0;s.sp0=0;this.next(g);};
+  d.next=function(g){var s=g.state,q=makeQ(g.L),n=g.w<520?4:5,vals=shuffle([q.a].concat(wrongs(q.a,n-1,g.L)));s.q=q;setQ(qText(q));
+    var r=Math.min(46,g.w*.1,g.h*.08),sp=Math.min(140,60+g.t*1.1+g.w*.03);
+    if(dir==='x'){var lane=(g.h-80)/n;s.o=vals.map(function(v,i){var dr=i%2?1:-1;return {v:v,x:dr<0?g.w+r+rnd(0,160):-r-rnd(0,160),y:40+lane*(i+.5),dr:dr,r:r,sp:sp*(.8+Math.random()*.5),ph:Math.random()*6};});}
+    else{var lane2=g.w/n,vs=Math.max(60,g.h/(7.5-Math.min(3,g.t*.03)));s.o=vals.map(function(v,i){var off=rnd(0,Math.round(g.h*.5));return {v:v,x:lane2*(i+.5),y:dir==='up'?g.h+r+off:-r-off,dr:dir==='up'?-1:1,r:Math.min(r,lane2*.42),sp:vs*(.85+Math.random()*.3),ph:Math.random()*6};});}};
+  d.update=function(g,dt){var s=g.state;s.o.forEach(function(o){if(dir==='x')o.x+=o.dr*o.sp*dt;else o.y+=o.dr*o.sp*dt;o.ph+=dt*4;});
+    var gone=s.o.every(function(o){return dir==='x'?(o.dr<0?o.x<-o.r*2:o.x>g.w+o.r*2):(o.dr<0?o.y<-o.r*2:o.y>g.h+o.r*2);});
+    if(gone){flash(T('They got away!')+' '+ansText(s.q),'#fca5a5');s.streak=0;hurt();if(!g.over)this.next(g);}};
+  d.draw=function(g,ctx){var s=g.state;cover(ctx,IMG[bgk],g.w,g.h);var im=IMG[spk];
+    s.o.forEach(function(o){var wob=dir==='x'?Math.sin(o.ph)*6:0,wx=dir==='x'?0:Math.sin(o.ph)*6;spr(ctx,im,o.x+wx,o.y+wob,o.r*2.3,dir==='x'&&o.dr>0);tag(ctx,String(o.v),o.x+wx,o.y+wob+o.r*1.05,Math.round(o.r*.62),o.r*2.6);});
+    if(s.streak>1)label(ctx,'🔥 '+s.streak,g.w-50,24,24,'#fbbf24');drawParts(ctx,s.parts,1/60);};
+  d.down=function(g,x,y){var s=g.state,hit=null,bd=1e9;s.o.forEach(function(o){var dd=Math.hypot(x-o.x,y-(o.y+o.r*.4));if(dd<o.r*1.6&&dd<bd){bd=dd;hit=o;}});if(!hit)return;
+    if(hit.v===s.q.a){s.streak++;addScore(10+Math.min(10,s.streak)*2);burst(s.parts,hit.x,hit.y,'#fde047');this.next(g);}
+    else{s.streak=0;flash(T('Not quite!')+' '+hit.v,'#fca5a5');burst(s.parts,hit.x,hit.y,'#ef4444');s.o=s.o.filter(function(o){return o!==hit;});hurt();}};
+  d.key=function(g,k){var i=parseInt(k,10)-1,o=g.state.o[i];if(o)this.down(g,o.x,o.y+o.r*.4);};
+  return d;}
+function mkQuiz(th,suffix,desc){var d=themedBase(th,'quiz',suffix,desc),bgk=d.bg,spk=d.assets[1];
+  d.init=function(g){g.state.parts=[];g.state.streak=0;g.state.hop=0;this.next(g);};
+  d.next=function(g){var s=g.state,q=makeQ(g.L);s.q=q;s.opts=shuffle([q.a].concat(wrongs(q.a,3,g.L)));s.limit=limitFor(g,15,6,.1);s.left=s.limit;setQ(qText(q));};
+  d.update=function(g,dt){var s=g.state;s.left-=dt;if(s.hop>0)s.hop-=dt;if(s.left<=0){flash(T('Too slow!')+' '+ansText(s.q),'#fca5a5');s.streak=0;hurt();if(!g.over)this.next(g);}};
+  d.draw=function(g,ctx){var s=g.state;cover(ctx,IMG[bgk],g.w,g.h);timeBar(ctx,14,10,g.w-28,clamp(s.left/s.limit,0,1));
+    var top=btnsTop(g),sz=Math.min(g.w*.6,top-60,300),cy=(top+24)/2+Math.sin(g.t*3)*5-(s.hop>0?Math.sin(s.hop/.4*Math.PI)*sz*.25:0);spr(ctx,IMG[spk],g.w/2,cy,sz);
+    if(s.streak>1)label(ctx,'🔥 '+s.streak,g.w-50,36,24,'#fbbf24');choiceBtns(g,ctx,s.opts,top,62);drawParts(ctx,s.parts,1/60);};
+  d.pick=function(g,v){var s=g.state;if(v===s.q.a){s.streak++;addScore(8+Math.round(s.left)+Math.min(10,s.streak));s.hop=.4;burst(s.parts,g.w/2,g.h*.35,'#22c55e');}else{s.streak=0;flash(T('Not quite!')+' '+ansText(s.q),'#fca5a5');hurt();}if(!g.over)this.next(g);};
+  d.down=function(g,x,y){var b=hitBtn(g,x,y);if(b)this.pick(g,b.v);};d.key=function(g,k){var b=keyBtn(g,k);if(b)this.pick(g,b.v);};
+  return d;}
+function mkRush(th,suffix,desc){var d=themedBase(th,'rush',suffix,desc),bgk=d.bg,spk=d.assets[1];
+  d.init=function(g){g.state.parts=[];g.state.streak=0;this.next(g);};
+  d.next=function(g){var s=g.state,q=makeQ(g.L),truth=Math.random()<.5,shown=truth?q.a:pick(wrongs(q.a,3,g.L));s.truth=truth;s.q=q;s.text=/\?$/.test(q.q)?q.q.replace(/\?$/,String(shown)):q.q+' = '+shown;s.limit=Math.max(2,6-g.t*.035);s.left=s.limit;setQ(s.text+'  ?');};
+  d.update=function(g,dt){var s=g.state;s.left-=dt;if(s.left<=0){flash(T('Too slow!')+' '+ansText(s.q),'#fca5a5');s.streak=0;hurt();if(!g.over)this.next(g);}};
+  d.draw=function(g,ctx){var s=g.state;cover(ctx,IMG[bgk],g.w,g.h);timeBar(ctx,14,10,g.w-28,clamp(s.left/s.limit,0,1));
+    var bw=Math.min(240,(g.w-50)/2),bh=Math.min(110,g.h*.2),by=g.h-bh-24,sz=Math.min(g.w*.55,by-70,280);spr(ctx,IMG[spk],g.w/2,(by+40)/2,sz);
+    s.tb={x:g.w/2-bw-10,y:by,w:bw,h:bh};s.fb={x:g.w/2+10,y:by,w:bw,h:bh};
+    ctx.fillStyle='#16a34a';rr(ctx,s.tb.x,by,bw,bh,22);ctx.fill();label(ctx,'✔ '+T('TRUE'),s.tb.x+bw/2,by+bh/2,26,'#fff',false);
+    ctx.fillStyle='#dc2626';rr(ctx,s.fb.x,by,bw,bh,22);ctx.fill();label(ctx,'✘ '+T('FALSE'),s.fb.x+bw/2,by+bh/2,26,'#fff',false);
+    if(s.streak>1)label(ctx,'🔥 '+s.streak,g.w-50,36,24,'#fbbf24');drawParts(ctx,s.parts,1/60);};
+  d.down=function(g,x,y){var s=g.state;function inb(b){return b&&x>b.x&&x<b.x+b.w&&y>b.y&&y<b.y+b.h;}if(inb(s.tb))this.answer(g,true);else if(inb(s.fb))this.answer(g,false);};
+  d.key=function(g,k){if(k==='ArrowLeft'||k==='1'||k==='t')this.answer(g,true);else if(k==='ArrowRight'||k==='2'||k==='f')this.answer(g,false);};
+  d.answer=function(g,v){var s=g.state;if(v===s.truth){s.streak++;addScore(5+Math.min(10,s.streak)*2+Math.round(s.left*2));burst(s.parts,g.w/2,g.h*.3,'#22c55e');}else{s.streak=0;flash(T('Nope!')+' '+ansText(s.q),'#fca5a5');hurt();}if(!g.over)this.next(g);};
+  return d;}
+function mkOrder(th,suffix,desc,desc2){var d=themedBase(th,'order',suffix,desc),bgk=d.bg,spk=d.assets[1];
+  d.init=function(g){g.state.parts=[];g.state.round=0;g.state.streak=0;this.round(g);};
+  d.round=function(g){var s=g.state,n=clamp(4+Math.floor(s.round/2),4,g.L<=2?6:7),cs=distinctCards(g.L,n),r=Math.min(58,g.w*.12,g.h*.09),top=r+8,bot=g.h-r*1.6-10;s.round++;s.next=0;s.st=[];
+    cs.forEach(function(c){var x,y,k=0;do{x=rnd(Math.round(r),Math.round(g.w-r));y=rnd(Math.round(top),Math.round(Math.max(top+1,bot)));k++;}while(k<80&&s.st.some(function(o){return Math.hypot(o.x-x,o.y-y)<r*2.5;}));s.st.push({l:c.l,v:c.v,x:x,y:y,r:r,ph:Math.random()*6,done:false});});
+    s.order=s.st.slice().sort(function(a,b){return desc2?b.v-a.v:a.v-b.v;});s.limit=limitFor(g,10+n*2.2,7,.12);s.left=s.limit;setQ(T(desc2?'Biggest to smallest':'Smallest to biggest'));};
+  d.update=function(g,dt){var s=g.state;s.st.forEach(function(o){o.ph+=dt*3;});s.left-=dt;if(s.left<=0){flash(T('Time up!')+' '+s.order.map(function(o){return o.l;}).join(desc2?' > ':' < '),'#fca5a5');s.streak=0;hurt();if(!g.over)this.round(g);}};
+  d.draw=function(g,ctx){var s=g.state;cover(ctx,IMG[bgk],g.w,g.h);timeBar(ctx,14,8,g.w-28,clamp(s.left/s.limit,0,1));
+    s.st.forEach(function(o){ctx.globalAlpha=o.done?.3:1;spr(ctx,IMG[spk],o.x,o.y+Math.sin(o.ph)*4,o.r*2.1);tag(ctx,o.l,o.x,o.y+o.r*1.05,Math.round(o.r*.5),o.r*2.8);ctx.globalAlpha=1;});
+    if(s.streak>1)label(ctx,'🔥 '+s.streak,g.w-50,34,24,'#fbbf24');drawParts(ctx,s.parts,1/60);};
+  d.down=function(g,x,y){var s=g.state,hit=null,bd=1e9;s.st.forEach(function(o){var dd=Math.hypot(x-o.x,y-o.y);if(!o.done&&dd<o.r*1.5&&dd<bd){bd=dd;hit=o;}});if(!hit)return;
+    if(hit===s.order[s.next]){hit.done=true;s.next++;addScore(4+Math.round(s.left*.5));burst(s.parts,hit.x,hit.y,'#fde047');if(s.next>=s.order.length){s.streak++;addScore(10+s.streak*2);flash('✨ '+T('Great order!'),'#bbf7d0');this.round(g);}}
+    else{s.streak=0;flash(hit.l+' '+T('is not next'),'#fca5a5');hurt();if(!g.over)s.left=Math.max(1,s.left-2);}};
+  return d;}
+function mkDuel(th,suffix,desc,small){var d=themedBase(th,'duel',suffix,desc),bgk=d.bg,spk=d.assets[1];
+  d.init=function(g){g.state.parts=[];g.state.streak=0;this.next(g);};
+  d.next=function(g){var s=g.state,p=distinctCards(g.L,2);if(p.length<2||Math.abs(p[0].v-p[1].v)<1e-6){this.next(g);return;}s.a=p[0];s.b=p[1];
+    s.win=(p[0].v>p[1].v)!==!!small?s.a:s.b;s.limit=Math.max(2,6-g.t*.04);s.left=s.limit;setQ(T(small?'Which is smaller?':'Which is bigger?'));};
+  d.update=function(g,dt){var s=g.state;s.left-=dt;if(s.left<=0){flash(T('Too slow!')+' '+s.win.l,'#fca5a5');s.streak=0;hurt();if(!g.over)this.next(g);}};
+  d.draw=function(g,ctx){var s=g.state;cover(ctx,IMG[bgk],g.w,g.h);var cw=Math.min(300,(g.w-70)/2),ch=Math.min(g.h*.6,320),y=Math.max(40,(g.h-ch)/2),x1=g.w/2-cw-22,x2=g.w/2+22;s.ra={x:x1,y:y,w:cw,h:ch};s.rb={x:x2,y:y,w:cw,h:ch};
+    timeBar(ctx,x1,y-24,cw*2+44,clamp(s.left/s.limit,0,1));
+    [[s.a,x1,'rgba(124,58,237,.92)'],[s.b,x2,'rgba(14,165,233,.92)']].forEach(function(c){ctx.save();ctx.shadowColor='rgba(0,0,0,.5)';ctx.shadowBlur=20;ctx.fillStyle=c[2];rr(ctx,c[1],y,cw,ch,26);ctx.fill();ctx.restore();
+      spr(ctx,IMG[spk],c[1]+cw/2,y+ch*.3,Math.min(cw*.7,ch*.4));label(ctx,c[0].l,c[1]+cw/2,y+ch*.7,Math.round(Math.min(48,cw*.66/Math.max(2.4,c[0].l.length*.6))),'#fff');});
+    label(ctx,'VS',g.w/2,y+ch/2,Math.round(Math.min(26,cw*.12)),'#fde68a');if(s.streak>1)label(ctx,'🔥 '+s.streak,g.w/2,y+ch+30,24,'#fbbf24');drawParts(ctx,s.parts,1/60);};
+  d.down=function(g,x,y){var s=g.state;function inb(b){return b&&x>b.x&&x<b.x+b.w&&y>b.y&&y<b.y+b.h;}if(inb(s.ra))this.pick(g,s.a,s.ra);else if(inb(s.rb))this.pick(g,s.b,s.rb);};
+  d.key=function(g,k){var s=g.state;if(k==='ArrowLeft'||k==='1')this.pick(g,s.a,s.ra);else if(k==='ArrowRight'||k==='2')this.pick(g,s.b,s.rb);};
+  d.pick=function(g,c,r){var s=g.state;if(c===s.win){s.streak++;addScore(5+Math.min(10,s.streak)*2+Math.round(s.left*2));burst(s.parts,r.x+r.w/2,r.y+r.h/2,'#22c55e');}else{s.streak=0;flash(T('Nope!')+' '+s.win.l,'#fca5a5');hurt();}if(!g.over)this.next(g);};
+  return d;}
+function mkHunt(th,suffix,desc){var d=themedBase(th,'hunt',suffix,desc),bgk=d.bg,spk=d.assets[1];
+  d.init=function(g){g.state.parts=[];g.state.round=0;g.state.streak=0;this.round(g);};
+  d.round=function(g){var s=g.state,rule=GEMS.rule(g.L),n=g.w<520?12:15,good=[],bad=[];for(var v=rule.lo;v<=rule.hi;v++)(rule.f(v)?good:bad).push(v);good=shuffle(good);bad=shuffle(bad);
+    var ng=clamp(Math.round(n*.4),3,good.length),vals=good.slice(0,ng).concat(bad.slice(0,n-ng));if(vals.length<n)vals=vals.concat(good.slice(ng,ng+n-vals.length));
+    s.round++;s.cells=shuffle(vals).map(function(v){return {v:v,good:rule.f(v),done:false};});s.cols=g.w<520?3:5;s.limit=limitFor(g,22,10,.15);s.left=s.limit;setQ(rule.t);};
+  d.update=function(g,dt){var s=g.state;s.left-=dt;if(s.left<=0){flash(T('Time up!'),'#fca5a5');s.streak=0;hurt();if(!g.over)this.round(g);}};
+  d.draw=function(g,ctx){var s=g.state;cover(ctx,IMG[bgk],g.w,g.h);ctx.fillStyle='rgba(0,0,0,.22)';ctx.fillRect(0,0,g.w,g.h);timeBar(ctx,14,8,g.w-28,clamp(s.left/s.limit,0,1));
+    var rows=Math.ceil(s.cells.length/s.cols),top=34,gap=8,cw=(g.w-24-gap*(s.cols-1))/s.cols,ch=Math.min(cw,(g.h-top-14-gap*(rows-1))/rows);
+    s.cells.forEach(function(c,i){var r=Math.floor(i/s.cols),k=i%s.cols;c.x=12+k*(cw+gap);c.y=top+r*(ch+gap);c.w=cw;c.h=ch;ctx.globalAlpha=c.done?.25:1;ctx.fillStyle='rgba(255,255,255,.2)';rr(ctx,c.x,c.y,cw,ch,16);ctx.fill();
+      spr(ctx,IMG[spk],c.x+cw/2,c.y+ch*.4,Math.min(cw,ch)*.8);tag(ctx,String(c.v),c.x+cw/2,c.y+ch*.78,Math.round(Math.min(ch*.26,cw*.3)),cw*.9);ctx.globalAlpha=1;});
+    var left=s.cells.filter(function(c){return c.good&&!c.done;}).length;label(ctx,'⭐ '+left,g.w-44,g.h-16,20,'#fde047');if(s.streak>1)label(ctx,'🔥 '+s.streak,44,g.h-16,20,'#fbbf24');drawParts(ctx,s.parts,1/60);};
+  d.down=function(g,x,y){var s=g.state,hit=null;s.cells.forEach(function(c){if(!c.done&&x>c.x&&x<c.x+c.w&&y>c.y&&y<c.y+c.h)hit=c;});if(!hit)return;
+    if(hit.good){hit.done=true;addScore(5);burst(s.parts,hit.x+hit.w/2,hit.y+hit.h/2,'#fde047');if(!s.cells.some(function(c){return c.good&&!c.done;})){s.streak++;addScore(10+Math.round(s.left)+s.streak*2);flash('✨ '+T('All found!'),'#bbf7d0');this.round(g);}}
+    else{hit.done=true;s.streak=0;flash(hit.v+' '+T('does not fit'),'#fca5a5');burst(s.parts,hit.x+hit.w/2,hit.y+hit.h/2,'#ef4444');hurt();}};
+  return d;}
+var THEMED=[];
+THEMES.forEach(function(th,i){var odd=i%2===1,n=th[3];
+  THEMED.push(mkFloat(th,'x','Dash','The '+n+' dash across the screen, each carrying an answer. Tap the one with the right answer!'),
+    mkFloat(th,'up','Rise','The '+n+' float up, each carrying an answer. Tap the right one before they all escape!'),
+    mkFloat(th,'down','Drop','The '+n+' drop from above, each carrying an answer. Tap the right one before they land!'),
+    mkQuiz(th,'Quiz','Answer the question before the timer runs out. Your character cheers every right answer.'),
+    mkRush(th,'Rush','True or false? Decide before the time bar runs out. It gets shorter and shorter.'),
+    mkOrder(th,'Order',odd?'Tap the '+n+' from the biggest number to the smallest.':'Tap the '+n+' from the smallest number to the biggest.',odd),
+    mkDuel(th,'Duel',odd?'Two cards, one winner. Tap the smaller value, fast.':'Two cards, one winner. Tap the bigger value, fast.',odd),
+    mkHunt(th,'Hunt','Tap every card that fits the rule: multiples, primes, squares, factors. A wrong tap costs a heart.'));});
+/* French names and descriptions for the themed games */
+var THEMES_FR=['dinos','singes','renards du désert','pingouins','diablotins de feu','bonbons','pirates','robots','porcelets','fantômes','licornes','perroquets'],MECH_FR=['Course','Envol','Pluie','Quiz','Vrai ou faux','Ordre','Duel','Chasse'];
+(function(){var o={};THEMES.forEach(function(th,i){var n=THEMES_FR[i],g=THEMED.slice(i*8,i*8+8),odd=i%2===1;
+  g.forEach(function(d,j){o[d.name]=MECH_FR[j]+' des '+n;});
+  o[g[0].desc]='Les '+n+' traversent l’écran, chacun portant une réponse. Touche celui qui a la bonne !';
+  o[g[1].desc]='Les '+n+' s’envolent, chacun portant une réponse. Touche le bon avant qu’ils ne s’échappent !';
+  o[g[2].desc]='Les '+n+' tombent du ciel, chacun portant une réponse. Touche le bon avant qu’ils n’atterrissent !';
+  o[g[5].desc]='Touche les '+n+(odd?' du plus grand nombre au plus petit.':' du plus petit nombre au plus grand.');});
+  if(W.trAdd)W.trAdd(o);})();
+/* =====================================================================
+   Class-only team games (Arcade 1.5): both teams play on ONE screen at
+   the same time — Team A on the left, Team B on the right. These only
+   show in "In class"; home games only show "At home".
+   ===================================================================== */
+var TA='#ff4fa3',TB='#38bdf8';
+function vsHalf(g,side){return side==='A'?{x:0,w:g.w/2}:{x:g.w/2,w:g.w/2};}
+/* four answer buttons in one team's half (tap, or keys 1-4 for A and 7-0 for B) */
+function vsBtns(g,ctx,side,opts,top,locked){
+  var h=vsHalf(g,side),gap=8,bw=(h.w-30-gap)/2,bh=Math.max(30,Math.min(64,(g.h-top-20)/2-gap)),out=[];
+  opts.forEach(function(o,i){var x=h.x+10+(i%2)*(bw+gap)+5,y=top+Math.floor(i/2)*(bh+gap);out.push({x:x,y:y,w:bw,h:bh,v:o,side:side});
+    ctx.globalAlpha=locked?.35:1;ctx.fillStyle='rgba(255,255,255,.95)';rr(ctx,x,y,bw,bh,14);ctx.fill();
+    ctx.strokeStyle=side==='A'?TA:TB;ctx.lineWidth=3;rr(ctx,x,y,bw,bh,14);ctx.stroke();
+    label(ctx,String(o),x+bw/2,y+bh/2,Math.min(26,bh*.42),'#1f2937',false);ctx.globalAlpha=1;});
+  return out;
+}
+function vsHit(btns,x,y){for(var i=0;i<btns.length;i++){var r=btns[i];if(x>r.x&&x<r.x+r.w&&y>r.y&&y<r.y+r.h)return r;}return null;}
+function vsKey(btns,k){var m={'1':['A',0],'2':['A',1],'3':['A',2],'4':['A',3],'7':['B',0],'8':['B',1],'9':['B',2],'0':['B',3]}[k];if(!m)return null;var s=btns.filter(function(b){return b.side===m[0];});return s[m[1]]||null;}
+function vsDivider(ctx,g){ctx.fillStyle='rgba(255,255,255,.25)';ctx.fillRect(g.w/2-2,0,4,g.h);}
+function vsNames(ctx,g,y){label(ctx,teamName('A'),g.w/4,y,Math.min(26,g.w/20),TA);label(ctx,teamName('B'),g.w*3/4,y,Math.min(26,g.w/20),TB);}
+function vsWin(g,side){if(g.over)return;g.winner=side;gameOver();}
+
+/* 🪢 Tug of War: each right answer pulls the rope one step to your side */
+var TUG={id:'c_tug',icon:'🪢',name:'Tug of War',thumb:'owl0.png',bg:'bg_sky.jpg',versus:true,lives:false,classOnly:true,
+  desc:'Both teams answer the same question. Each right answer pulls the rope one step your way. Pull it 5 steps to win! A wrong answer freezes your team for 2 seconds.',
+  init:function(g){var s=g.state;s.p=0;s.parts=[];s.frz={A:0,B:0};this.next(g);},
+  next:function(g){var s=g.state;s.q=makeQ(g.L);s.oA=choices(s.q,g.L,4);s.oB=choices(s.q,g.L,4);setQ(qText(s.q));},
+  update:function(g,dt){var s=g.state;s.frz.A=Math.max(0,s.frz.A-dt);s.frz.B=Math.max(0,s.frz.B-dt);},
+  draw:function(g,ctx){var s=g.state;cover(ctx,IMG['bg_sky.jpg'],g.w,g.h);vsDivider(ctx,g);vsNames(ctx,g,26);
+    var ry=g.h*.3,cx=g.w/2+s.p*(g.w*.07);ctx.strokeStyle='#a16207';ctx.lineWidth=10;ctx.beginPath();ctx.moveTo(40,ry);ctx.lineTo(g.w-40,ry);ctx.stroke();
+    ctx.fillStyle='#ef4444';ctx.beginPath();ctx.moveTo(cx,ry-6);ctx.lineTo(cx+18,ry-40);ctx.lineTo(cx-18,ry-40);ctx.fill();ctx.fillRect(cx-2,ry-40,4,40);
+    for(var i=-5;i<=5;i++){ctx.fillStyle=i===0?'#fff':'rgba(255,255,255,.5)';ctx.fillRect(g.w/2+i*g.w*.07-1,ry+14,2,i===0||Math.abs(i)===5?22:10);}
+    if(ok(IMG['owl0.png'])){ctx.drawImage(IMG['owl0.png'],10,ry-40,60,68);ctx.save();ctx.translate(g.w-10,ry-40);ctx.scale(-1,1);ctx.drawImage(ok(IMG['owl1.png'])?IMG['owl1.png']:IMG['owl0.png'],0,0,60,68);ctx.restore();}
+    var top=g.h*.48;s.btns=vsBtns(g,ctx,'A',s.oA,top,s.frz.A>0).concat(vsBtns(g,ctx,'B',s.oB,top,s.frz.B>0));
+    ['A','B'].forEach(function(t){if(s.frz[t]>0)label(ctx,'❄ '+s.frz[t].toFixed(1)+'s',t==='A'?g.w/4:g.w*3/4,top-24,22,'#bae6fd');});
+    drawParts(ctx,s.parts,1/60);},
+  pick:function(g,b){var s=g.state;if(!b||s.frz[b.side]>0)return;
+    if(b.v===s.q.a){s.p+=b.side==='A'?-1:1;burst(s.parts,g.w/2+s.p*g.w*.07,g.h*.3,b.side==='A'?TA:TB);flash(teamName(b.side)+' '+T('pulls!'),b.side==='A'?TA:TB);
+      if(Math.abs(s.p)>=5){vsWin(g,s.p<0?'A':'B');return;}this.next(g);}
+    else{s.frz[b.side]=2;flash(teamName(b.side)+': '+T('frozen!'),'#bae6fd');}},
+  down:function(g,x,y){this.pick(g,vsHit(g.state.btns||[],x,y));},
+  key:function(g,k){this.pick(g,vsKey(g.state.btns||[],k));}
+};
+
+/* 🔔 Buzzer Battle: buzz first, then answer. A wrong answer lets the other team steal. First to 7 */
+var BUZZER={id:'c_buzzer',icon:'🔔',name:'Buzzer Battle',thumb:'bolt.png',bg:'bg_space.jpg',versus:true,lives:false,classOnly:true,
+  desc:'Hit your buzzer first, then answer within 6 seconds. Get it wrong and the other team can steal. First team to 7 points wins.',
+  init:function(g){var s=g.state;s.pt={A:0,B:0};s.parts=[];this.next(g);},
+  next:function(g){var s=g.state;s.q=makeQ(g.L);s.opts=choices(s.q,g.L,4);s.who=null;s.tried={};s.left=0;setQ(qText(s.q));},
+  update:function(g,dt){var s=g.state;if(s.who){s.left-=dt;if(s.left<=0){flash(teamName(s.who)+': '+T('too slow!'),'#fca5a5');this.miss(g);}}},
+  miss:function(g){var s=g.state,o=s.who==='A'?'B':'A';s.tried[s.who]=1;s.who=null;if(s.tried[o]){flash(ansText(s.q),'#fde68a');this.next(g);}},
+  draw:function(g,ctx){var s=g.state;cover(ctx,IMG['bg_space.jpg'],g.w,g.h);vsDivider(ctx,g);
+    ['A','B'].forEach(function(t){var cx=t==='A'?g.w/4:g.w*3/4,col=t==='A'?TA:TB;label(ctx,teamName(t)+': '+s.pt[t],cx,28,Math.min(28,g.w/18),col);
+      if(!s.who){var r=Math.min(g.w/8,g.h/5),dead=s.tried[t];ctx.globalAlpha=dead?.3:1;ctx.fillStyle=col;ctx.beginPath();ctx.arc(cx,g.h*.5,r,0,6.28);ctx.fill();ctx.fillStyle='rgba(255,255,255,.3)';ctx.beginPath();ctx.arc(cx-r*.3,g.h*.5-r*.3,r*.3,0,6.28);ctx.fill();
+        label(ctx,T('BUZZ'),cx,g.h*.5,r*.45,'#fff');ctx.globalAlpha=1;label(ctx,t==='A'?'(A)':'(L)',cx,g.h*.5+r+22,16,'rgba(255,255,255,.7)');}});
+    s.btns=[];if(s.who){label(ctx,teamName(s.who)+' — '+Math.ceil(s.left)+'s',s.who==='A'?g.w/4:g.w*3/4,g.h*.2,26,'#fde68a');s.btns=vsBtns(g,ctx,s.who,s.opts,g.h*.32,false);}
+    drawParts(ctx,s.parts,1/60);},
+  buzz:function(g,t){var s=g.state;if(s.who||s.tried[t])return;s.who=t;s.left=6;},
+  pick:function(g,b){var s=g.state;if(!b||b.side!==s.who)return;
+    if(b.v===s.q.a){s.pt[b.side]++;burst(s.parts,b.side==='A'?g.w/4:g.w*3/4,g.h*.4,'#fbbf24');flash('✔ '+teamName(b.side),b.side==='A'?TA:TB);if(s.pt[b.side]>=7){vsWin(g,b.side);return;}this.next(g);}
+    else{flash(T('Wrong!')+' '+T('Steal chance'),'#fca5a5');this.miss(g);}},
+  down:function(g,x,y){var s=g.state;if(!s.who){if(y>g.h*.25&&y<g.h*.8)this.buzz(g,x<g.w/2?'A':'B');return;}this.pick(g,vsHit(s.btns||[],x,y));},
+  key:function(g,k){var s=g.state;if(k==='a'||k==='A')this.buzz(g,'A');else if(k==='l'||k==='L')this.buzz(g,'B');else this.pick(g,vsKey(s.btns||[],k));}
+};
+
+/* 💣 Hot Potato: answer right to throw the bomb to the other team. Hold it when it blows and they score. First to 3 */
+var POTATO={id:'c_potato',icon:'💣',name:'Hot Potato Bomb',thumb:'bomb.png',bg:'bg_table.jpg',versus:true,lives:false,classOnly:true,
+  desc:'The team holding the bomb must answer right to throw it to the other team. Nobody knows when it blows! If it explodes on your side, the other team scores. First to 3.',
+  init:function(g){var s=g.state;s.pt={A:0,B:0};s.parts=[];s.hold=Math.random()<.5?'A':'B';this.round(g);},
+  round:function(g){var s=g.state;s.fuse=12+Math.random()*14;s.boom=0;s.fly=0;this.next(g);},
+  next:function(g){var s=g.state;s.q=makeQ(g.L);s.opts=choices(s.q,g.L,4);setQ(teamName(s.hold)+': '+qText(s.q));},
+  update:function(g,dt){var s=g.state;if(s.fly>0)s.fly=Math.max(0,s.fly-dt*2.5);
+    if(s.boom>0){s.boom-=dt;if(s.boom<=0&&!g.over)this.round(g);return;}
+    s.fuse-=dt;if(s.fuse<=0){var o=s.hold==='A'?'B':'A';s.pt[o]++;s.boom=1.6;var x=s.hold==='A'?g.w/4:g.w*3/4;['#f97316','#ef4444','#fde047'].forEach(function(c){burst(s.parts,x,g.h*.3,c);});flash('💥 BOOM! +1 '+teamName(o),'#fca5a5');
+      if(s.pt[o]>=3){vsWin(g,o);return;}s.hold=o==='A'?'B':'A';}},
+  draw:function(g,ctx){var s=g.state;cover(ctx,IMG['bg_table.jpg'],g.w,g.h);vsDivider(ctx,g);
+    label(ctx,teamName('A')+': '+s.pt.A,g.w/4,26,Math.min(26,g.w/18),TA);label(ctx,teamName('B')+': '+s.pt.B,g.w*3/4,26,Math.min(26,g.w/18),TB);
+    var fx=s.hold==='A'?g.w*3/4:g.w/4,tx=s.hold==='A'?g.w/4:g.w*3/4,p=1-s.fly,bx=s.fly>0?fx+(tx-fx)*p:tx,by=g.h*.3-(s.fly>0?Math.sin(p*3.14)*80:0),r=Math.min(70,g.w*.1);
+    s.btns=[];
+    if(s.boom>0)label(ctx,'💥',bx,g.h*.3,90,'#fff',false);
+    else{if(ok(IMG['bomb.png']))ctx.drawImage(IMG['bomb.png'],bx-r,by-r,r*2,r*2);ctx.fillStyle=Math.random()<.5?'#fde047':'#f97316';ctx.beginPath();ctx.arc(bx+r*.5,by-r*.85,6+Math.random()*5,0,6.28);ctx.fill();
+      s.btns=vsBtns(g,ctx,s.hold,s.opts,g.h*.52,false);}
+    drawParts(ctx,s.parts,1/60);},
+  pick:function(g,b){var s=g.state;if(!b||s.boom>0||b.side!==s.hold)return;
+    if(b.v===s.q.a){s.fly=1;s.hold=s.hold==='A'?'B':'A';this.next(g);}else{flash(T('Wrong! Keep holding it'),'#fca5a5');this.next(g);}},
+  down:function(g,x,y){this.pick(g,vsHit(g.state.btns||[],x,y));},
+  key:function(g,k){this.pick(g,vsKey(g.state.btns||[],k));}
+};
+
+/* 🏁 Team Race: each team answers its own questions; every right answer moves your car */
+var TEAMRACE={id:'c_race',icon:'🏁',name:'Team Race',thumb:'car_purple.png',bg:'bg_road.jpg',versus:true,lives:false,classOnly:true,
+  desc:'Each team gets its own questions on its side. Every right answer moves your car forward; a wrong one spins you out. First car over the line wins.',
+  init:function(g){var s=g.state;s.pos={A:0,B:0};s.spin={A:0,B:0};s.q={};s.o={};s.parts=[];this.next(g,'A');this.next(g,'B');setQ(T('Race! Each team answers its own questions'));},
+  next:function(g,t){var s=g.state;s.q[t]=makeQ(g.L);s.o[t]=choices(s.q[t],g.L,4);},
+  update:function(g,dt){var s=g.state;s.spin.A=Math.max(0,s.spin.A-dt);s.spin.B=Math.max(0,s.spin.B-dt);},
+  draw:function(g,ctx){var s=g.state;ctx.fillStyle='#3f6212';ctx.fillRect(0,0,g.w,g.h);var top=10,rh=Math.min(150,g.h*.28);ctx.fillStyle='#374151';ctx.fillRect(0,top,g.w,rh);
+    ctx.strokeStyle='#fde047';ctx.setLineDash([24,18]);ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,top+rh/2);ctx.lineTo(g.w,top+rh/2);ctx.stroke();ctx.setLineDash([]);
+    var x0=50,x1=g.w-70,cw=Math.min(90,g.w*.12);for(var i=0;i<6;i++){ctx.fillStyle=i%2?'#fff':'#111';ctx.fillRect(x1+40,top+i*rh/6,12,rh/6);}
+    [['A','car_orange.png',.27],['B','car_purple.png',.73]].forEach(function(c){var x=x0+(x1-x0)*clamp(s.pos[c[0]]/10,0,1),y=top+rh*c[2];ctx.save();ctx.translate(x,y);if(s.spin[c[0]]>0)ctx.rotate(Math.sin(g.t*30)*.4);if(ok(IMG[c[1]]))ctx.drawImage(IMG[c[1]],-cw/2,-cw*.25,cw,cw*.5);ctx.restore();});
+    ctx.fillStyle='rgba(255,255,255,.25)';ctx.fillRect(g.w/2-2,top+rh,4,g.h-top-rh);
+    var qy=top+rh+34;['A','B'].forEach(function(t){var cx=t==='A'?g.w/4:g.w*3/4,qt=qText(s.q[t]);label(ctx,teamName(t),cx,qy,18,t==='A'?TA:TB);label(ctx,qt,cx,qy+32,Math.max(12,Math.min(26,g.w/(qt.length+6)*1.6)),'#fff');});
+    s.btns=vsBtns(g,ctx,'A',s.o.A,qy+62,s.spin.A>0).concat(vsBtns(g,ctx,'B',s.o.B,qy+62,s.spin.B>0));drawParts(ctx,s.parts,1/60);},
+  pick:function(g,b){var s=g.state;if(!b||s.spin[b.side]>0)return;var t=b.side;
+    if(b.v===s.q[t].a){s.pos[t]++;if(s.pos[t]>=10){vsWin(g,t);return;}}else{s.spin[t]=1.5;flash(teamName(t)+': '+T('spin out!'),'#fca5a5');}this.next(g,t);},
+  down:function(g,x,y){this.pick(g,vsHit(g.state.btns||[],x,y));},
+  key:function(g,k){this.pick(g,vsKey(g.state.btns||[],k));}
+};
+var CLASS_GAMES=[TUG,BUZZER,POTATO,TEAMRACE];
+
+var GAMES=[FISH,STARS,GEMS,DUEL,ASTEROIDS,TRUEFALSE,CASTLE,FLIGHT,BALLOONS,SNAKE,BOMB,RACE,STONES,CATCHER,FRUITS,RUNNER,MEMORY].concat(THEMED);
+var ALLG=GAMES.concat(CLASS_GAMES);
+/* Each home game is made for certain grades, so every grade gets its own set of games.
+   Themed worlds go from little-kid worlds (farm, candy) to older ones (robots, haunted). */
+var LV={fish:[1,13],stars:[1,13],gems:[2,13],duel:[1,9],asteroids:[3,13],truefalse:[4,13],castle:[4,13],flight:[5,13],balloons:[1,6],snake:[3,13],bomb:[6,13],race:[5,13],stones:[1,8],catcher:[1,8],fruit:[1,6],runner:[2,10],memory:[1,13]};
+var THEME_LV={farm:[1,3],candy:[1,4],rainbow:[2,5],jungle:[2,5],dino:[3,6],island:[4,7],arctic:[5,8],pirate:[6,9],desert:[7,10],volcano:[8,11],haunted:[9,13],robot:[10,13]};
+function gradeRange(g){if(LV[g.id])return LV[g.id];var m=/^t_([a-z]+)_/.exec(g.id);if(m&&THEME_LV[m[1]])return THEME_LV[m[1]];if(g.lv)return g.lv;return [1,13];}
+function forGrade(g,L){var r=gradeRange(g);return L>=r[0]&&L<=r[1];}
+/* ---------- best scores sync between the app and the website (signed-in players) ---------- */
+function who(){return W.ME||W.mxUser||null;}
+function fbBase(){return W.FB||'https://matix-1d538-default-rtdb.firebaseio.com';}
+function fbJ(p,m,d){var o={method:m||'GET'};if(d!==undefined){o.headers={'Content-Type':'application/json'};o.body=JSON.stringify(d);}return fetch(fbBase()+p+'.json',o).then(function(r){return r.json();});}
+function gkey(id){return encodeURIComponent(String(id).replace(/[.#$\[\]\/]/g,'_'));}
+function pushBest(id,score){var u=who();if(!u||!(score>0))return;var k=encodeURIComponent(u),g=gkey(id);
+  fbJ('/arcade/best/'+k+'/'+g).then(function(cur){if(!(+cur>=score)){fbJ('/arcade/best/'+k+'/'+g,'PUT',score);fbJ('/arcade/top/'+g+'/'+k,'PUT',score);}})['catch'](function(){});}
+var lastPull=0;
+function syncBests(after){var u=who();if(!u||Date.now()-lastPull<60000)return;lastPull=Date.now();
+  fbJ('/arcade/best/'+encodeURIComponent(u)).then(function(o){o=o||{};var changed=false;
+    ALLG.forEach(function(g){var r=+o[gkey(g.id)]||0,l=best(g.id);if(r>l){ls('mx_arcade_best_'+g.id,String(r));changed=true;}else if(l>r)pushBest(g.id,l);});
+    if(changed&&after)after();})['catch'](function(){});}
+function showTop(id){var box=$('mxgTop');if(!box)return;
+  fbJ('/arcade/top/'+gkey(id)).then(function(o){if(!$('mxgTop'))return;var rows=Object.keys(o||{}).map(function(k){return [decodeURIComponent(k),+o[k]||0];}).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
+    if(!rows.length){box.innerHTML='';return;}
+    box.innerHTML='<b>\uD83C\uDFC6 '+E(T('Top players'))+'</b><ol>'+rows.map(function(r){return '<li'+(r[0]===who()?' class="me"':'')+'><span>@'+E(r[0])+'</span><b>'+r[1]+'</b></li>';}).join('')+'</ol>';})['catch'](function(){});}
 
 /* ---------- arcade page (replaces the old Games hub) ---------- */
 function renderArcade(c){
-  var L=level();
+  var L=level(),shown=CLS.on?CLASS_GAMES:GAMES.filter(function(g){return forGrade(g,L);});
+  syncBests(function(){var cc=$('content');if(!G&&cc&&cc.querySelector('.mxr-arcade'))renderArcade(cc);});
+  function card(g,i,isNew){
+    return '<button type="button" class="mxr-card" data-i="'+i+'" data-n="'+E((T(g.name)+' '+g.name).toLowerCase())+'" aria-label="'+E(T(g.name)+'. '+T(g.desc))+'">'
+      +'<span class="mxr-art"><img class="mxr-bg" loading="lazy" src="'+IMG_DIR+(g.bgThumb||g.bg)+'" alt=""><img loading="lazy" src="'+IMG_DIR+g.thumb+'" alt="">'+(isNew?'<i class="mxr-new">NEW</i>':'')+'</span>'
+      +'<span class="mxr-tx"><b>'+g.icon+' '+E(T(g.name))+'</b><small>'+E(T(g.desc))+'</small>'+(g.versus?'<em>\uD83C\uDFEB '+E(T('Both teams play at once'))+'</em>':'<em>🏆 '+E(T('Best'))+': '+best(g.id)+'</em>')+'</span></button>';}
+  var NEWIDS={};
   c.innerHTML='<div class="mxr-arcade">'
-    +'<div class="mxr-hero"><div><h1>🎮 '+E(T('Matix Arcade'))+'</h1><p>'+E(T('Real games, real maths. Pick your grade and the questions grow with you.'))+' '+GAMES.length+' '+E(T('games'))+'.</p></div></div>'
+    +'<div class="mxr-hero"><div><h1>🎮 '+E(T('Matix Arcade'))+'</h1><p>'+E(T('Real games, real maths. Pick your grade and the games and questions are made for it.'))+' '+ALLG.length+' '+E(T('games'))+', '+EXERCISES.length+' '+E(T('smart-board exercises'))+'.</p></div></div>'
     +'<div class="mxr-modes" role="tablist" aria-label="'+E(T('Where are you playing?'))+'"><button type="button" role="tab" data-m="home" aria-selected="'+(!CLS.on)+'">🏠 '+E(T('At home'))+'</button><button type="button" role="tab" data-m="class" aria-selected="'+CLS.on+'">🏫 '+E(T('In class'))+'</button></div>'
     +'<label class="mxr-lv"><span>'+E(T(CLS.on?'Pick the class':'Difficulty'))+'</span><select id="mxaLv" aria-label="'+E(T('Grade'))+'">'+LEVELS.map(function(l){return '<option value="'+l[0]+'"'+(+l[0]===L?' selected':'')+'>'+E(T(l[1]))+'</option>';}).join('')+'</select></label>'
-    +(CLS.on?'<div class="mxr-class"><p>'+E(T('Two teams take turns on one screen. Pick a game: the team whose turn it is plays, and their score is added up. Most points wins!'))+'</p>'
-      +'<div class="mxr-teams"><label>'+'<input id="mxaNA" maxlength="16" value="'+E(CLS.nA)+'" aria-label="'+E(T('Team A name'))+'"><b>'+CLS.A+'</b></label>'
-      +'<label><input id="mxaNB" maxlength="16" value="'+E(CLS.nB)+'" aria-label="'+E(T('Team B name'))+'"><b>'+CLS.B+'</b></label></div>'
-      +'<p class="mxr-turn">▶ '+E(T('Next to play'))+': <b>'+E(teamName(CLS.turn))+'</b> <button type="button" class="mxr-link" id="mxaSwap">'+E(T('switch'))+'</button> · <button type="button" class="mxr-link" id="mxaReset">'+E(T('reset scores'))+'</button></p></div>':'')
-    +'<div class="mxr-grid">'+GAMES.map(function(g,i){
-      return '<button type="button" class="mxr-card" data-i="'+i+'" aria-label="'+E(T(g.name)+'. '+T(g.desc))+'">'
-        +'<span class="mxr-art" style="background-image:url('+IMG_DIR+g.bg+')"><img src="'+IMG_DIR+g.thumb+'" alt=""></span>'
-        +'<span class="mxr-tx"><b>'+g.icon+' '+E(T(g.name))+'</b><small>'+E(T(g.desc))+'</small><em>🏆 '+E(T('Best'))+': '+best(g.id)+'</em></span></button>';
-    }).join('')+'</div></div>';
-  $('mxaLv').onchange=function(){ls('mx_arcade_level',this.value);};
+    +(CLS.on?'<div class="mxr-class"><p>'+E(T('Class mode is for the smart board. Pick an exercise below: a big problem, a pen board for working it out, and the worked answer to reveal. Two teams take turns and the points add up.'))+'</p>'
+      +'<div class="mxr-teams"><label>'+'<input id="mxaNA" maxlength="16" value="'+E(teamName('A'))+'" aria-label="'+E(T('Team A name'))+'"><b>'+CLS.A+'</b></label>'
+      +'<label><input id="mxaNB" maxlength="16" value="'+E(teamName('B'))+'" aria-label="'+E(T('Team B name'))+'"><b>'+CLS.B+'</b></label></div>'
+      +'<p class="mxr-turn">▶ '+E(T('Next to play'))+': <b>'+E(teamName(CLS.turn))+'</b> <button type="button" class="mxr-link" id="mxaSwap">'+E(T('switch'))+'</button> · <button type="button" class="mxr-link" id="mxaReset">'+E(T('reset scores'))+'</button></p></div>'
+      +'<h2 class="mxr-h">✏️ '+E(T('Smart-board exercises'))+'</h2><div class="mxr-grid mxr-ex">'+EXERCISES.map(function(x,i){return '<button type="button" class="mxr-card mxr-exc" data-x="'+i+'"><span class="mxr-exi">'+x.icon+'</span><span class="mxr-tx"><b>'+E(T(x.name))+'</b><small>'+E(T(x.desc))+'</small></span></button>';}).join('')+'</div>'
+      +'<h2 class="mxr-h">🎮 '+E(T('Class team games'))+'</h2>':'')
+    +'<div class="mxr-filter"><span>'+shown.length+' '+E(T(CLS.on?'class games':'games for this grade'))+'</span> <input type="search" id="mxaSearch" class="mxr-search" placeholder="'+E(T('Search games'))+'" aria-label="'+E(T('Search games'))+'"></div>'
+    +'<div class="mxr-grid">'+shown.map(function(g){return card(g,ALLG.indexOf(g),NEWIDS[g.id]);}).join('')+'</div></div>';
+  $('mxaLv').onchange=function(){ls('mx_arcade_level',this.value);renderArcade(c);};
+  $('mxaSearch').oninput=function(){var q=this.value.trim().toLowerCase();c.querySelectorAll('.mxr-card[data-i]').forEach(function(b){b.style.display=!q||b.dataset.n.indexOf(q)>=0?'':'none';});};
   c.querySelectorAll('.mxr-modes button').forEach(function(b){b.onclick=function(){CLS.on=b.dataset.m==='class';saveCls();renderArcade(c);};});
   if(CLS.on){
     $('mxaNA').onchange=function(){CLS.nA=this.value.trim()||'Team A';saveCls();};
     $('mxaNB').onchange=function(){CLS.nB=this.value.trim()||'Team B';saveCls();};
     $('mxaSwap').onclick=function(){CLS.turn=CLS.turn==='A'?'B':'A';saveCls();renderArcade(c);};
     $('mxaReset').onclick=function(){CLS.A=CLS.B=0;CLS.turn='A';saveCls();renderArcade(c);};
+    c.querySelectorAll('.mxr-exc').forEach(function(b){b.onclick=function(){startBoard(EXERCISES[+b.dataset.x]);};});
   }
-  c.querySelectorAll('.mxr-card').forEach(function(b){b.onclick=function(){startGame(GAMES[+b.dataset.i]);};});
+  c.querySelectorAll('.mxr-card[data-i]').forEach(function(b){b.onclick=function(){startGame(ALLG[+b.dataset.i]);};});
 }
 W.renderGames=function(c){renderArcade(c);};
+W.addEventListener('mxlang',function(){if(G||BX.on)return;var c=$('content');if(c&&c.querySelector('.mxr-arcade'))renderArcade(c);});
 W.renderGamePlay=function(c){renderArcade(c);};
-W.mxArcade={start:function(id){var g=GAMES.filter(function(x){return x.id===id;})[0];if(g)startGame(g);},games:GAMES,makeQ:makeQ};
+W.mxArcade={start:function(id){var g=ALLG.filter(function(x){return x.id===id;})[0];if(g)startGame(g);},games:ALLG,classGames:CLASS_GAMES,forGrade:forGrade,makeQ:makeQ,version:ARCADE_VERSION};
 /* Android back button closes a running game */
 W.addEventListener('popstate',function(){if(G){G.pushed=false;stopGame();}});
 })();
