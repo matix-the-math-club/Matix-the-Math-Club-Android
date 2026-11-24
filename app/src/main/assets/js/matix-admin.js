@@ -44,6 +44,10 @@ function deleteUser(u){
         W.fbPut('/members/'+enc(u),null),W.fbPut('/profiles/'+enc(u),null),W.fbPut('/roles/'+enc(u),null),
         W.fbPut('/profile_comments/'+enc(u),null),W.fbPut('/follows/'+enc(u),null),W.fbPut('/friends/'+enc(u),null)]);
     });
+  }).then(function(){
+    /* also remove the player's arcade scores (and top-score entries) and saved exercise sets */
+    return W.fbGet('/arcade/best/'+enc(u)).then(function(o){var jobs=Object.keys(o||{}).map(function(g){return W.fbPut('/arcade/top/'+g+'/'+enc(u),null);});
+      jobs.push(W.fbPut('/arcade/best/'+enc(u),null),W.fbPut('/arcade/decks/'+enc(u),null));return Promise.all(jobs);})['catch'](function(){});
   }).then(function(){delete ROLES[u];toast('🗑 @'+u+' deleted. You can undo it from Messages.','ok');});
 }
 
