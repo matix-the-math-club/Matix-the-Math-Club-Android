@@ -243,7 +243,7 @@ function openQuiz(){
 }
 
 /* ---------- the Math Learn "Video course" page ---------- */
-var MODE_KEY='mx_learn_mode';
+var MODE_KEY='mx_learn_mode2'; /* 1.2.1: everyone starts on the course (find your level first) */
 function gradeName(g){for(var i=0;i<COURSE.grades.length;i++)if(COURSE.grades[i][0]===g)return T(COURSE.grades[i][1]);return g;}
 function curGrade(){
   var g=PR.grade;
@@ -280,10 +280,10 @@ function paint(){
           +'<span class="mxc-tx">'+(Q?'<small class="mxc-gl">'+E(gradeName(l.grade))+'</small>':'')+'<b>'+E(T(l.title))+'</b><small>'+E(T(l.sub))+'</small></span></button>'
           +(!Q&&i%3===2?gameCard(l,i):'');
       }).join('')+(list.length?'':'<div class="mxc-empty">'+E(T('No lessons match that.'))+'</div>')+'</div>'
-    +'<p class="mxc-old"><button type="button" class="mxr-link" id="mxcOld">🎯 '+E(T('Old practice course'))+'</button></p>'
+    +'<p class="mxc-old"><button type="button" class="mxr-link" id="mxcOld">← 🎯 '+E(T('My course'))+'</button></p>'
     +'</div>';
   c.innerHTML=h;
-  $('mxcOld').onclick=function(){ls(MODE_KEY,'practice');try{W.renderContent();}catch(e){}};
+  $('mxcOld').onclick=function(){ls(MODE_KEY,'course');try{W.renderContent();}catch(e){}};
   $('mxcLevel').onclick=function(){findLevel(paint);};
   var cont=$('mxcCont');if(cont)cont.onclick=function(){PR.grade=nx.grade;var l=byGrade(nx.grade);openPlayer(l,l.indexOf(nx));};
   var q=$('mxcQ');q.oninput=function(){var pos=q.selectionStart;Q=(q.value||'').toLowerCase().trim();paint();var n=$('mxcQ');if(n){n.focus();try{n.setSelectionRange(pos,pos);}catch(e){}}};
@@ -297,8 +297,8 @@ function gameCard(l,i){var g=breakGame(l,Math.floor(i/3));if(!g)return '';var t=
   return '<button type="button" class="mxc-game" data-gi="'+i+'" data-k="'+Math.floor(i/3)+'"><span class="mxc-gi">'+g.icon+'</span><span class="mxc-tx"><small>🎮 '+E(T('Game break'))+'</small><b>'+E(T(g.name))+'</b><small>'+E(t?T('Questions about')+' '+T(l.title):gradeName(l.grade))+'</small></span></button>';}
 function modeBar(mode){
   return '<div class="mxc-mode" role="tablist" aria-label="'+E(T('Math Learn'))+'">'
-    +'<button type="button" role="tab" data-mode="videos" aria-selected="'+(mode==='videos')+'" class="'+(mode==='videos'?'on':'')+'">← 🦉 '+E(T('Math Learn'))+'</button>'
-    +'<button type="button" role="tab" data-mode="practice" aria-selected="'+(mode==='practice')+'" class="'+(mode==='practice'?'on':'')+'">🎯 '+E(T('Old practice course'))+'</button></div>';
+    +'<button type="button" role="tab" data-mode="course" aria-selected="'+(mode!=='videos')+'" class="'+(mode!=='videos'?'on':'')+'">🎯 '+E(T('My course'))+'</button>'
+    +'<button type="button" role="tab" data-mode="videos" aria-selected="'+(mode==='videos')+'" class="'+(mode==='videos'?'on':'')+'">🎬 '+E(T('All video lessons'))+'</button></div>';
 }
 function wireMode(c){
   c.querySelectorAll('.mxc-mode button').forEach(function(b){b.onclick=function(){ls(MODE_KEY,b.dataset.mode);try{W.renderContent();}catch(e){}};});
@@ -308,10 +308,10 @@ var MO=null;
 function keepBar(c){
   if(MO){MO.disconnect();MO=null;}
   function ensure(){
-    if(!c.isConnected||ls(MODE_KEY)!=='practice')return;
+    if(!c.isConnected||ls(MODE_KEY)==='videos')return;
     var t=null;try{t=W.activeTab();}catch(e){}
     if(!t||t.kind!=='learn'){if(MO){MO.disconnect();MO=null;}return;}
-    if(!c.querySelector('.mxc-mode')){var d=D.createElement('div');d.innerHTML=modeBar('practice');var bar=d.firstChild;c.insertBefore(bar,c.firstChild);wireMode(c);}
+    if(!c.querySelector('.mxc-mode')){var d=D.createElement('div');d.innerHTML=modeBar('course');var bar=d.firstChild;c.insertBefore(bar,c.firstChild);wireMode(c);}
   }
   ensure();
   try{MO=new MutationObserver(ensure);MO.observe(c,{childList:true});}catch(e){}
@@ -324,7 +324,7 @@ function wire(){
     W.renderContent=function(){
       var t=null;try{t=W.activeTab();}catch(e){}
       if(t&&(t.kind==='motion'||t.kind==='games')){t.kind='learn';t.icon='🦉';t.title=T('Math Learn');try{W.drawTabs();}catch(e){}}
-      if(t&&t.kind==='learn'&&!W.LX_PENDING_TOPIC&&ls(MODE_KEY)!=='practice'&&COURSE.lessons.length){
+      if(t&&t.kind==='learn'&&!W.LX_PENDING_TOPIC&&ls(MODE_KEY)==='videos'&&COURSE.lessons.length){
         if(MO){MO.disconnect();MO=null;}
         var c=$('content');ROOT=c;
         if(!D.body.classList.contains('no-motion')){c.classList.remove('pgin');void c.offsetWidth;c.classList.add('pgin');}
@@ -338,7 +338,14 @@ function wire(){
     };
     W.renderContent.__mxc=true;
   }
-  W.mxCourse={open:function(id){var l=COURSE.lessons.filter(function(x){return x.id===id;})[0];if(!l)return;var g=byGrade(l.grade);openPlayer(g,g.indexOf(l));},data:COURSE,progress:PR};
+  var VT={arith:/^add_|sub|mul|times|div|doubles|make_ten|col_add/,frac:/frac/,dec:/dec|percent/,neg:/negative|integers/,ops:/order_ops/,alg:/^eq_|linear|inequal|slope/,geo:/area|perimeter|shapes|angle|pythag|volume|circle/,pow:/exponent|square_roots|sci_notation/,stat:/mean|median|probab|std_dev/};
+  var GT={arith:['addsub','times','divide'],frac:['frac','fraceq','fracadd'],dec:['dec','pct'],neg:['neg'],ops:['bodmas'],alg:['eq'],geo:['area','angle'],pow:['pow'],stat:['stats','prob']};
+  function videoFor(topic,L,part){var re=VT[topic];if(!re)return null;var ls_=COURSE.lessons.filter(function(l){return re.test(l.id);});if(!ls_.length)return null;
+    var i=Math.min(ls_.length-1,Math.floor(((Math.max(1,Math.min(3,L||1))-1)/3)*ls_.length)+(part==='b'?1:0));return ls_[i];}
+  function gameFor(topic,L){var A=W.mxArcade;if(!A){toast(T('Games could not load.'),'err');return;}var ids=GT[topic]||['addsub'],tid=ids[Math.min(ids.length-1,Math.max(0,(L||1)-1))],t=(A.lessons||[]).filter(function(x){return x.id===tid;})[0];
+    if(!t){if(A.games&&A.games[0])A.start(A.games[0].id);return;}var gs=gradeGames(t.lv[0]+Math.max(0,(L||1)-1)*2);var g=gs.length?gs[Math.floor(Math.random()*gs.length)]:null;
+    if(g&&A.startTopic)A.startTopic(g.id,t.id);else if(A.quest)A.quest(t);}
+  W.mxCourse={videoFor:videoFor,game:gameFor,open:function(id){var l=COURSE.lessons.filter(function(x){return x.id===id;})[0];if(!l)return;var g=byGrade(l.grade);openPlayer(g,g.indexOf(l));},data:COURSE,progress:PR};
 }
 var CSS=D.createElement('style');
 CSS.textContent='.mxq-wl{text-align:left;line-height:1.5;margin:10px 0 14px;padding-left:22px}.mxq-wl li{margin:8px 0}'
@@ -351,6 +358,6 @@ CSS.textContent='.mxq-wl{text-align:left;line-height:1.5;margin:10px 0 14px;padd
  +'.mxc-game:hover{transform:translateY(-2px)}.mxc-gi{font-size:2.4rem;flex:none}.mxc-game .mxc-tx{display:flex;flex-direction:column;gap:2px}.mxc-game small{opacity:.8}';
 D.head.appendChild(CSS);
 if(W.trAdd)W.trAdd({'From adding in Grade 1 to calculus in college. Find your level, watch a one-minute video, read what to watch out for, then do the exercises.':'De l’addition en CP au calcul en université. Trouve ton niveau, regarde une vidéo d’une minute, lis les pièges à éviter, puis fais les exercices.','Watch out':'Attention','Start the exercises':'Commencer les exercices','Find my level':'Trouver mon niveau','Find my level again':'Refaire le test de niveau','Your level':'Ton niveau',
-  'Now play a game about it, or practise it step by step.':'Maintenant joue à un jeu sur ce thème, ou entraîne-toi étape par étape.','Play a game about it':'Jouer à un jeu sur ce thème','Practice lesson':'Leçon d’entraînement','Game':'Jeu','Game break':'Pause jeu','Questions about':'Questions sur','Games could not load.':'Les jeux n’ont pas pu se charger.','From adding in Grade 1 to calculus in college. Find your level, watch a one-minute video, read what to watch out for, do the exercises, then play a game about it.':'De l’addition en CP au calcul en université. Trouve ton niveau, regarde une vidéo d’une minute, lis les pièges à éviter, fais les exercices, puis joue à un jeu sur ce thème.','Start with the first lesson you have not done in this grade.':'Commence par la première leçon pas encore faite de cette année.','Let’s go':'C’est parti','Stop':'Arrêter','Video':'Vidéo','Exercises':'Exercices','Old practice course':'Ancien cours d’entraînement'});
+  'Now play a game about it, or practise it step by step.':'Maintenant joue à un jeu sur ce thème, ou entraîne-toi étape par étape.','Play a game about it':'Jouer à un jeu sur ce thème','Practice lesson':'Leçon d’entraînement','Game':'Jeu','Game break':'Pause jeu','Questions about':'Questions sur','Games could not load.':'Les jeux n’ont pas pu se charger.','From adding in Grade 1 to calculus in college. Find your level, watch a one-minute video, read what to watch out for, do the exercises, then play a game about it.':'De l’addition en CP au calcul en université. Trouve ton niveau, regarde une vidéo d’une minute, lis les pièges à éviter, fais les exercices, puis joue à un jeu sur ce thème.','My course':'Mon parcours','Correct!':'Correct !','Incorrect':'Incorrect','The correct answer is':'La bonne réponse est','you wrote':'tu as écrit','Find your level':'Trouve ton niveau','First let’s find your level with a few quick questions. Every answer shows if it is correct or incorrect. Then you can start your course.':'D’abord, trouvons ton niveau avec quelques questions rapides. Chaque réponse te dit si c’est correct ou incorrect. Ensuite tu peux commencer ton parcours.','Your level is ready!':'Ton niveau est prêt !','You got':'Tu as eu','Start my course':'Commencer mon parcours','Watch the video':'Regarder la vidéo','Watch the video, then try the questions.':'Regarde la vidéo, puis essaie les questions.','All video lessons':'Toutes les vidéos','Start with the first lesson you have not done in this grade.':'Commence par la première leçon pas encore faite de cette année.','Let’s go':'C’est parti','Stop':'Arrêter','Video':'Vidéo','Exercises':'Exercices','Old practice course':'Ancien cours d’entraînement'});
 if(D.readyState==='loading')D.addEventListener('DOMContentLoaded',wire);else wire();
 })();

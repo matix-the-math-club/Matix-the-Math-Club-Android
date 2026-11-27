@@ -15054,6 +15054,9 @@ body.dark .mlv-pill.hot.on{background:rgba(255,154,60,.18);color:#ffbf80}
 .mlv-fb{margin-top:14px;padding:12px 14px;border-radius:14px;line-height:1.45;color:var(--mxa-ink,#1c1d22);animation:mlvPop .25s}
 @keyframes mlvPop{from{transform:scale(.97);opacity:0}}
 .mlv-fb.ok{background:rgba(32,170,100,.14);border:1px solid rgba(32,170,100,.45)}
+.mlv-verdict{font-weight:900;font-size:1.15rem;margin-bottom:4px}.mlv-verdict.ok{color:#15803d}.mlv-verdict.no{color:#dc2626}body.dark .mlv-verdict.ok{color:#4ade80}body.dark .mlv-verdict.no{color:#f87171}
+.mlv-video{display:flex;align-items:center;gap:12px;width:100%;margin:12px 0 4px;padding:8px;border-radius:16px;border:2px solid rgba(139,92,246,.45);background:rgba(139,92,246,.1);color:inherit;font:inherit;cursor:pointer;text-align:left;position:relative}.mlv-video img{width:120px;aspect-ratio:16/9;object-fit:cover;border-radius:10px;flex:none}.mlv-video span{position:absolute;left:52px;color:#fff;font-size:1.4rem;text-shadow:0 2px 6px #000}
+.mlv-game{margin-top:6px}
 .mlv-fb.no{background:rgba(255,154,60,.15);border:1px solid rgba(255,154,60,.55)}
 .mlv-fb.hint{background:rgba(255,205,60,.2);border:1px solid rgba(220,170,20,.5)}
 .mlv-fb .why{margin-top:4px;font-size:.93rem}.mlv-fb .plus{font-weight:900;color:#0d7a45;margin-left:6px}
@@ -16204,13 +16207,13 @@ var MXML5=(function(){
   function renderIntro(){
     var d=ML.draft;
     var lv=[['\uD83C\uDF31','Just starting','I\u2019m new or a bit rusty'],['\uD83C\uDF3F','The basics','Add, subtract, times tables'],['\uD83C\uDF33','Comfortable','Fractions, percents, order of operations'],['\uD83D\uDE80','Pretty advanced','Algebra, geometry, powers']];
-    var h='<div class="mlv-hero"><div class="mlv-owl">\uD83E\uDD89</div><div><h1>Math Learn</h1><p>Hi '+E(userName())+'! Let\u2019s find your perfect starting point \u2014 a quick, friendly game. No grades, no pressure.</p></div></div>'
+    var h='<div class="mlv-hero"><div class="mlv-owl">\uD83E\uDD89</div><div><h1>\uD83E\uDDED '+E(tr('Find your level'))+'</h1><p>Hi '+E(userName())+'! '+E(tr('First let\u2019s find your level with a few quick questions. Every answer shows if it is correct or incorrect. Then you can start your course.'))+'</p></div></div>'
       +'<div class="mlv-card"><h2>What do you know?</h2><p class="mlv-sub">Pick what sounds most like you:</p>'
       +'<div class="mlv-lv" id="mlLv">'+lv.map(function(x,i){return '<button type="button" class="mlv-lvb'+(d.level===i?' on':'')+'" data-i="'+i+'"><span class="e">'+x[0]+'</span><b>'+x[1]+'</b><small>'+x[2]+'</small></button>';}).join('')+'</div>'
       +'<p class="mlv-sub">Anything you already enjoy? <small>(tap any \u2014 optional)</small></p>'
       +'<div class="mlv-chips" id="mlTp">'+TOP.map(function(t){return '<button type="button" class="mlv-chip'+(d.topics.indexOf(t.id)>=0?' on':'')+'" data-t="'+t.id+'">'+t.emoji+' '+E(t.name)+'</button>';}).join('')+'</div>'
       +'<textarea id="mlText" class="mlv-text" rows="2" maxlength="300" placeholder="\u2026or tell me in your own words, e.g. \u201CI\u2019m okay with fractions but algebra confuses me\u201D"></textarea>'
-      +'<div class="mlv-actions"><button type="button" class="btn mlv-go" id="mlStart">Start my warm-up \uD83D\uDE80</button><button type="button" class="mlv-link" id="mlSkip">Skip \u2014 start from the beginning</button></div>'
+      +'<div class="mlv-actions"><button type="button" class="btn mlv-go" id="mlStart">\uD83E\uDDED '+E(tr('Find my level'))+'</button><button type="button" class="mlv-link" id="mlSkip">Skip \u2014 start from the beginning</button></div>'
       +'<div class="mlv-note">\u2728 It\u2019s not a test! About 8 quick questions that help me build your course. Mistakes help me more than perfect answers.</div></div>'
       +'<div class="mlv-quick">Want a lesson on one specific topic instead? <button type="button" class="mlv-link" id="mlLegacy">Ask Matix to teach me anything \u2192</button></div>';
     show(h,'mlv-intro');
@@ -16291,8 +16294,8 @@ var MXML5=(function(){
       });
       var inp=$q('#qIn',root);if(inp){inp.disabled=true;inp.classList.add(ok?'right':'wrong');var okb=$q('#qOk',root);if(okb)okb.disabled=true;}
       hintBtn.hidden=true;fb.hidden=false;fb.className='mlv-fb '+(ok?'ok':'no');
-      if(ok)fb.innerHTML='<b>'+MX.pick(PRAISE)+'</b>'+(pts?' <span class="plus">+'+pts+'</span>':'')+(gentle?'':'<div class="why">'+(q.why||'')+'</div>');
-      else fb.innerHTML='<b>'+(gentle?'No worries \u2014 that\u2019s exactly what I needed to know! \uD83C\uDF31':MX.pick(OOPS))+'</b><div class="why">Answer: <b>'+E(fixNeg(q.a))+'</b>. '+(q.why||'')+'</div>';
+      if(ok)fb.innerHTML='<div class="mlv-verdict ok">\u2705 '+E(tr('Correct!'))+'</div><b>'+MX.pick(PRAISE)+'</b>'+(pts?' <span class="plus">+'+pts+'</span>':'')+'<div class="why">'+(q.why||'')+'</div>';
+      else fb.innerHTML='<div class="mlv-verdict no">\u274C '+E(tr('Incorrect'))+'</div><b>'+(gentle?'No worries \u2014 that helps me find your level! \uD83C\uDF31':MX.pick(OOPS))+'</b><div class="why">'+E(tr('The correct answer is'))+' <b>'+E(fixNeg(q.a))+'</b>'+(btn||v==null?'':' ('+E(tr('you wrote'))+' '+E(fixNeg(String(v).trim()))+')')+'. '+(q.why||'')+'</div>';
       nextBtn.hidden=false;nextBtn.textContent=(i+1>=cfg.total)?'Finish \uD83C\uDF89':'Next \u2192';
       setStats();setTimeout(function(){try{nextBtn.focus();}catch(e){}},30);
     }
@@ -16321,7 +16324,7 @@ var MXML5=(function(){
     var claim=ML.S.claim,topics=planTopics(claim),startL=skipped?1:Math.max(1,Math.min(3,claim.level||1));
     var per={};topics.forEach(function(t){per[t]={lvls:[],oks:[]};});
     runQuiz({
-      mode:'place',title:'Warm-up',total:topics.length*2,
+      mode:'place',title:tr('Find your level'),total:topics.length*2,
       next:function(i,hist,seen){
         var t=topics[i%topics.length],p=per[t],L=startL;
         if(p.lvls.length){var k=p.lvls.length-1;L=p.oks[k]?Math.min(3,p.lvls[k]+1):Math.max(1,p.lvls[k]-1);}
@@ -16342,10 +16345,10 @@ var MXML5=(function(){
   function pips(n){var s='';for(var k=1;k<=3;k++)s+='<i class="'+(k<=n?'on':'')+'"></i>';return '<span class="mlv-pips" aria-label="level '+n+' of 3">'+s+'</span>';}
   function showMap(res){
     var tested=ML.S.tested||[];
-    var h='<div class="mlv-hero tight"><div class="mlv-owl">\uD83C\uDF89</div><div><h1>Warm-up done \u2014 nice work!</h1><p>You got <b>'+res.right+' of '+res.total+'</b>. Here\u2019s your starting map:</p></div></div>'
+    var h='<div class="mlv-hero tight"><div class="mlv-owl">\uD83C\uDF89</div><div><h1>'+E(tr('Your level is ready!'))+'</h1><p>'+E(tr('You got'))+' <b>'+res.right+' of '+res.total+'</b> '+E(tr('correct'))+'. Here\u2019s your starting map:</p></div></div>'
       +'<div class="mlv-card"><div class="mlv-map">'+tested.map(function(t){var tp=BY[t],m=ML.S.levels[t]||0;return '<div class="mlv-mrow"><span class="n">'+tp.emoji+' '+E(tp.name)+'</span>'+pips(m)+'<small>'+MAP_LABEL[m]+'</small></div>';}).join('')+'</div>'
       +'<div class="mlv-note">\uD83C\uDF31 Every topic starts somewhere. I\u2019ll spend more time on the sprouts and cheer you on through the rest.</div>'
-      +'<div class="mlv-actions"><button type="button" class="btn mlv-go" id="mkBuild">Build my course \u2728</button></div></div>';
+      +'<div class="mlv-actions"><button type="button" class="btn mlv-go" id="mkBuild">\u25B6 '+E(tr('Start my course'))+'</button></div></div>';
     show(h,'mlv-map-screen');
     $q('#mkBuild').onclick=function(){
       show('<div class="mlv-building"><div class="mlv-owl big">\uD83E\uDD89</div><h2>Building your course\u2026</h2><p id="mkMsg">Mixing in bite-sized lessons</p><div class="mlv-bar wide"><i id="mkBar"></i></div></div>');
@@ -16409,7 +16412,7 @@ var MXML5=(function(){
       +'<div class="mlv-col"><div class="mlv-card"><h3>Skill map</h3><div class="mlv-map">'+TOP.map(function(t){return '<div class="mlv-mrow"><span class="n">'+t.emoji+' '+E(t.name)+'</span>'+pips(S.levels[t.id]||0)+'</div>';}).join('')+'</div></div>'
       +'<div class="mlv-card"><h3>Play &amp; practise</h3><div class="mlv-quickbtns"><button type="button" class="mlv-qb" id="mlFreePop">\uD83E\uDEE7 Bubble Pop<small>best '+S.best.pop+'</small></button><button type="button" class="mlv-qb" id="mlFreeBlitz">\u26A1 60s Blitz<small>best '+S.best.blitz+'</small></button></div></div>'
       +'<div class="mlv-card"><h3>Badges</h3><div class="mlv-badges">'+Object.keys(BADGES).map(function(k){var b=BADGES[k],has=S.badges[k];return '<span class="mlv-bdg'+(has?' on':'')+'" title="'+E(b[1]+' \u2014 '+b[2])+'"><i>'+b[0]+'</i><small>'+E(b[1])+'</small></span>';}).join('')+'</div></div>'
-      +'<div class="mlv-card mlv-more"><button type="button" class="mlv-link" id="mlRetake">\uD83D\uDD04 Retake the warm-up</button><button type="button" class="mlv-link" id="mlAsk">\uD83D\uDCA1 Ask Matix to teach me anything</button><button type="button" class="mlv-link dim" id="mlReset">Reset my progress</button></div>'
+      +'<div class="mlv-card mlv-more"><button type="button" class="mlv-link" id="mlRetake">\uD83E\uDDED '+E(tr('Find my level again'))+'</button><button type="button" class="mlv-link" id="mlAsk">\uD83D\uDCA1 Ask Matix to teach me anything</button><button type="button" class="mlv-link dim" id="mlReset">Reset my progress</button></div>'
       +'</div></div>';
     show(h,'mlv-course');
     var go=$q('#mlGo');if(go)go.onclick=function(){openNode(nx);};
@@ -16452,14 +16455,17 @@ var MXML5=(function(){
     return cards.filter(function(c){return c.b||c.ex;}).slice(0,4);
   }
   function lessonCards(n){
-    var cards=lessonDeck(n),tp=BY[n.topic],k=0;
+    var cards=lessonDeck(n),tp=BY[n.topic],k=0,vid=null;try{vid=window.mxCourse&&window.mxCourse.videoFor(n.topic,n.L,n.part);}catch(e){}
+    if(!cards.length&&vid)cards=[{h:tp.name,b:tr('Watch the video, then try the questions.')}];
     function card(){
       var c=cards[k],last=k>=cards.length-1;
       var h='<div class="mlv-top"><button type="button" class="mlv-x" id="lcX" aria-label="Back">\u2715</button><div class="mlv-bar"><i style="width:'+Math.round((k+1)/(cards.length+1)*100)+'%"></i></div><div class="mlv-pill">'+tp.emoji+' L'+n.L+'</div></div>'
         +'<div class="mlv-card mlv-learn" style="--tc:'+tp.color+'"><small>Quick idea '+(k+1)+' of '+cards.length+'</small><h2>'+E(c.h)+'</h2><p>'+E(c.b)+'</p>'
         +(c.ex?'<div class="mlv-ex">'+E(c.ex).replace(/\n/g,'<br>')+'</div>':'')
+        +(k===0&&vid?'<button type="button" class="mlv-video" id="lcVid"><img alt="" src="'+E(vid.poster)+'"><span>\u25B6</span><b>\uD83C\uDFAC '+E(tr('Watch the video'))+': '+E(tr(vid.title))+'</b></button>':'')
         +'<div class="mlv-actions"><button type="button" class="btn mlv-go" id="lcNext">'+(last?'Let\u2019s play! \uD83C\uDFAE':'Got it \u2192')+'</button></div></div>';
       show(h,'mlv-run');
+      var vb=$q('#lcVid');if(vb)vb.onclick=function(){try{window.mxCourse.open(vid.id);}catch(e){}};
       $q('#lcX').onclick=function(){route();};
       $q('#lcNext').onclick=function(){if(last)lessonQuiz(n);else{k++;card();}};
     }
@@ -16504,11 +16510,13 @@ var MXML5=(function(){
       +'<p>'+tp.emoji+' '+E(tp.name)+' \u2014 <b>'+res.right+' of '+res.total+'</b> right \u00B7 best streak <b>'+res.bestStreak+'</b> \uD83D\uDD25</p>'
       +'<div class="mlv-gain">+'+r.gain+' points</div>'+recapHtml(r.miss)
       +'<div class="mlv-actions">'+(nx?'<button type="button" class="btn mlv-go" id="rsNext">Next: '+E(nodeTitle(nx))+' \u25B6</button>':'<button type="button" class="btn mlv-go" id="rsHome">Back to my course</button>')
+      +'<button type="button" class="btn mlv-go mlv-game" id="rsGame">\uD83C\uDFAE '+E(tr('Play a game about it'))+'</button>'
       +'<button type="button" class="mlv-link" id="rsAgain">Try again for more stars</button><button type="button" class="mlv-link" id="rsHome2">My course</button></div></div>','mlv-run');
     if(r.stars===3)confetti();
     var nb=$q('#rsNext');if(nb)nb.onclick=function(){openNode(nx);};
     var hb=$q('#rsHome');if(hb)hb.onclick=route;
     $q('#rsAgain').onclick=function(){lessonQuiz(n);};
+    $q('#rsGame').onclick=function(){try{window.mxCourse.game(n.topic,n.L);}catch(e){}};
     $q('#rsHome2').onclick=route;
   }
 
