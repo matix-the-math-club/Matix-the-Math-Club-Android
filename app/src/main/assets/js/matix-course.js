@@ -1,5 +1,6 @@
 /* =====================================================================
-   Matix video course (1.0.8) — Math Learn, grade 1 -> college.
+   Matix video course (1.0.8, one path since 1.2.0) — Math Learn, grade 1 -> college.
+   1.2.0: Find my level → video → ⚠️ Watch out → ✏️ exercises (quiz + new ones).
    - Every video in the app lives here (assets/media/lessons). No more
      background / header / intro films.
    - Math Learn opens on "Video course": pick a grade, watch a ~1 minute
@@ -32,18 +33,19 @@ var PR=(function(){try{return JSON.parse(ls(PKEY)||'{}')||{};}catch(e){return {}
 if(!PR.done)PR.done={};
 function saveProgress(){
   ls(PKEY,JSON.stringify(PR));
-  if(me()&&typeof W.fbPut==='function'){try{W.fbPut('/course/'+encodeURIComponent(me()),{done:PR.done,grade:PR.grade||null,at:Date.now()});}catch(e){}}
+  if(me()&&typeof W.fbPut==='function'){try{W.fbPut('/course/'+encodeURIComponent(me()),{done:PR.done,grade:PR.grade||null,level:PR.level||null,at:Date.now()});}catch(e){}}
 }
 function pullProgress(){
   if(!me()||typeof W.fbGet!=='function')return;
   W.fbGet('/course/'+encodeURIComponent(me())).then(function(o){
-    if(!o||!o.done)return;var ch=false;
+    if(!o||!o.done)return;var ch=false;if(o.level&&!PR.level){PR.level=o.level;ch=true;}
     Object.keys(o.done).forEach(function(k){var a=o.done[k]||{},b=PR.done[k];if(!b||(a.stars||0)>(b.stars||0)){PR.done[k]=a;ch=true;}});
     if(ch){ls(PKEY,JSON.stringify(PR));if($('mxcRoot'))paint();}
   });
 }
 function byGrade(g){return COURSE.lessons.filter(function(l){return l.grade===g;});}
-function nextLesson(){for(var i=0;i<COURSE.lessons.length;i++){var l=COURSE.lessons[i];if(!PR.done[l.id])return l;}return null;}
+function nextLesson(){var start=0;if(PR.level){for(var j=0;j<COURSE.lessons.length;j++)if(COURSE.lessons[j].grade===PR.level){start=j;break;}}
+  for(var i=start;i<COURSE.lessons.length;i++){var l=COURSE.lessons[i];if(!PR.done[l.id])return l;}for(i=0;i<start;i++){l=COURSE.lessons[i];if(!PR.done[l.id])return l;}return null;}
 function starsOf(id){var d=PR.done[id];return d?(d.stars||0):-1;}
 
 /* ---------- video ---------- */
@@ -110,12 +112,82 @@ function closePlayer(viaUi){
 }
 W.addEventListener('popstate',function(){if(P.el&&P.el.classList.contains('open')){P.pushed=false;closePlayer(false);}});
 
-/* ---------- quiz after each video ---------- */
+/* ---------- 1.2.0: one Math Learn path ----------
+   Find my level → the lessons of that grade, each one: 🎬 the video →
+   ⚠️ Watch out (the mistakes people often make) → ✏️ exercises (the
+   lesson's quiz + new exercises made for that topic). */
+var WARN=[
+  [/^count|skip_count/,['Point at each thing once. Do not count the same one twice or skip one.','The last number you say is how many there are.']],
+  [/^add_|doubles|make_ten|col_add|word_addsub|fact_family/,['Line up ones under ones and tens under tens before you add.','If the ones add up to 10 or more, carry the 1 to the tens. Do not forget it!','Check: adding the numbers in the other order gives the same answer.']],
+  [/sub|borrow/,['Always take the smaller number away from the bigger one in each column, borrowing when the top digit is too small.','Taking away is not like adding: 9 − 4 is not the same as 4 − 9.','Check by adding back: answer + the number you took away = the number you started with.']],
+  [/place|round|compare|even_odd/,['The value of a digit depends on its place: in 352 the 5 is worth 50, not 5.','When rounding, look only at the next digit to the right: 5 or more rounds up.','Zero holds a place: 305 and 35 are not the same number.']],
+  [/clock/,['The short hand shows the hour, the long hand shows the minutes.','At half past, the hour hand is halfway between two numbers. Read the number it just passed.']],
+  [/shapes|volume|circles|area|perimeter|triangle|similar|distance/,['Area is in square units (cm²), perimeter in units (cm), volume in cubic units (cm³). Do not mix them up.','Perimeter: add ALL the sides. A rectangle has four sides, not two.','Triangle area needs the height that makes a right angle with the base, not the slanted side.','Use the same unit for every length before you calculate.']],
+  [/mul|times/,['3 × 4 means 3 groups of 4. The order does not change the answer.','Anything × 0 = 0, and anything × 1 stays the same.','In column multiplying, write a 0 in the ones place on the second row.']],
+  [/div/,['Dividing by a number is not the same as dividing that number: 12 ÷ 3 ≠ 3 ÷ 12.','You can never divide by 0.','Check: quotient × divisor + remainder = the number you started with. The remainder is always smaller than the divisor.']],
+  [/frac/,['Never add the bottoms: 1/2 + 1/3 is NOT 2/5. Find a common denominator first.','The bigger the bottom number, the smaller each piece: 1/8 < 1/3.','To make an equivalent fraction, multiply or divide the top AND the bottom by the same number.','Multiplying fractions: top × top and bottom × bottom. No common denominator needed.']],
+  [/dec/,['Line up the decimal points before adding or subtracting.','0.5 is bigger than 0.45: compare place by place, not by how many digits there are.','Multiplying decimals: count the digits after the points in both numbers; the answer has that many.']],
+  [/ratio|proportion/,['The order matters: 2 : 3 is not 3 : 2.','To share in a ratio, add the parts first to find what one part is worth.']],
+  [/percent/,['Per cent means out of 100: 7% = 7/100 = 0.07, not 0.7.','“Percent of” means multiply: 20% of 50 = 0.2 × 50.','A 10% rise then a 10% fall does not bring you back to the start.']],
+  [/negative|integers/,['Subtracting a negative is adding: 5 − (−3) = 8.','Two negatives multiplied make a positive: (−2) × (−3) = 6.','On the number line, −8 is smaller than −2.']],
+  [/exponent|sci_notation|square_roots/,['3² means 3 × 3 = 9, not 3 × 2 = 6.','Anything to the power 0 is 1.','√(a + b) is not √a + √b.','Multiplying powers of the same base: add the exponents. 2³ × 2² = 2⁵.']],
+  [/order_ops/,['Brackets first, then powers, then × and ÷ from left to right, then + and − from left to right.','2 + 3 × 4 = 14, not 20.']],
+  [/factors|gcf|lcm/,['Factors go INTO a number, multiples come OUT of it: factors of 12 are 1, 2, 3, 4, 6, 12.','1 is not a prime number.']],
+  [/coord|slope|linear|systems|functions/,['Coordinates are (x, y): across first, then up.','Slope = change in y ÷ change in x. Keep the same order on top and bottom.','In y = mx + b, b is where the line crosses the y-axis.']],
+  [/^eq_|inequalit/,['Do the same thing to BOTH sides of the equation.','When you multiply or divide an inequality by a negative number, flip the sign.','Check your answer by putting it back into the equation.']],
+  [/mean_median|std_dev/,['Put the values in order before you find the median.','Mean: add them all, then divide by HOW MANY values there are.']],
+  [/probability|combinations/,['A probability is always between 0 and 1.','Count all the possible outcomes, not just the ones you want.','Order matters for permutations, not for combinations.']],
+  [/pythagoras|trig|unit_circle|triangle_angles/,['c is always the longest side (the hypotenuse), opposite the right angle.','a² + b² = c² works only in right-angled triangles.','Check your calculator is in degrees, not radians.']],
+  [/polynomials|factoring|quadratic/,['(a + b)² = a² + 2ab + b², not a² + b².','A quadratic can have two answers. Do not forget the second one.','Check a factorisation by multiplying the brackets back out.']],
+  [/exponential|logs/,['log(a + b) is not log a + log b. But log(ab) = log a + log b.','Exponential growth multiplies by the same number each step; it does not add.']],
+  [/sequences/,['Arithmetic: add the same number each time. Geometric: multiply by the same number each time.']],
+  [/complex|euler/,['i² = −1, not 1.']],
+  [/limits|derivative|power_rule|chain_rule|product_rule/,['The derivative of a constant is 0.','Power rule: bring the power down, then take 1 off it. d/dx x³ = 3x².','Chain rule: do not forget to multiply by the derivative of the inside.']],
+  [/integral|ftc|substitution|diffeq/,['Do not forget + C on an indefinite integral.','Integrating xⁿ: add 1 to the power, then divide by the new power.']],
+  [/matrices|determinants|vectors|taylor/,['Matrix multiplication is row × column, and A × B is usually not B × A.','The dot product of two vectors is a number, not a vector.']]
+];
+var XMAP=[[/^count|place|round|compare|even_odd|skip_count/,'place'],[/add|sub|doubles|make_ten|borrow|carry|fact_family|word_addsub/,'addsub'],[/times|mul_groups|mul_arrays|mul_column/,'times'],[/div/,'divide'],
+  [/fractions_intro/,'frac'],[/frac_equivalent/,'fraceq'],[/frac_compare/,'fraccmp'],[/frac_add/,'fracadd'],[/frac_multiply/,'fracmul'],[/dec/,'dec'],[/percent/,'pct'],[/ratio|proportion/,'ratio'],
+  [/negative|integers/,'neg'],[/order_ops/,'bodmas'],[/exponent|square_roots/,'pow'],[/^eq_|inequalit/,'eq'],[/area|perimeter/,'area'],[/angles|triangle_angles/,'angle'],[/mean_median|std_dev/,'stats'],
+  [/probability|combinations/,'prob'],[/pythagoras/,'pyth'],[/slope|linear|coord|systems/,'slope'],[/quadratic|factoring|polynomials/,'quad'],[/derivative|power_rule|limits|chain_rule|product_rule/,'deriv']];
+WARN.reverse();XMAP.reverse(); /* most specific patterns first */
+function warnsFor(l){var k=l.id;for(var i=0;i<WARN.length;i++)if(WARN[i][0].test(k))return WARN[i][1];return ['Read the question twice before you answer.','Check your answer: does it make sense?'];}
+function gradeNum(g){return g==='college'?13:(parseInt(String(g).replace('g',''),10)||3);}
+/* new exercises for the lesson's topic, from the arcade's lesson bank */
+function extraFor(l,n){var A=W.mxArcade,id=null;if(!A||!A.lessons)return [];for(var i=0;i<XMAP.length;i++)if(XMAP[i][0].test(l.id)){id=XMAP[i][1];break;}
+  var t=id&&A.lessons.filter(function(x){return x.id===id;})[0];if(!t)return [];var L=Math.min(t.lv[1],Math.max(t.lv[0],gradeNum(l.grade))),out=[],seen={};
+  for(var k=0;k<n*3&&out.length<n;k++){var q=t.gen(L);if(seen[q.q])continue;seen[q.q]=1;out.push([q.q,String(q.a),(q.opts||[]).slice(0,3),q.steps||[]]);}return out;}
+/* Find my level: two questions per grade from the lesson quizzes; go up while both are right */
+function findLevel(done){
+  var gs=COURSE.grades.map(function(g){return g[0];}),i=Math.max(0,Math.min(gs.length-1,(PR.level?gs.indexOf(PR.level):2))),lo=0,hi=gs.length-1,rounds=0,best=-1;
+  var box=D.createElement('div');box.id='mxLvl';box.className='mxlv';D.body.appendChild(box);
+  function close(){box.remove();}
+  function round(){
+    if(lo>hi||rounds>=6){finish();return;}rounds++;
+    var pool=[];byGrade(gs[i]).forEach(function(l){(l.quiz||[]).forEach(function(q){pool.push(q);});});pool=shuffle(pool).slice(0,2);var k=0,right=0;
+    function ask(){var q=pool[k],opts=shuffle([q[1]].concat(q[2]||[]));
+      box.innerHTML='<div class="mxq-card"><div class="mxq-top"><b>🧭 '+E(T('Find my level'))+'</b><span>'+E(gradeName(gs[i]))+'</span></div><h3>'+E(q[0])+'</h3><div class="mxq-opts">'+opts.map(function(o){return '<button type="button" class="mxq-opt">'+E(o)+'</button>';}).join('')+'</div>'
+        +'<button type="button" class="mxm-btn sec" id="mxLvX">'+E(T('Stop'))+'</button></div>';
+      $('mxLvX').onclick=close;
+      box.querySelectorAll('.mxq-opt').forEach(function(b){b.onclick=function(){if(b.textContent===q[1])right++;k++;if(k<pool.length)ask();else{if(right===pool.length){best=Math.max(best,i);lo=i+1;}else hi=i-1;i=Math.floor((lo+hi)/2);if(lo>hi){finish();return;}round();}};});}
+    if(!pool.length){lo=i+1;i=Math.floor((lo+hi)/2);round();return;}ask();}
+  function finish(){var at=Math.min(gs.length-1,best+1);PR.level=gs[at];PR.grade=gs[at];saveProgress();
+    box.innerHTML='<div class="mxq-card"><div class="mxq-stars">🎯</div><h3>'+E(T('Your level'))+': '+E(gradeName(gs[at]))+'</h3><p>'+E(T('Start with the first lesson you have not done in this grade.'))+'</p><div class="mxq-opts row"><button type="button" class="mxm-btn pri" id="mxLvGo">'+E(T('Let’s go'))+' →</button></div></div>';
+    $('mxLvGo').onclick=function(){close();if(done)done();};}
+  round();
+}
+
+/* ---------- after each video: ⚠️ watch out, then ✏️ exercises ---------- */
 function openQuiz(){
   var l=P.list[P.i];if(!l||!l.quiz||!l.quiz.length)return;
   try{P.v.pause();}catch(e){}
-  var box=$('mxq'),qs=l.quiz,k=0,right=0;
+  var box=$('mxq'),qs=l.quiz.concat(extraFor(l,4)),k=0,right=0;
   box.hidden=false;
+  function warn(){var ws=warnsFor(l);
+    box.innerHTML='<div class="mxq-card mxq-warn" role="group" aria-label="'+E(T('Watch out'))+'"><div class="mxq-top"><b>⚠️ '+E(T('Watch out'))+'</b><span>'+E(T(l.title))+'</span></div>'
+      +'<ul class="mxq-wl">'+ws.map(function(w){return '<li>'+E(T(w))+'</li>';}).join('')+'</ul>'
+      +'<div class="mxq-opts row"><button type="button" class="mxm-btn sec" id="mxqRe0">↻ '+E(T('Watch again'))+'</button><button type="button" class="mxm-btn pri" id="mxqGo">✏️ '+E(T('Start the exercises'))+' ('+qs.length+')</button></div></div>';
+    $('mxqRe0').onclick=function(){box.hidden=true;P.v.currentTime=0;play(P.v);};$('mxqGo').onclick=ask;try{$('mxqGo').focus();}catch(e){}}
   function ask(){
     var q=qs[k],opts=shuffle([q[1]].concat(q[2]||[]));
     box.innerHTML='<div class="mxq-card" role="group" aria-label="'+E(T('Quiz'))+'"><div class="mxq-top"><b>❓ '+E(T('Quick quiz'))+'</b><span>'+(k+1)+' / '+qs.length+'</span></div>'
@@ -127,7 +199,8 @@ function openQuiz(){
       if(ok)right++;
       btns.forEach(function(x){x.disabled=true;if(x.textContent===q[1])x.classList.add('ok');});
       if(!ok)b.classList.add('no');
-      $('mxqMsg').textContent=ok?T('Correct! 🎉'):(T('Not quite — the answer is')+' '+q[1]);
+      $('mxqMsg').innerHTML=ok?E(T('Correct! 🎉')):(E(T('Not quite — the answer is'))+' <b>'+E(q[1])+'</b>'+(q[3]&&q[3].length?'<ol class="mxq-steps">'+q[3].map(function(st){return '<li>'+E(st)+'</li>';}).join('')+'</ol>':''));
+      if(!ok&&q[3]&&q[3].length){var nb=D.createElement('button');nb.type='button';nb.className='mxm-btn pri';nb.textContent=T('Next')+' →';nb.onclick=function(){k++;if(k<qs.length)ask();else done();};$('mxqMsg').appendChild(nb);try{nb.focus();}catch(e){}return;}
       setTimeout(function(){k++;if(k<qs.length)ask();else done();},ok?900:1700);
     };});
     try{btns[0].focus();}catch(e){}
@@ -147,7 +220,7 @@ function openQuiz(){
     if($('mxqNext'))$('mxqNext').onclick=function(){step(1);};
     if($('mxqClose'))$('mxqClose').onclick=function(){closePlayer(true);};
   }
-  ask();
+  warn();
 }
 
 /* ---------- the Math Learn "Video course" page ---------- */
@@ -166,12 +239,14 @@ function paint(){
   var g=curGrade(),nx=nextLesson();
   var list=Q?COURSE.lessons.filter(function(l){var s=(T(l.title)+' '+T(l.sub)+' '+gradeName(l.grade)).toLowerCase();return s.indexOf(Q)>-1;}):byGrade(g);
   var h='<div class="mxc" id="mxcRoot">'
-    +modeBar('videos')
     +'<div class="mxc-hero"><div class="mxc-owl" aria-hidden="true">🦉</div><div class="mxc-hi">'
-      +'<h1>'+E(T('Math Learn'))+'</h1><p>'+E(T('From adding in Grade 1 to calculus in college. Watch a one-minute lesson, then take the quiz.'))+'</p>'
+      +'<h1>'+E(T('Math Learn'))+'</h1><p>'+E(T('From adding in Grade 1 to calculus in college. Find your level, watch a one-minute video, read what to watch out for, then do the exercises.'))+'</p>'
       +'<div class="mxc-prog" role="progressbar" aria-valuemin="0" aria-valuemax="'+total+'" aria-valuenow="'+doneN+'"><i style="width:'+(total?Math.round(100*doneN/total):0)+'%"></i></div>'
       +'<small>'+doneN+' / '+total+' '+E(T('lessons done'))+'</small>'
+      +(PR.level?'<small class="mxc-lv">🎯 '+E(T('Your level'))+': <b>'+E(gradeName(PR.level))+'</b></small>':'')
       +(nx?'<button type="button" class="mxm-btn pri mxc-cont" id="mxcCont">▶ '+E(T('Continue'))+': '+E(T(nx.title))+'</button>':'')
+      +'<button type="button" class="mxm-btn sec mxc-cont" id="mxcLevel">🧭 '+E(T(PR.level?'Find my level again':'Find my level'))+'</button>'
+      +'<p class="mxc-how">🎬 '+E(T('Video'))+' → ⚠️ '+E(T('Watch out'))+' → ✏️ '+E(T('Exercises'))+'</p>'
     +'</div></div>'
     +'<input class="mxc-search" id="mxcQ" type="search" placeholder="'+E(T('Search lessons: fractions, slope, integrals…'))+'" value="'+E(Q)+'" aria-label="'+E(T('Search lessons'))+'">'
     +(Q?'':'<div class="mxc-grades" role="tablist" aria-label="'+E(T('Grades'))+'">'+COURSE.grades.map(function(gr){
@@ -184,9 +259,11 @@ function paint(){
           +'<span class="mxc-th"><img loading="lazy" alt="" src="'+E(l.poster)+'"><span class="mxc-d">'+fmtDur(l.dur)+'</span>'+(st>=0?'<span class="mxc-st">'+'★'.repeat(st)+'</span>':'')+'<span class="mxc-pl" aria-hidden="true">▶</span></span>'
           +'<span class="mxc-tx">'+(Q?'<small class="mxc-gl">'+E(gradeName(l.grade))+'</small>':'')+'<b>'+E(T(l.title))+'</b><small>'+E(T(l.sub))+'</small></span></button>';
       }).join('')+(list.length?'':'<div class="mxc-empty">'+E(T('No lessons match that.'))+'</div>')+'</div>'
+    +'<p class="mxc-old"><button type="button" class="mxr-link" id="mxcOld">🎯 '+E(T('Old practice course'))+'</button></p>'
     +'</div>';
   c.innerHTML=h;
-  wireMode(c);
+  $('mxcOld').onclick=function(){ls(MODE_KEY,'practice');try{W.renderContent();}catch(e){}};
+  $('mxcLevel').onclick=function(){findLevel(paint);};
   var cont=$('mxcCont');if(cont)cont.onclick=function(){PR.grade=nx.grade;var l=byGrade(nx.grade);openPlayer(l,l.indexOf(nx));};
   var q=$('mxcQ');q.oninput=function(){var pos=q.selectionStart;Q=(q.value||'').toLowerCase().trim();paint();var n=$('mxcQ');if(n){n.focus();try{n.setSelectionRange(pos,pos);}catch(e){}}};
   c.querySelectorAll('.mxc-g').forEach(function(b){b.onclick=function(){PR.grade=b.dataset.g;ls(PKEY,JSON.stringify(PR));paint();};});
@@ -195,8 +272,8 @@ function paint(){
 }
 function modeBar(mode){
   return '<div class="mxc-mode" role="tablist" aria-label="'+E(T('Math Learn'))+'">'
-    +'<button type="button" role="tab" data-mode="videos" aria-selected="'+(mode==='videos')+'" class="'+(mode==='videos'?'on':'')+'">🎬 '+E(T('Video course'))+'</button>'
-    +'<button type="button" role="tab" data-mode="practice" aria-selected="'+(mode==='practice')+'" class="'+(mode==='practice'?'on':'')+'">🎯 '+E(T('Practice'))+'</button></div>';
+    +'<button type="button" role="tab" data-mode="videos" aria-selected="'+(mode==='videos')+'" class="'+(mode==='videos'?'on':'')+'">← 🦉 '+E(T('Math Learn'))+'</button>'
+    +'<button type="button" role="tab" data-mode="practice" aria-selected="'+(mode==='practice')+'" class="'+(mode==='practice'?'on':'')+'">🎯 '+E(T('Old practice course'))+'</button></div>';
 }
 function wireMode(c){
   c.querySelectorAll('.mxc-mode button').forEach(function(b){b.onclick=function(){ls(MODE_KEY,b.dataset.mode);try{W.renderContent();}catch(e){}};});
@@ -238,5 +315,14 @@ function wire(){
   }
   W.mxCourse={open:function(id){var l=COURSE.lessons.filter(function(x){return x.id===id;})[0];if(!l)return;var g=byGrade(l.grade);openPlayer(g,g.indexOf(l));},data:COURSE,progress:PR};
 }
+var CSS=D.createElement('style');
+CSS.textContent='.mxq-wl{text-align:left;line-height:1.5;margin:10px 0 14px;padding-left:22px}.mxq-wl li{margin:8px 0}'
+ +'.mxq-warn{border:2px solid #f59e0b}.mxq-steps{text-align:left;margin:8px 0 10px;padding-left:22px;font-size:.95rem}'
+ +'.mxc-lv{display:block;margin-top:6px}.mxc-how{margin:10px 0 0;font-weight:800;opacity:.85}.mxc-old{text-align:center;margin:18px 0 6px;opacity:.75}'
+ +'.mxlv{position:fixed;inset:0;z-index:9999;background:rgba(5,6,20,.78);display:flex;align-items:center;justify-content:center;padding:16px}.mxlv .mxq-card{max-width:560px;width:100%}'
+ +'.mxlv #mxLvX{margin-top:12px}';
+D.head.appendChild(CSS);
+if(W.trAdd)W.trAdd({'From adding in Grade 1 to calculus in college. Find your level, watch a one-minute video, read what to watch out for, then do the exercises.':'De l’addition en CP au calcul en université. Trouve ton niveau, regarde une vidéo d’une minute, lis les pièges à éviter, puis fais les exercices.','Watch out':'Attention','Start the exercises':'Commencer les exercices','Find my level':'Trouver mon niveau','Find my level again':'Refaire le test de niveau','Your level':'Ton niveau',
+  'Start with the first lesson you have not done in this grade.':'Commence par la première leçon pas encore faite de cette année.','Let’s go':'C’est parti','Stop':'Arrêter','Video':'Vidéo','Exercises':'Exercices','Old practice course':'Ancien cours d’entraînement'});
 if(D.readyState==='loading')D.addEventListener('DOMContentLoaded',wire);else wire();
 })();

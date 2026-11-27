@@ -13,13 +13,13 @@ android {
         minSdk = 26
         targetSdk = 37 // Retained as explicitly requested; raise for a new Play submission.
         // Two Play builds from the same code:
-        //   production (default)          -> versionCode 23, "1.1.1"
-        //   open testing  -PmatixTrack=beta -> versionCode 24, "1.1.1-beta"
+        //   production (default)          -> versionCode 25, "1.2.0"
+        //   open testing  -PmatixTrack=beta -> versionCode 26, "1.2.0-beta"
         // The beta needs the higher code so open testers get it instead of the production build.
         val matixTrack = (project.findProperty("matixTrack") as String?) ?: "production"
-        val baseCode = 23
+        val baseCode = 25
         versionCode = if (matixTrack == "beta") baseCode + 1 else baseCode
-        versionName = if (matixTrack == "beta") "1.1.1-beta" else "1.1.1"
+        versionName = if (matixTrack == "beta") "1.2.0-beta" else "1.2.0"
         buildConfigField("String", "MATIX_TRACK", "\"$matixTrack\"")
     }
 

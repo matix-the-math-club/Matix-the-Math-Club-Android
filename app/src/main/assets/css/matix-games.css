@@ -200,3 +200,42 @@ body.desktop #mxbOv{top:40px}
 .mxp-bar .on{outline:3px solid #fde047}
 .mxp-teams{display:flex;gap:6px;flex-wrap:wrap}
 .mxp-ta{border-color:#ff4fa3 !important}.mxp-tb{border-color:#38bdf8 !important}
+/* 1.5.0: each class (grade) has its own world */
+.mxr-hero.mxr-world{background-size:cover;background-position:center;display:flex;align-items:center;gap:16px;min-height:150px}
+.mxr-hero.mxr-world>div{position:relative;z-index:1;flex:1;min-width:0}
+.mxr-wsp{position:relative;z-index:1;width:110px;height:110px;object-fit:contain;flex:none;order:2;filter:drop-shadow(0 10px 18px rgba(0,0,0,.45));animation:mxrBob 3s ease-in-out infinite}
+.mxr-wtag{display:inline-block;margin-bottom:8px;padding:5px 12px;border-radius:99px;background:rgba(255,255,255,.18);backdrop-filter:blur(6px);font-weight:800;font-size:.85rem}
+@keyframes mxrBob{50%{transform:translateY(-8px)}}
+@media (max-width:520px){.mxr-wsp{width:72px;height:72px}}
+@media (prefers-reduced-motion:reduce){.mxr-wsp{animation:none}}
+/* 1.6.0: Lessons in class mode */
+.mxl-all{display:flex;align-items:center;gap:8px;font-weight:700;margin:6px 0 12px;cursor:pointer}
+.mxl-all input{width:20px;height:20px}
+.mxl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+.mxl-card{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;align-items:center;padding:12px;border-radius:16px;border:1px solid var(--border,rgba(0,0,0,.12))}
+.mxl-ic{font-size:2rem;width:52px;height:52px;display:grid;place-items:center;border-radius:14px;background:rgba(139,92,246,.14)}
+.mxl-tx b{display:block}.mxl-tx small{opacity:.7}
+.mxl-act{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+.mxp-q.mxp-lt{font-size:clamp(1.8rem,5vw,3.6rem)}
+.mxp-body{margin-top:18px;font-size:clamp(1.1rem,2.8vw,2rem);line-height:1.5;white-space:pre-wrap;text-align:left;max-width:1000px;color:#e5e7eb}
+/* 1.7.0: smart-board activities */
+.mxb-grid .mxb-card{display:flex;align-items:center;gap:12px;text-align:left;padding:14px}
+.mxb-ic{font-size:2.2rem;width:64px;height:64px;flex:none;display:grid;place-items:center;border-radius:16px;background:rgba(34,197,94,.15)}
+.mxb-chips{display:flex;flex-wrap:wrap;gap:8px}
+.mxb-chip{min-height:44px;padding:8px 14px;border-radius:999px;border:1px solid var(--border,rgba(0,0,0,.15));background:var(--card,#fff);color:inherit;font:700 .92rem/1.2 inherit;font-family:inherit;cursor:pointer}
+.mxb-chip:hover{border-color:#22c55e}
+.mxb-note{opacity:.75;margin:0 0 8px}
+/* 1.8.0: learn with games + homework */
+#mxlOv{position:fixed;inset:0;z-index:9998;background:rgba(5,6,20,.72);display:flex;align-items:center;justify-content:center;padding:16px}
+.mxl-box{position:relative;width:min(720px,100%);max-height:92vh;overflow:auto;background:var(--card,#fff);color:inherit;border-radius:24px;padding:22px 22px 18px;box-shadow:0 30px 80px -20px rgba(0,0,0,.6)}
+body.dark .mxl-box,.dark .mxl-box{background:#17182f;color:#f5f6ff}
+.mxl-x{position:absolute;top:12px;right:12px;width:44px;height:44px;border-radius:50%;border:1px solid var(--border,rgba(0,0,0,.15));background:transparent;color:inherit;font-size:1.1rem;cursor:pointer}
+.mxl-hd{display:flex;align-items:center;gap:14px;padding-right:50px}.mxl-hd h2{margin:2px 0 0}.mxl-hd small{opacity:.7;font-weight:700}
+.mxl-big{font-size:2.6rem;width:70px;height:70px;flex:none;display:grid;place-items:center;border-radius:18px;background:rgba(139,92,246,.15)}
+.mxl-idea{white-space:pre-wrap;line-height:1.6;font-size:1.05rem}
+.mxl-note{padding:10px 14px;border-radius:14px;background:rgba(251,191,36,.15);font-weight:700}
+.mxl-ex{padding:14px;border-radius:16px;border:1px dashed var(--border,rgba(0,0,0,.25))}.mxl-q{font-size:1.2rem;font-weight:800;white-space:pre-wrap;margin:0 0 10px}
+.mxl-steps li{margin:4px 0}.mxl-a{list-style:none;font-weight:900;color:#16a34a;margin-top:8px}
+.mxl-go{margin:18px 0 6px}.mxl-go .mxm-btn{min-height:52px;font-size:1.05rem}
+.mxl-topics .mxb-chip{font-size:1rem}
+.mxhw-done{opacity:.75}
