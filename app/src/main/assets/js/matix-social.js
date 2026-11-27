@@ -388,12 +388,12 @@ var DOCK_KEY='matix_dock_items';
 var DOCK_ALL=[
   {k:'home',i:'⌂',l:'Home'},{k:'learn',i:'🦉',l:'Learn'},{k:'ai',i:'✨',l:'Matix AI'},
   {k:'search',i:'🔍',l:'Search'},{k:'messages',i:'🔔',l:'Inbox'},{k:'myuser',i:'👤',l:'My User'},
-  {k:'chat',i:'🧮',l:'Math Chat'},{k:'friends',i:'🤝',l:'Friends'},{k:'games',i:'🎮',l:'Games'},
+  {k:'chat',i:'🧮',l:'Math Chat'},{k:'friends',i:'🤝',l:'Friends'},
   {k:'points',i:'⭐',l:'Points'},{k:'ideas',i:'💡',l:'Ideas'},{k:'translate',i:'🌐',l:'Translator'},
   {k:'discussions',i:'💬',l:'Discussions'},{k:'users',i:'👥',l:'Users'},{k:'theme',i:'🎨',l:'Theme'},
   {k:'bugs',i:'🐞',l:'Bugs'}
 ];
-var DOCK_DEFAULT=['home','learn','games','messages','myuser'];
+var DOCK_DEFAULT=['home','learn','ai','messages','myuser']; /* 1.2.1: games live inside Math Learn */
 var DOCK_MAX=6;
 function dockItems(){
   var v=null;try{v=JSON.parse(lsG(DOCK_KEY)||'null');}catch(e){}

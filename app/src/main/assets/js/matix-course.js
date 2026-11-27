@@ -1,6 +1,10 @@
 /* =====================================================================
    Matix video course (1.0.8, one path since 1.2.0) — Math Learn, grade 1 -> college.
    1.2.0: Find my level → video → ⚠️ Watch out → ✏️ exercises (quiz + new ones).
+   1.2.1: everything together. After the exercises: 🎮 a game about the topic and
+   🎯 the practice lesson (the old practice course). 🎮 Game breaks sit between
+   the lessons, and 📝 homework is at the top. The app has no separate Games tab
+   any more: the games alone are on the website, merged into Math Learn here.
    - Every video in the app lives here (assets/media/lessons). No more
      background / header / intro films.
    - Math Learn opens on "Video course": pick a grade, watch a ~1 minute
@@ -157,6 +161,18 @@ function gradeNum(g){return g==='college'?13:(parseInt(String(g).replace('g','')
 function extraFor(l,n){var A=W.mxArcade,id=null;if(!A||!A.lessons)return [];for(var i=0;i<XMAP.length;i++)if(XMAP[i][0].test(l.id)){id=XMAP[i][1];break;}
   var t=id&&A.lessons.filter(function(x){return x.id===id;})[0];if(!t)return [];var L=Math.min(t.lv[1],Math.max(t.lv[0],gradeNum(l.grade))),out=[],seen={};
   for(var k=0;k<n*3&&out.length<n;k++){var q=t.gen(L);if(seen[q.q])continue;seen[q.q]=1;out.push([q.q,String(q.a),(q.opts||[]).slice(0,3),q.steps||[]]);}return out;}
+/* ---------- 1.2.1: games along the way ---------- */
+function topicOf(l){var A=W.mxArcade,id=null;if(!A||!A.lessons)return null;for(var i=0;i<XMAP.length;i++)if(XMAP[i][0].test(l.id)){id=XMAP[i][1];break;}return id?A.lessons.filter(function(x){return x.id===id;})[0]||null:null;}
+function gradeGames(L){var A=W.mxArcade;if(!A||!A.games)return [];var cl=A.classGames||[];return A.games.filter(function(g){if(cl.indexOf(g)>-1)return false;try{return A.forGrade?A.forGrade(g,L):true;}catch(e){return true;}});}
+function setArcadeLevel(l){try{localStorage.setItem('mx_arcade_level',String(Math.min(13,gradeNum(l.grade))));}catch(e){}}
+/* the game after a lesson, or a game break: a game for the grade, with questions about the topic when there is one */
+function playFor(l,k){var A=W.mxArcade;if(!A){toast(T('Games could not load.'),'err');return;}setArcadeLevel(l);
+  var t=topicOf(l),gs=gradeGames(gradeNum(l.grade)),g=gs.length?gs[(k==null?Math.floor(Math.random()*gs.length):k)%gs.length]:null;
+  if(g&&t&&A.startTopic)A.startTopic(g.id,t.id);else if(t&&A.quest)A.quest(t);else if(g)A.start(g.id);}
+function breakGame(l,k){var gs=gradeGames(gradeNum(l.grade));return gs.length?gs[k%gs.length]:null;}
+/* 🎯 the old practice course on the same topic */
+function practice(l){closePlayer(true);setTimeout(function(){W.LX_PENDING_TOPIC=T(l.title);try{ls(MODE_KEY,'videos');W.openTab({kind:'learn'});}catch(e){}},60);}
+
 /* Find my level: two questions per grade from the lesson quizzes; go up while both are right */
 function findLevel(done){
   var gs=COURSE.grades.map(function(g){return g[0];}),i=Math.max(0,Math.min(gs.length-1,(PR.level?gs.indexOf(PR.level):2))),lo=0,hi=gs.length-1,rounds=0,best=-1;
@@ -214,9 +230,12 @@ function openQuiz(){
     var nxt=P.i<P.list.length-1;
     box.innerHTML='<div class="mxq-card"><div class="mxq-stars" aria-label="'+stars+' '+E(T('stars'))+'">'+'★'.repeat(stars)+'<i>'+'★'.repeat(3-stars)+'</i></div>'
       +'<h3>'+right+' / '+qs.length+' '+E(T('correct'))+'</h3>'
+      +'<p class="mxq-way">'+E(T('Now play a game about it, or practise it step by step.'))+'</p>'
+      +'<div class="mxq-opts row"><button type="button" class="mxm-btn pri" id="mxqGame">🎮 '+E(T('Play a game about it'))+'</button><button type="button" class="mxm-btn sec" id="mxqPrac">🎯 '+E(T('Practice lesson'))+'</button></div>'
       +'<div class="mxq-opts row"><button type="button" class="mxm-btn sec" id="mxqRe">↻ '+E(T('Watch again'))+'</button>'
       +(nxt?'<button type="button" class="mxm-btn pri" id="mxqNext">'+E(T('Next lesson'))+' →</button>':'<button type="button" class="mxm-btn pri" id="mxqClose">'+E(T('Done'))+'</button>')+'</div></div>';
     $('mxqRe').onclick=function(){box.hidden=true;P.v.currentTime=0;play(P.v);};
+    $('mxqGame').onclick=function(){playFor(l);};$('mxqPrac').onclick=function(){practice(l);};
     if($('mxqNext'))$('mxqNext').onclick=function(){step(1);};
     if($('mxqClose'))$('mxqClose').onclick=function(){closePlayer(true);};
   }
@@ -240,14 +259,15 @@ function paint(){
   var list=Q?COURSE.lessons.filter(function(l){var s=(T(l.title)+' '+T(l.sub)+' '+gradeName(l.grade)).toLowerCase();return s.indexOf(Q)>-1;}):byGrade(g);
   var h='<div class="mxc" id="mxcRoot">'
     +'<div class="mxc-hero"><div class="mxc-owl" aria-hidden="true">🦉</div><div class="mxc-hi">'
-      +'<h1>'+E(T('Math Learn'))+'</h1><p>'+E(T('From adding in Grade 1 to calculus in college. Find your level, watch a one-minute video, read what to watch out for, then do the exercises.'))+'</p>'
+      +'<h1>'+E(T('Math Learn'))+'</h1><p>'+E(T('From adding in Grade 1 to calculus in college. Find your level, watch a one-minute video, read what to watch out for, do the exercises, then play a game about it.'))+'</p>'
       +'<div class="mxc-prog" role="progressbar" aria-valuemin="0" aria-valuemax="'+total+'" aria-valuenow="'+doneN+'"><i style="width:'+(total?Math.round(100*doneN/total):0)+'%"></i></div>'
       +'<small>'+doneN+' / '+total+' '+E(T('lessons done'))+'</small>'
       +(PR.level?'<small class="mxc-lv">🎯 '+E(T('Your level'))+': <b>'+E(gradeName(PR.level))+'</b></small>':'')
       +(nx?'<button type="button" class="mxm-btn pri mxc-cont" id="mxcCont">▶ '+E(T('Continue'))+': '+E(T(nx.title))+'</button>':'')
       +'<button type="button" class="mxm-btn sec mxc-cont" id="mxcLevel">🧭 '+E(T(PR.level?'Find my level again':'Find my level'))+'</button>'
-      +'<p class="mxc-how">🎬 '+E(T('Video'))+' → ⚠️ '+E(T('Watch out'))+' → ✏️ '+E(T('Exercises'))+'</p>'
+      +'<p class="mxc-how">🎬 '+E(T('Video'))+' → ⚠️ '+E(T('Watch out'))+' → ✏️ '+E(T('Exercises'))+' → 🎮 '+E(T('Game'))+'</p>'
     +'</div></div>'
+    +'<div id="mxhw" class="mxc-hw"></div>'
     +'<input class="mxc-search" id="mxcQ" type="search" placeholder="'+E(T('Search lessons: fractions, slope, integrals…'))+'" value="'+E(Q)+'" aria-label="'+E(T('Search lessons'))+'">'
     +(Q?'':'<div class="mxc-grades" role="tablist" aria-label="'+E(T('Grades'))+'">'+COURSE.grades.map(function(gr){
         var ls_=byGrade(gr[0]),dn=ls_.filter(function(l){return PR.done[l.id];}).length;
@@ -257,7 +277,8 @@ function paint(){
         var st=starsOf(l.id);
         return '<button type="button" class="mxc-card'+(st>=0?' done':'')+'" data-i="'+i+'" aria-label="'+E(T(l.title)+', '+fmtDur(l.dur)+(st>=0?', '+T('done'):''))+'">'
           +'<span class="mxc-th"><img loading="lazy" alt="" src="'+E(l.poster)+'"><span class="mxc-d">'+fmtDur(l.dur)+'</span>'+(st>=0?'<span class="mxc-st">'+'★'.repeat(st)+'</span>':'')+'<span class="mxc-pl" aria-hidden="true">▶</span></span>'
-          +'<span class="mxc-tx">'+(Q?'<small class="mxc-gl">'+E(gradeName(l.grade))+'</small>':'')+'<b>'+E(T(l.title))+'</b><small>'+E(T(l.sub))+'</small></span></button>';
+          +'<span class="mxc-tx">'+(Q?'<small class="mxc-gl">'+E(gradeName(l.grade))+'</small>':'')+'<b>'+E(T(l.title))+'</b><small>'+E(T(l.sub))+'</small></span></button>'
+          +(!Q&&i%3===2?gameCard(l,i):'');
       }).join('')+(list.length?'':'<div class="mxc-empty">'+E(T('No lessons match that.'))+'</div>')+'</div>'
     +'<p class="mxc-old"><button type="button" class="mxr-link" id="mxcOld">🎯 '+E(T('Old practice course'))+'</button></p>'
     +'</div>';
@@ -268,8 +289,12 @@ function paint(){
   var q=$('mxcQ');q.oninput=function(){var pos=q.selectionStart;Q=(q.value||'').toLowerCase().trim();paint();var n=$('mxcQ');if(n){n.focus();try{n.setSelectionRange(pos,pos);}catch(e){}}};
   c.querySelectorAll('.mxc-g').forEach(function(b){b.onclick=function(){PR.grade=b.dataset.g;ls(PKEY,JSON.stringify(PR));paint();};});
   c.querySelectorAll('.mxc-card').forEach(function(b){b.onclick=function(){openPlayer(list,+b.dataset.i);};});
+  c.querySelectorAll('.mxc-game').forEach(function(b){b.onclick=function(){playFor(list[+b.dataset.gi],+b.dataset.k);};});
+  try{if(W.mxArcade&&W.mxArcade.homework)W.mxArcade.homework(c);}catch(e){}
   var on=c.querySelector('.mxc-g.on');if(on&&on.scrollIntoView){try{on.scrollIntoView({block:'nearest',inline:'center'});}catch(e){}}
 }
+function gameCard(l,i){var g=breakGame(l,Math.floor(i/3));if(!g)return '';var t=topicOf(l);
+  return '<button type="button" class="mxc-game" data-gi="'+i+'" data-k="'+Math.floor(i/3)+'"><span class="mxc-gi">'+g.icon+'</span><span class="mxc-tx"><small>🎮 '+E(T('Game break'))+'</small><b>'+E(T(g.name))+'</b><small>'+E(t?T('Questions about')+' '+T(l.title):gradeName(l.grade))+'</small></span></button>';}
 function modeBar(mode){
   return '<div class="mxc-mode" role="tablist" aria-label="'+E(T('Math Learn'))+'">'
     +'<button type="button" role="tab" data-mode="videos" aria-selected="'+(mode==='videos')+'" class="'+(mode==='videos'?'on':'')+'">← 🦉 '+E(T('Math Learn'))+'</button>'
@@ -298,7 +323,7 @@ function wire(){
   if(typeof rc==='function'&&!rc.__mxc){
     W.renderContent=function(){
       var t=null;try{t=W.activeTab();}catch(e){}
-      if(t&&t.kind==='motion'){t.kind='learn';}
+      if(t&&(t.kind==='motion'||t.kind==='games')){t.kind='learn';t.icon='🦉';t.title=T('Math Learn');try{W.drawTabs();}catch(e){}}
       if(t&&t.kind==='learn'&&!W.LX_PENDING_TOPIC&&ls(MODE_KEY)!=='practice'&&COURSE.lessons.length){
         if(MO){MO.disconnect();MO=null;}
         var c=$('content');ROOT=c;
@@ -320,9 +345,12 @@ CSS.textContent='.mxq-wl{text-align:left;line-height:1.5;margin:10px 0 14px;padd
  +'.mxq-warn{border:2px solid #f59e0b}.mxq-steps{text-align:left;margin:8px 0 10px;padding-left:22px;font-size:.95rem}'
  +'.mxc-lv{display:block;margin-top:6px}.mxc-how{margin:10px 0 0;font-weight:800;opacity:.85}.mxc-old{text-align:center;margin:18px 0 6px;opacity:.75}'
  +'.mxlv{position:fixed;inset:0;z-index:9999;background:rgba(5,6,20,.78);display:flex;align-items:center;justify-content:center;padding:16px}.mxlv .mxq-card{max-width:560px;width:100%}'
- +'.mxlv #mxLvX{margin-top:12px}';
+ +'.mxlv #mxLvX{margin-top:12px}.mxq-card{color:#f5f6ff}.mxq-card h3,.mxq-card p,.mxq-card li{color:inherit}'
+ +'.mxq-way{opacity:.85;margin:4px 0 10px}.mxq-opts.row+.mxq-opts.row{margin-top:10px}.mxc-hw:empty{display:none}.mxc-hw{margin:0 0 14px}'
+ +'.mxc-game{display:flex;align-items:center;gap:14px;text-align:left;padding:16px;border-radius:20px;border:2px dashed rgba(139,92,246,.55);background:linear-gradient(135deg,rgba(255,79,163,.14),rgba(139,92,246,.16));color:inherit;font:inherit;cursor:pointer;min-height:96px}'
+ +'.mxc-game:hover{transform:translateY(-2px)}.mxc-gi{font-size:2.4rem;flex:none}.mxc-game .mxc-tx{display:flex;flex-direction:column;gap:2px}.mxc-game small{opacity:.8}';
 D.head.appendChild(CSS);
 if(W.trAdd)W.trAdd({'From adding in Grade 1 to calculus in college. Find your level, watch a one-minute video, read what to watch out for, then do the exercises.':'De l’addition en CP au calcul en université. Trouve ton niveau, regarde une vidéo d’une minute, lis les pièges à éviter, puis fais les exercices.','Watch out':'Attention','Start the exercises':'Commencer les exercices','Find my level':'Trouver mon niveau','Find my level again':'Refaire le test de niveau','Your level':'Ton niveau',
-  'Start with the first lesson you have not done in this grade.':'Commence par la première leçon pas encore faite de cette année.','Let’s go':'C’est parti','Stop':'Arrêter','Video':'Vidéo','Exercises':'Exercices','Old practice course':'Ancien cours d’entraînement'});
+  'Now play a game about it, or practise it step by step.':'Maintenant joue à un jeu sur ce thème, ou entraîne-toi étape par étape.','Play a game about it':'Jouer à un jeu sur ce thème','Practice lesson':'Leçon d’entraînement','Game':'Jeu','Game break':'Pause jeu','Questions about':'Questions sur','Games could not load.':'Les jeux n’ont pas pu se charger.','From adding in Grade 1 to calculus in college. Find your level, watch a one-minute video, read what to watch out for, do the exercises, then play a game about it.':'De l’addition en CP au calcul en université. Trouve ton niveau, regarde une vidéo d’une minute, lis les pièges à éviter, fais les exercices, puis joue à un jeu sur ce thème.','Start with the first lesson you have not done in this grade.':'Commence par la première leçon pas encore faite de cette année.','Let’s go':'C’est parti','Stop':'Arrêter','Video':'Vidéo','Exercises':'Exercices','Old practice course':'Ancien cours d’entraînement'});
 if(D.readyState==='loading')D.addEventListener('DOMContentLoaded',wire);else wire();
 })();

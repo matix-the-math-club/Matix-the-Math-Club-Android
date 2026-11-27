@@ -17,7 +17,7 @@ function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return 
 function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v);}catch(e){return null;}}
 
 var SECTIONS=[
-  ['home','⌂','Home'],['learn','🦉','Math Learn'],['games','🎮','Games'],['ai','✨','Matix AI'],
+  ['home','⌂','Home'],['learn','🦉','Math Learn'],['ai','✨','Matix AI'],
   ['chat','🧮','Math Chat'],['friends','🤝','Friends'],['messages','🔔','Inbox'],['myuser','👤','My User'],
   ['points','⭐','Points'],['ideas','💡','Ideas'],['discussions','💬','Discussions'],['users','👥','Users'],
   ['translate','🌐','Translator'],['theme','🎨','Theme'],['bugs','🐞','Bugs']

@@ -2899,7 +2899,6 @@ if($('profileBtn'))$('profileBtn').onclick=function(){if(!window.ME){toast('Sign
 var CUSTOM_PAGES={};
 var STATIC=[
   {kind:'home',icon:'🏠',name:'Home'},
-  {kind:'games',icon:'🎮',name:'Games'},
   {kind:'ideas',icon:'💡',name:'Ideas'},
   {kind:'learn',icon:'🦉',name:'Math Learn'},
   {kind:'points',icon:'⭐',name:'Points'},
@@ -3206,7 +3205,7 @@ function renderHome(c){
    +'</div>';
   var qa=[{k:'ai',i:'✨',t:'Matix AI',s:'Ask anything'},
           {k:'discussions',i:'💬',t:'Discussions',s:'Your math chats'},
-          {k:'games',i:'🎮',t:'Games',s:'Play and build'},
+          {k:'learn',i:'🦉',t:'Math Learn',s:'Videos, practice and games'},
           {k:'translate',i:'🌐',t:'Translator',s:'16 languages'},
           {k:'ideas',i:'💡',t:'Ideas',s:'Suggest a feature'},
           {k:'points',i:'⭐',t:'Points',s:'Leaderboard'}];
@@ -9436,7 +9435,7 @@ var LB_COLORS=['pink','purple','blue','orange'];
 var LB_DEFAULT_FEATURED=[
   {icon:'\uD83E\uDD89',title:'Math Learn',sub:'Type any math topic — the Matix AI teaches it to you from zero, then quizzes you.',color:'pink',open:{kind:'learn'}},
   {icon:'\u2728',title:'Matix AI',sub:'Chat with the club AI about anything — homework, ideas, or just for fun.',color:'purple',open:{kind:'ai'}},
-  {icon:'\uD83C\uDFAE',title:'Games',sub:'Play math games made by the club — or build and publish your own.',color:'blue',open:{kind:'games'}},
+  {icon:'\uD83C\uDFAE',title:'Games',sub:'Math games come along the way in Math Learn: watch, practise, then play.',color:'blue',open:{kind:'learn'}},
   {icon:'\uD83D\uDCA1',title:'Ideas',sub:'Suggest features and vote on what Matix builds next.',color:'orange',open:{kind:'ideas'}}
 ];
 function lbOpenTarget(o){
